@@ -8,6 +8,7 @@ import { withInjectionGuard } from "@/middleware/promptInjectionGuard";
 import { resolveResponsesApiModel } from "@/app/api/internal/codex-responses-ws/modelResolution";
 import { getModelInfo } from "@/sse/services/model";
 import { getComboByName } from "@/lib/db/combos";
+import { resolveSameModelAggregateCombo } from "@/sse/services/sameModelAggregation";
 import { resolveKeepaliveThreshold } from "@omniroute/open-sse/utils/keepaliveThreshold";
 
 // NOTE: We do NOT call initTranslators() here — the translator registry is
@@ -57,7 +58,8 @@ export async function withCodexPreferredModel(
     const { model, changed } = await resolveResponsesApiModel(
       body.model,
       getModelInfo,
-      async (name) => !!(await getComboByName(name))
+      async (name) =>
+        !!(await getComboByName(name)) || !!(await resolveSameModelAggregateCombo(name))
     );
     if (!changed) return { request, body };
 

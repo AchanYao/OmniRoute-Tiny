@@ -99,6 +99,7 @@ import {
 } from "./reasoningRouting";
 import { createVirtualAutoCombo, resolveAutoRoutingState } from "./autoRouting";
 import { getComboFailureLogError } from "./comboFailureLogging";
+import { resolveSameModelAggregateCombo } from "../services/sameModelAggregation";
 
 // Pipeline integration — wired modules
 import { classify429FromError, type FailureKind } from "@/shared/utils/classify429";
@@ -679,6 +680,10 @@ async function handleChatImplementation(
         break;
       }
     }
+  }
+
+  if (!combo) {
+    combo = await resolveSameModelAggregateCombo(resolvedModelStr);
   }
 
   const virtualCombo = await createVirtualAutoCombo(autoRouting, combo, apiKeyInfo?.id);

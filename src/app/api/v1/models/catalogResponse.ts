@@ -31,6 +31,7 @@ import {
 import { isModelCatalogNamesEnabled } from "@/shared/utils/featureFlags";
 import { maybeOmitCatalogModelName } from "./catalogHelpers";
 import { isCodexModelCatalogClient } from "./catalogRequest";
+import { aggregateExactSameIdModels } from "./catalogAggregation";
 
 /**
  * Post-filter chain applied AFTER the API-key filter, so variants and mirrors are
@@ -144,6 +145,7 @@ export function applyCatalogPostFilters(
   // identity (id, type, subtype) so the intentional same-id audio transcription/speech
   // pair survives. Independent of MODELS_CATALOG_PREFIX_MODE; runs as the final guard.
   finalModels = dedupeExactCatalogIds(finalModels);
+  finalModels = aggregateExactSameIdModels(finalModels);
 
   return finalModels;
 }
