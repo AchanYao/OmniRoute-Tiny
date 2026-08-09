@@ -13,13 +13,15 @@
  */
 
 import { markServerStopping } from "@/lib/serverLifecycle";
+import { getBuildCapabilities, resolveBuildProfile } from "@/shared/constants/buildProfile";
 
 /** Grace period before forced exit (default 30s, configurable) */
 const SHUTDOWN_TIMEOUT_MS = parseInt(process.env.SHUTDOWN_TIMEOUT_MS || "30000", 10);
 
 declare global {
   var __omnirouteShutdown:
-    { init: boolean; shuttingDown: boolean; activeRequests: number } | undefined;
+    | { init: boolean; shuttingDown: boolean; activeRequests: number }
+    | undefined;
 }
 
 function getShutdownState() {
@@ -97,9 +99,9 @@ async function waitForDrain(): Promise<void> {
  */
 async function cleanup(): Promise<void> {
   try {
-    const [{ closeAuditDb }, { closeDbInstance }, { flushSpendBatchWriter }, { closeLogRotation }] =
+    const buildCapabilities = getBuildCapabilities(resolveBuildProfile(process.env));
+    const [{ closeDbInstance }, { flushSpendBatchWriter }, { closeLogRotation }] =
       await Promise.all([
-        import("@omniroute/open-sse/mcp-server/audit.ts"),
         import("@/lib/db/core"),
         import("@/lib/spend/batchWriter"),
         import("@/lib/logRotation"),
@@ -110,8 +112,11 @@ async function cleanup(): Promise<void> {
         `[Shutdown] Spend batch writer flushed ${flushResult.flushedEntries} pending entry(ies).`
       );
     }
-    if (closeAuditDb()) {
-      console.log("[Shutdown] MCP audit database checkpointed and closed.");
+    if (buildCapabilities.mcp) {
+      const { closeAuditDb } = await import("@omniroute/open-sse/mcp-server/audit.ts");
+      if (closeAuditDb()) {
+        console.log("[Shutdown] MCP audit database checkpointed and closed.");
+      }
     }
     if (closeDbInstance()) {
       console.log("[Shutdown] SQLite database checkpointed and closed.");
@@ -123,10 +128,12 @@ async function cleanup(): Promise<void> {
     // past the server process. Best-effort; no-op if the feature was never used
     // or the docker CLI is unavailable.
     try {
-      const { stopAllSessions, listSessions } = await import("@/lib/vncSession/service");
-      if (listSessions().length > 0) {
-        await stopAllSessions();
-        console.log("[Shutdown] VNC login sessions stopped.");
+      if (buildCapabilities.agentProtocols) {
+        const { stopAllSessions, listSessions } = await import("@/lib/vncSession/service");
+        if (listSessions().length > 0) {
+          await stopAllSessions();
+          console.log("[Shutdown] VNC login sessions stopped.");
+        }
       }
     } catch {
       /* feature unused / docker missing */

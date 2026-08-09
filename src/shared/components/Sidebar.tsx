@@ -12,6 +12,7 @@ import {
   toggleExpandedSection,
 } from "@/shared/utils/sidebarExpansionState";
 import { APP_CONFIG } from "@/shared/constants/appConfig";
+import { resolveBuildProfile } from "@/shared/constants/buildProfile";
 import OmniRouteLogo from "./OmniRouteLogo";
 import Button from "./Button";
 import Input from "./Input";
@@ -32,6 +33,7 @@ import {
   applySectionOrder,
   applyItemOrder,
   getSidebarIconAccent,
+  getGatewayHiddenSidebarItems,
   isSidebarItemVisibleForFlags,
   type SidebarSectionId,
   type SidebarItemDefinition,
@@ -225,7 +227,10 @@ export default function Sidebar({
     };
   };
 
-  const hiddenSidebarSet = new Set(hiddenSidebarItems);
+  const buildProfile = resolveBuildProfile({
+    OMNIROUTE_BUILD_PROFILE: process.env.NEXT_PUBLIC_OMNIROUTE_BUILD_PROFILE,
+  });
+  const hiddenSidebarSet = new Set(getGatewayHiddenSidebarItems(buildProfile, hiddenSidebarItems));
   const hiddenSidebarGroupLabelsSet = new Set(hiddenSidebarGroupLabels);
 
   const orderedSections = applySectionOrder(

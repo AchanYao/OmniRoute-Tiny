@@ -7,6 +7,8 @@
  */
 
 import { markServerReady, markServerStarting } from "@/lib/serverLifecycle";
+import { runOptionalPlatformStartup } from "@/lib/build-profile/runOptionalPlatformStartup";
+import { getBuildCapabilities, resolveBuildProfile } from "@/shared/constants/buildProfile";
 
 function getRandomBytes(byteLength: number): Uint8Array {
   const bytes = new Uint8Array(byteLength);
@@ -243,6 +245,7 @@ export async function scanComboModelNameCollisionsAtBoot(): Promise<void> {
 }
 
 export async function registerNodejs(): Promise<void> {
+  const buildCapabilities = getBuildCapabilities(resolveBuildProfile(process.env));
   markServerStarting();
 
   // Rename the process title so OmniRoute is identifiable in ps/htop instead
@@ -308,8 +311,6 @@ export async function registerNodejs(): Promise<void> {
     { startSpendBatchWriter },
     { registerDefaultGuardrails },
     { ensurePersistentManagementPasswordHash },
-    { skillExecutor },
-    { registerBuiltinSkills },
   ] = await Promise.all([
     import("@/lib/gracefulShutdown"),
     import("@/lib/apiBridgeServer"),
@@ -322,8 +323,6 @@ export async function registerNodejs(): Promise<void> {
     import("@/lib/spend/batchWriter"),
     import("@/lib/guardrails"),
     import("@/lib/auth/managementPassword"),
-    import("@/lib/skills/executor"),
-    import("@/lib/skills/builtins"),
   ]);
 
   // Proxy health scheduler (auto-removes dead proxies on interval)
@@ -336,10 +335,18 @@ export async function registerNodejs(): Promise<void> {
   initApiBridgeServer();
   startSpendBatchWriter();
   registerDefaultGuardrails();
-  registerBuiltinSkills(skillExecutor);
   console.log("[STARTUP] Spend batch writer started");
   console.log("[STARTUP] Guardrail registry initialized");
-  console.log("[STARTUP] Builtin skill handlers registered");
+  await runOptionalPlatformStartup(buildCapabilities, {
+    registerBuiltinSkills: async () => {
+      const [{ skillExecutor }, { registerBuiltinSkills }] = await Promise.all([
+        import("@/lib/skills/executor"),
+        import("@/lib/skills/builtins"),
+      ]);
+      registerBuiltinSkills(skillExecutor);
+      console.log("[STARTUP] Builtin skill handlers registered");
+    },
+  });
   if (!isBackgroundServicesDisabled()) {
     startBackgroundRefresh();
     console.log("[STARTUP] Quota cache background refresh started");
@@ -602,24 +609,28 @@ export async function registerNodejs(): Promise<void> {
       // TV6 typed memory decay: optional periodic sweep of decayed episodic memories.
       // Doubly opt-in (no-op unless MEMORY_TYPED_DECAY_ENABLED=true AND
       // MEMORY_TYPED_DECAY_SWEEP_INTERVAL>0). Never deletes by default. Never fatal.
-      import("@/lib/memory/typedDecay")
-        .then((m) => m.startMemoryDecaySweep())
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn("[STARTUP] memory decay sweep failed to start (non-fatal):", msg);
-        }),
+      buildCapabilities.memory
+        ? import("@/lib/memory/typedDecay")
+            .then((m) => m.startMemoryDecaySweep())
+            .catch((err: unknown) => {
+              const msg = err instanceof Error ? err.message : String(err);
+              console.warn("[STARTUP] memory decay sweep failed to start (non-fatal):", msg);
+            })
+        : Promise.resolve(),
 
       // MemoryBackend provider pattern (PR #8752): initialize configured memory
       // backends from settings (sqlite, obsidian, notion, custom HTTP, etc.).
       // Reads the DB settings synchronously (non-blocking, never fatal). Must
       // run after the DB is ready AND after getSettings/applyRuntimeSettings so
       // memory backend config is hydrated.
-      import("@/lib/memory/index")
-        .then((m) => m.initMemoryBackends())
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn("[STARTUP] memory backend initialization failed (non-fatal):", msg);
-        }),
+      buildCapabilities.memory
+        ? import("@/lib/memory/index")
+            .then((m) => m.initMemoryBackends())
+            .catch((err: unknown) => {
+              const msg = err instanceof Error ? err.message : String(err);
+              console.warn("[STARTUP] memory backend initialization failed (non-fatal):", msg);
+            })
+        : Promise.resolve(),
 
       // Backup schedule (#8513): execute `backup-schedule.json` cron server-side.
       // Reads the schedule written by `omniroute backup auto enable` and fires

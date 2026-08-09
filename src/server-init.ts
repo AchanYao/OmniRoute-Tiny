@@ -15,8 +15,8 @@ import { startRuntimeConfigHotReload } from "./lib/config/hotReload";
 import { startSpendBatchWriter } from "./lib/spend/batchWriter";
 import { registerDefaultGuardrails } from "./lib/guardrails";
 import { ensurePersistentManagementPasswordHash } from "./lib/auth/managementPassword";
-import { skillExecutor } from "./lib/skills/executor";
-import { registerBuiltinSkills } from "./lib/skills/builtins";
+import { runOptionalPlatformStartup } from "./lib/build-profile/runOptionalPlatformStartup";
+import { getBuildCapabilities, resolveBuildProfile } from "./shared/constants/buildProfile";
 import { createLogger } from "./shared/utils/logger";
 
 const startupLog = createLogger("server-init");
@@ -98,18 +98,32 @@ async function startServer() {
     // Initialize cloud sync
     startSpendBatchWriter();
     registerDefaultGuardrails();
-    registerBuiltinSkills(skillExecutor);
     startupLog.info("Spend batch writer started");
     startupLog.info("Guardrail registry initialized");
-    startupLog.info("Builtin skill handlers registered");
-
-    // Load active plugins on startup so they survive restarts
-    try {
-      const { pluginManager } = await import("./lib/plugins/manager");
-      await pluginManager.loadAll();
-      startupLog.info("Plugin manager loaded active plugins");
-    } catch (err) {
-      startupLog.warn({ err }, "Plugin manager loadAll failed (non-fatal)");
+    const platformStartup = await runOptionalPlatformStartup(
+      getBuildCapabilities(resolveBuildProfile(process.env)),
+      {
+        registerBuiltinSkills: async () => {
+          const [{ skillExecutor }, { registerBuiltinSkills }] = await Promise.all([
+            import("@/lib/skills/executor"),
+            import("@/lib/skills/builtins"),
+          ]);
+          registerBuiltinSkills(skillExecutor);
+          startupLog.info("Builtin skill handlers registered");
+        },
+        loadPlugins: async () => {
+          try {
+            const { pluginManager } = await import("@/lib/plugins/manager");
+            await pluginManager.loadAll();
+            startupLog.info("Plugin manager loaded active plugins");
+          } catch (err) {
+            startupLog.warn({ err }, "Plugin manager loadAll failed (non-fatal)");
+          }
+        },
+      }
+    );
+    if (platformStartup.skills === "skipped" || platformStartup.plugins === "skipped") {
+      startupLog.info({ platformStartup }, "Optional platform startup skipped by build profile");
     }
 
     await initializeCloudSync();

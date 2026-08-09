@@ -345,8 +345,7 @@ import {
 } from "../utils/aiSdkCompat.ts";
 import { generateRequestId } from "@/shared/utils/requestId";
 import { isLocalStreamLifecycleError } from "@/shared/utils/circuitBreaker";
-import { extractFacts } from "@/lib/memory/extraction";
-import { handleToolCallExecution } from "@/lib/skills/interception";
+import { getBuildCapabilities, resolveBuildProfile } from "@/shared/constants/buildProfile";
 import { OMNIROUTE_RESPONSE_HEADERS } from "@/shared/constants/headers";
 import { getClaudeCodeCompatibleRequestDefaults } from "@/lib/providers/requestDefaults";
 import {
@@ -369,6 +368,8 @@ import {
 } from "../services/geminiRateLimitTracker.ts";
 
 import { isSmallEnoughForSemanticCache } from "../utils/estimateSize.ts";
+
+const BUILD_CAPABILITIES = getBuildCapabilities(resolveBuildProfile(process.env));
 
 /**
  * Core chat handler - shared between SSE and Worker
@@ -1371,7 +1372,8 @@ export async function handleChatCore({
       }
       // Phase 4A: unified output styles (supersedes cavemanOutputMode via the back-compat shim).
       let outputStyleResult:
-        import("../services/compression/outputStyles/apply.ts").OutputStylesResult | null = null;
+        | import("../services/compression/outputStyles/apply.ts").OutputStylesResult
+        | null = null;
       if (config.enabled && compressionHeader?.trim().toLowerCase() !== "off") {
         try {
           const { resolveOutputStyleSelection } =
@@ -1423,8 +1425,8 @@ export async function handleChatCore({
           ? ((compressionInputBody as Record<string, unknown>).max_tokens as number)
           : null;
       let adaptiveTelemetry:
-        import("../services/compression/adaptiveCompression/types.ts").AdaptiveTelemetry | null =
-        null;
+        | import("../services/compression/adaptiveCompression/types.ts").AdaptiveTelemetry
+        | null = null;
       const compressionPlan = selectCompressionPlan(
         config,
         compressionComboKey,
@@ -2207,17 +2209,19 @@ export async function handleChatCore({
     }
   } catch (error) {
     // ── Plugin onError hook ──
-    try {
-      const { runOnError } = await import("@/lib/plugins/hooks");
-      await runOnError(
-        { requestId: traceId, body, model, provider, apiKeyInfo, metadata: {} },
-        error instanceof Error ? error : new Error(String(error))
-      );
-    } catch (pluginErr) {
-      log?.debug?.(
-        "PLUGIN",
-        `onError hook error (non-fatal): ${pluginErr instanceof Error ? pluginErr.message : String(pluginErr)}`
-      );
+    if (BUILD_CAPABILITIES.plugins) {
+      try {
+        const { runOnError } = await import("@/lib/plugins/hooks");
+        await runOnError(
+          { requestId: traceId, body, model, provider, apiKeyInfo, metadata: {} },
+          error instanceof Error ? error : new Error(String(error))
+        );
+      } catch (pluginErr) {
+        log?.debug?.(
+          "PLUGIN",
+          `onError hook error (non-fatal): ${pluginErr instanceof Error ? pluginErr.message : String(pluginErr)}`
+        );
+      }
     }
 
     const parsedStatus = Number(error?.statusCode);
@@ -2652,7 +2656,8 @@ export async function handleChatCore({
 
   let onPipelineStreamError: streamFailure.PipelineStreamErrorHandler | null = null;
   let onClientDisconnectFinalize:
-    ((event: { reason: string; duration: number }) => boolean) | null = null;
+    | ((event: { reason: string; duration: number }) => boolean)
+    | null = null;
 
   // Create stream controller for disconnect detection
   const streamController = createStreamController({
@@ -4380,7 +4385,13 @@ export async function handleChatCore({
       preserveContextBudgetInVisibleUsage: isClaudeCodeCompatible,
     });
 
-    if (memoryOwnerId && memorySettings?.enabled && memorySettings.maxTokens > 0) {
+    if (
+      BUILD_CAPABILITIES.memory &&
+      memoryOwnerId &&
+      memorySettings?.enabled &&
+      memorySettings.maxTokens > 0
+    ) {
+      const { extractFacts } = await import("@/lib/memory/extraction");
       const requestMemoryText = extractMemoryTextFromRequestBody(body as Record<string, unknown>);
       if (requestMemoryText) {
         extractFacts(requestMemoryText, memoryOwnerId, pipelineSessionId);
@@ -4397,8 +4408,9 @@ export async function handleChatCore({
     const builtinToolNames = [webSearchFallbackPlan.toolName, webFetchFallbackPlan.toolName].filter(
       (name): name is string => Boolean(name)
     );
-    if (customSkillExecutionEnabled || builtinToolNames.length > 0) {
+    if (BUILD_CAPABILITIES.skills && (customSkillExecutionEnabled || builtinToolNames.length > 0)) {
       const skillSessionId = pipelineSessionId;
+      const { handleToolCallExecution } = await import("@/lib/skills/interception");
 
       translatedResponse = await handleToolCallExecution(
         translatedResponse,
@@ -4867,6 +4879,7 @@ export async function handleChatCore({
     // === /Quota Share POST-hook streaming ===
 
     if (
+      BUILD_CAPABILITIES.memory &&
       memoryOwnerId &&
       memorySettings?.enabled &&
       memorySettings.maxTokens > 0 &&
@@ -4874,14 +4887,18 @@ export async function handleChatCore({
     ) {
       const requestMemoryText = extractMemoryTextFromRequestBody(body as Record<string, unknown>);
       if (requestMemoryText) {
-        extractFacts(requestMemoryText, memoryOwnerId, pipelineSessionId);
+        void import("@/lib/memory/extraction").then(({ extractFacts }) => {
+          extractFacts(requestMemoryText, memoryOwnerId, pipelineSessionId);
+        });
       }
 
       const streamedMemoryText = extractMemoryTextFromResponse(
         (streamResponseBody ?? null) as Record<string, unknown> | null
       );
       if (streamedMemoryText) {
-        extractFacts(streamedMemoryText, memoryOwnerId, pipelineSessionId);
+        void import("@/lib/memory/extraction").then(({ extractFacts }) => {
+          extractFacts(streamedMemoryText, memoryOwnerId, pipelineSessionId);
+        });
       }
     }
 

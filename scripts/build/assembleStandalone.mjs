@@ -48,10 +48,7 @@
 import fs from "node:fs/promises";
 import fsSync from "node:fs";
 import path from "node:path";
-import {
-  colocateLlmlinguaOptionals,
-  SEED_PACKAGES,
-} from "./colocateOptionals.mjs";
+import { colocateLlmlinguaOptionals, SEED_PACKAGES } from "./colocateOptionals.mjs";
 
 /**
  * Check whether a path exists (async).
@@ -236,6 +233,7 @@ const EXTRA_MODULE_ENTRIES = [
     label: "undici (MCP server static import — #7701)",
     src: ["node_modules", "undici"],
     dest: ["node_modules", "undici"],
+    gatewayExcluded: true,
   },
   {
     label: "sql.js WASM fallback runtime",
@@ -246,6 +244,7 @@ const EXTRA_MODULE_ENTRIES = [
     label: "sqlite-vec wrapper (vector memory - loaded at runtime via createRequire)",
     src: ["node_modules", "sqlite-vec"],
     dest: ["node_modules", "sqlite-vec"],
+    gatewayExcluded: true,
   },
   // sqlite-vec's native vec0.so lives in a platform-specific package resolved at
   // runtime via require.resolve(). Next.js does NOT trace it into the standalone
@@ -259,7 +258,12 @@ const EXTRA_MODULE_ENTRIES = [
     "sqlite-vec-darwin-x64",
     "sqlite-vec-darwin-arm64",
     "sqlite-vec-windows-x64",
-  ].map((pkg) => ({ label: pkg, src: ["node_modules", pkg], dest: ["node_modules", pkg] })),
+  ].map((pkg) => ({
+    label: pkg,
+    src: ["node_modules", pkg],
+    dest: ["node_modules", pkg],
+    gatewayExcluded: true,
+  })),
 ];
 
 /**
@@ -504,7 +508,7 @@ function copyStaticAndPublic({ distDir, relDistDir, projectRoot, resolvedOutDir 
  * @param {string} projectRoot
  * @param {string} resolvedOutDir
  */
-function copyNativeAssetsAndExtraModules(projectRoot, resolvedOutDir) {
+function copyNativeAssetsAndExtraModules(projectRoot, resolvedOutDir, includeAgentPlatform) {
   for (const asset of NATIVE_ASSET_ENTRIES) {
     const src = path.join(projectRoot, ...asset.src);
     if (!fsSync.existsSync(src)) continue;
@@ -515,6 +519,7 @@ function copyNativeAssetsAndExtraModules(projectRoot, resolvedOutDir) {
   }
 
   for (const mod of EXTRA_MODULE_ENTRIES) {
+    if (!includeAgentPlatform && mod.gatewayExcluded) continue;
     const src = path.join(projectRoot, ...mod.src);
     if (!fsSync.existsSync(src)) continue;
     const dest = path.join(resolvedOutDir, ...mod.dest);
@@ -675,6 +680,7 @@ export function syncRebuiltNativeModuleIntoHashedEntries(rootModuleDir, nodeModu
  * @param {boolean} [opts.patchTurbopackChunks]  - strip hashed externals from .next/server js files (default false)
  * @param {boolean} [opts.copyNatives]           - copy native assets + extra modules (default true)
  * @param {boolean} [opts.materializeSymlinks]   - dereference Turbopack hashed-module symlinks in node_modules (default false)
+ * @param {boolean} [opts.includeAgentPlatform]  - copy MCP/Memory/Compression-only extras (default true)
  * @returns {void}
  */
 export function assembleStandalone({
@@ -685,6 +691,7 @@ export function assembleStandalone({
   patchTurbopackChunks: doPatchChunks = false,
   copyNatives = true,
   materializeSymlinks = false,
+  includeAgentPlatform = true,
 }) {
   if (!distDir) throw new Error("[assembleStandalone] distDir is required");
   if (!outDir) throw new Error("[assembleStandalone] outDir is required");
@@ -739,20 +746,20 @@ export function assembleStandalone({
 
   // 6. Optionally copy native assets + extra modules (synchronous)
   if (copyNatives) {
-    copyNativeAssetsAndExtraModules(projectRoot, resolvedOutDir);
+    copyNativeAssetsAndExtraModules(projectRoot, resolvedOutDir, includeAgentPlatform);
 
     // #9166: dynamically imported LLMLingua packages are not reliably traced
     // into the standalone bundle. Copy their complete dependency closure from
     // the installed root tree without overwriting packages already traced by
     // Next.js. Include transformers here so its ONNX runtime closure is also
     // guaranteed in Docker/standalone builds.
-    colocateLlmlinguaOptionals({
-      rootDir: projectRoot,
-      targetNodeModulesDir: path.join(resolvedOutDir, "node_modules"),
-      seeds: [...SEED_PACKAGES, "@huggingface/transformers"],
-      log: (message) =>
-        console.log(`[assembleStandalone] ${message.trim()}`),
-    });
+    if (includeAgentPlatform)
+      colocateLlmlinguaOptionals({
+        rootDir: projectRoot,
+        targetNodeModulesDir: path.join(resolvedOutDir, "node_modules"),
+        seeds: [...SEED_PACKAGES, "@huggingface/transformers"],
+        log: (message) => console.log(`[assembleStandalone] ${message.trim()}`),
+      });
   }
 
   // 7. Optionally dereference Turbopack hashed-module symlinks so the bundle is

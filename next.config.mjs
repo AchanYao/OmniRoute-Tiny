@@ -4,6 +4,7 @@ import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mitmManagerAliasFor } from "./scripts/build/mitm-stub-flag.mjs";
 import { normalizeBasePath } from "./scripts/build/normalizeBasePath.mjs";
+import { gatewayBuildAliasesFor } from "./scripts/build/gatewayBuildAliases.mjs";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const distDir = process.env.NEXT_DIST_DIR || ".build/next";
@@ -73,7 +74,10 @@ function isNextIntlExtractorDynamicImportWarning(warning) {
 // installer) from the built bundle by aliasing them to feature-disabled stubs.
 // The resulting artifact is intended to be published as `omniroute-secure`
 // for security-sensitive environments. See docs/security/SOCKET_DEV_FINDINGS.md.
-const isMinimalBuild = process.env.OMNIROUTE_BUILD_PROFILE === "minimal";
+const buildProfile = ["minimal", "backend", "gateway"].includes(process.env.OMNIROUTE_BUILD_PROFILE)
+  ? process.env.OMNIROUTE_BUILD_PROFILE
+  : "full";
+const isMinimalBuild = buildProfile === "minimal";
 
 const minimalBuildAliases = isMinimalBuild
   ? {
@@ -83,6 +87,7 @@ const minimalBuildAliases = isMinimalBuild
       "@/lib/services/installers/ninerouter": "./src/lib/services/installers/ninerouter.stub.ts",
     }
   : {};
+const gatewayBuildAliases = gatewayBuildAliasesFor(process.env);
 
 function readTimeoutMs(...values) {
   for (const value of values) {
@@ -109,6 +114,7 @@ const nextConfig = {
   // examples. Empty by default (root deploys unchanged).
   env: {
     NEXT_PUBLIC_OMNIROUTE_BASE_PATH: normalizeBasePath(process.env.OMNIROUTE_BASE_PATH),
+    NEXT_PUBLIC_OMNIROUTE_BUILD_PROFILE: buildProfile,
   },
   distDir,
   // Turbopack config: redirect native modules to stubs at build time
@@ -123,6 +129,7 @@ const nextConfig = {
       // start for all non-Docker users (#6344). See scripts/build/mitm-stub-flag.mjs.
       ...mitmManagerAliasFor(process.env),
       ...minimalBuildAliases,
+      ...gatewayBuildAliases,
     },
     // src/lib/agentSkills/generator.ts builds its fs base path from a runtime
     // `outputDir` parameter (`path.join(process.cwd(), outputDir)`), which is
@@ -380,6 +387,18 @@ const nextConfig = {
           })
         );
       }
+    }
+
+    for (const [moduleName, stubPath] of Object.entries(gatewayBuildAliases)) {
+      const escapedModuleName = moduleName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(
+          new RegExp(`^${escapedModuleName}$`),
+          (resource) => {
+            resource.request = stubPath;
+          }
+        )
+      );
     }
 
     return config;

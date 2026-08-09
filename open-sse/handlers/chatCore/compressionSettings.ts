@@ -9,16 +9,41 @@
  */
 
 import type { CompressionConfig } from "../../services/compression/types.ts";
+import {
+  getBuildCapabilities,
+  resolveBuildProfile,
+  type BuildProfile,
+} from "@/shared/constants/buildProfile";
 
 type LoggerLike = { warn?: (...args: unknown[]) => void } | null | undefined;
+type CompressionSettingsLoader = () => Promise<{
+  getCompressionSettings: typeof import("@/lib/db/compression").getCompressionSettings;
+}>;
 
-export async function resolveCompressionSettings(log?: LoggerLike): Promise<{
+interface CompressionSettingsOptions {
+  buildProfile?: BuildProfile;
+  loadSettings?: CompressionSettingsLoader;
+}
+
+export async function resolveCompressionSettings(
+  log?: LoggerLike,
+  options: CompressionSettingsOptions = {}
+): Promise<{
   settings: CompressionConfig | null;
   enabled: boolean;
   contextEditingEnabled: boolean;
 }> {
+  const capabilities = getBuildCapabilities(
+    options.buildProfile ?? resolveBuildProfile(process.env)
+  );
+  if (!capabilities.promptCompression) {
+    return { settings: null, enabled: false, contextEditingEnabled: false };
+  }
+
   try {
-    const { getCompressionSettings } = await import("@/lib/db/compression");
+    const { getCompressionSettings } = await (
+      options.loadSettings ?? (() => import("@/lib/db/compression"))
+    )();
     const settings = await getCompressionSettings();
     return {
       settings,

@@ -1,13 +1,37 @@
-import { retrieveMemories } from "@/lib/memory/retrieval";
-import { getMemorySettings, DEFAULT_MEMORY_SETTINGS, toMemoryRetrievalConfig } from "@/lib/memory/settings";
-import { injectMemory, shouldInjectMemory } from "@/lib/memory/injection";
-import { injectSkills } from "@/lib/skills/injection";
+import {
+  getBuildCapabilities,
+  resolveBuildProfile,
+  type BuildProfile,
+} from "@/shared/constants/buildProfile";
 import { FORMATS } from "../../translator/formats.ts";
-import { detectCachingContext } from "../../services/compression/cachingAware.ts";
 
 type MemorySkillsLogger = { debug?: (...args: unknown[]) => void } | null | undefined;
 
-export function getSkillsProviderForFormat(format: string): "openai" | "anthropic" | "google" | "other" {
+interface MemorySkillsModules {
+  memoryRetrieval: typeof import("@/lib/memory/retrieval");
+  memorySettings: typeof import("@/lib/memory/settings");
+  memoryInjection: typeof import("@/lib/memory/injection");
+  skillsInjection: typeof import("@/lib/skills/injection");
+  cachingAware: typeof import("../../services/compression/cachingAware.ts");
+}
+
+type MemorySkillsModuleLoader = () => Promise<MemorySkillsModules>;
+
+async function loadMemorySkillsModules(): Promise<MemorySkillsModules> {
+  const [memoryRetrieval, memorySettings, memoryInjection, skillsInjection, cachingAware] =
+    await Promise.all([
+      import("@/lib/memory/retrieval"),
+      import("@/lib/memory/settings"),
+      import("@/lib/memory/injection"),
+      import("@/lib/skills/injection"),
+      import("../../services/compression/cachingAware.ts"),
+    ]);
+  return { memoryRetrieval, memorySettings, memoryInjection, skillsInjection, cachingAware };
+}
+
+export function getSkillsProviderForFormat(
+  format: string
+): "openai" | "anthropic" | "google" | "other" {
   switch (format) {
     case FORMATS.CLAUDE:
       return "anthropic";
@@ -27,6 +51,8 @@ export async function injectMemoryAndSkills({
   targetFormat,
   backgroundReason,
   log,
+  buildProfile,
+  loadModules = loadMemorySkillsModules,
 }: {
   body: Record<string, unknown>;
   memoryOwnerId: string | null;
@@ -36,7 +62,30 @@ export async function injectMemoryAndSkills({
   targetFormat: string;
   backgroundReason: string | null;
   log: MemorySkillsLogger;
+  buildProfile?: BuildProfile;
+  loadModules?: MemorySkillsModuleLoader;
 }) {
+  const capabilities = getBuildCapabilities(buildProfile ?? resolveBuildProfile(process.env));
+  if (!capabilities.memory && !capabilities.skills) {
+    return { body, memorySettings: null };
+  }
+  if (!memoryOwnerId) {
+    return { body, memorySettings: null };
+  }
+
+  const {
+    memoryRetrieval,
+    memorySettings: memorySettingsModule,
+    memoryInjection,
+    skillsInjection,
+    cachingAware,
+  } = await loadModules();
+  const { retrieveMemories } = memoryRetrieval;
+  const { getMemorySettings, DEFAULT_MEMORY_SETTINGS, toMemoryRetrievalConfig } =
+    memorySettingsModule;
+  const { injectMemory, shouldInjectMemory } = memoryInjection;
+  const { injectSkills } = skillsInjection;
+  const { detectCachingContext } = cachingAware;
   const memorySettings = memoryOwnerId
     ? await getMemorySettings().catch(() => DEFAULT_MEMORY_SETTINGS)
     : null;
@@ -99,7 +148,7 @@ export async function injectMemoryAndSkills({
           }
           return "";
         }
-        
+
         if (Array.isArray(body.messages)) {
           const r = pickFrom(body.messages);
           if (r) return r;

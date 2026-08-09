@@ -16,6 +16,12 @@ import {
   stubDashboardPages,
   restoreDashboardPages,
 } from "./backendOnlyPages.mjs";
+import {
+  isGatewayEditionBuild,
+  pruneGatewayStandalone,
+  restoreGatewayEdition,
+  stageGatewayEdition,
+} from "./gatewayEdition.mjs";
 
 /**
  * Layer 1: `app/` has been renamed to `dist/` and the App-Router collision is gone.
@@ -241,6 +247,22 @@ export async function syncStandaloneExtraModules(
   return _syncExtraModules(rootDir, fsImpl, log);
 }
 
+export async function stageGatewayBuildIfNeeded(
+  rootDir,
+  gatewayBackupRoot,
+  env = process.env,
+  fsImpl = fs,
+  log = console
+) {
+  if (!isGatewayEditionBuild(env)) return [];
+  return stageGatewayEdition(rootDir, gatewayBackupRoot, fsImpl, log);
+}
+
+export async function restoreGatewayBuildIfNeeded(stagedPaths, fsImpl = fs, log = console) {
+  if (!Array.isArray(stagedPaths) || stagedPaths.length === 0) return;
+  await restoreGatewayEdition(stagedPaths, fsImpl, log);
+}
+
 export async function main() {
   const movedPaths = [];
   const transientBuildPaths = getTransientBuildPaths();
@@ -249,16 +271,32 @@ export async function main() {
   // `next build` skips the frontend (client vendor chunks + prerender) while keeping every
   // API route handler. Restored in `finally` and on SIGINT/SIGTERM (git-recoverable regardless).
   let stubbedPages = [];
+  let stagedGatewayPaths = [];
+  let gatewayRestorePromise = null;
   const restoreStubbedPagesOnce = () => {
     if (stubbedPages.length > 0) {
       restoreDashboardPages(stubbedPages);
       stubbedPages = [];
     }
   };
-  const onFatalSignal = (signal) => {
-    console.warn(`[build-next-isolated] Received ${signal} — restoring stubbed pages before exit`);
+  const restoreGatewayPathsOnce = () => {
+    if (gatewayRestorePromise) return gatewayRestorePromise;
+    if (stagedGatewayPaths.length === 0) return Promise.resolve();
+    const pathsToRestore = stagedGatewayPaths;
+    stagedGatewayPaths = [];
+    gatewayRestorePromise = restoreGatewayBuildIfNeeded(pathsToRestore).finally(() => {
+      gatewayRestorePromise = null;
+    });
+    return gatewayRestorePromise;
+  };
+  const onFatalSignal = async (signal) => {
+    console.warn(`[build-next-isolated] Received ${signal} — restoring build sources before exit`);
     restoreStubbedPagesOnce();
-    process.exit(1);
+    try {
+      await restoreGatewayPathsOnce();
+    } finally {
+      process.exit(1);
+    }
   };
 
   try {
@@ -268,11 +306,19 @@ export async function main() {
       movedPaths.push(entry);
     }
 
+    stagedGatewayPaths = await stageGatewayBuildIfNeeded(
+      projectRoot,
+      path.join(backupRoot, "gateway")
+    );
+
     if (isBackendOnlyBuild()) {
       console.log(
         "[build-next-isolated] OMNIROUTE_BUILD_BACKEND_ONLY set — building API only (dashboard UI stubbed)"
       );
       stubbedPages = stubDashboardPages(projectRoot);
+    }
+
+    if (stubbedPages.length > 0 || stagedGatewayPaths.length > 0) {
       process.once("SIGINT", onFatalSignal);
       process.once("SIGTERM", onFatalSignal);
     }
@@ -328,6 +374,7 @@ export async function main() {
           outDir: standaloneDir,
           projectRoot,
           copyNatives: true,
+          includeAgentPlatform: !isGatewayEditionBuild(),
         });
         const { spawnSync } = await import("node:child_process");
         const basePathWrite = spawnSync(
@@ -339,6 +386,9 @@ export async function main() {
           console.warn(
             "[build-next-isolated] Non-fatal error writing BUILD_OMNIROUTE_BASE_PATH sentinel"
           );
+        }
+        if (isGatewayEditionBuild()) {
+          await pruneGatewayStandalone(projectRoot, distDir);
         }
       } catch (assembleErr) {
         console.warn("[build-next-isolated] Non-fatal error assembling standalone:", assembleErr);
@@ -352,6 +402,15 @@ export async function main() {
     // Restore the stubbed dashboard pages FIRST so the working tree is clean even if the
     // transient-path restore below throws.
     restoreStubbedPagesOnce();
+    try {
+      await restoreGatewayPathsOnce();
+    } catch (restoreError) {
+      console.error(
+        "[build-next-isolated] Failed to restore Gateway Edition sources:",
+        restoreError
+      );
+      process.exitCode = 1;
+    }
     process.off("SIGINT", onFatalSignal);
     process.off("SIGTERM", onFatalSignal);
 

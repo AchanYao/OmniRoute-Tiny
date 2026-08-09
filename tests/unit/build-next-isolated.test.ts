@@ -8,8 +8,10 @@ import path from "node:path";
 const {
   getTransientBuildPaths,
   movePath,
+  restoreGatewayBuildIfNeeded,
   pruneStandaloneArtifacts,
   resolveNextBuildEnv,
+  stageGatewayBuildIfNeeded,
   syncStandaloneNativeAssets,
 } = await import("../../scripts/build/build-next-isolated.mjs");
 
@@ -159,6 +161,51 @@ test("getTransientBuildPaths only moves _tasks when explicitly enabled", () => {
     paths.some((entry) => path.basename(entry.sourcePath) === "_tasks"),
     true
   );
+});
+
+test("Gateway build integration stages excluded routes and restores them", async () => {
+  await withTempDir(async (tempDir) => {
+    const excludedRoute = path.join(tempDir, "src", "app", "api", "mcp", "route.ts");
+    const retainedRoute = path.join(tempDir, "src", "app", "api", "v1", "route.ts");
+    const backupRoot = path.join(tempDir, ".gateway-backup");
+    await fs.mkdir(path.dirname(excludedRoute), { recursive: true });
+    await fs.mkdir(path.dirname(retainedRoute), { recursive: true });
+    await fs.writeFile(excludedRoute, "excluded");
+    await fs.writeFile(retainedRoute, "retained");
+
+    const staged = await stageGatewayBuildIfNeeded(
+      tempDir,
+      backupRoot,
+      { OMNIROUTE_BUILD_PROFILE: "gateway" },
+      fs,
+      { log() {} }
+    );
+
+    assert.equal(fsSync.existsSync(excludedRoute), false);
+    assert.equal(await fs.readFile(retainedRoute, "utf8"), "retained");
+
+    await restoreGatewayBuildIfNeeded(staged, fs, { log() {}, error() {} });
+    assert.equal(await fs.readFile(excludedRoute, "utf8"), "excluded");
+  });
+});
+
+test("non-Gateway builds leave excluded route sources in place", async () => {
+  await withTempDir(async (tempDir) => {
+    const excludedRoute = path.join(tempDir, "src", "app", "api", "mcp", "route.ts");
+    await fs.mkdir(path.dirname(excludedRoute), { recursive: true });
+    await fs.writeFile(excludedRoute, "full-build");
+
+    const staged = await stageGatewayBuildIfNeeded(
+      tempDir,
+      path.join(tempDir, ".gateway-backup"),
+      { OMNIROUTE_BUILD_PROFILE: "full" },
+      fs,
+      { log() {} }
+    );
+
+    assert.deepEqual(staged, []);
+    assert.equal(await fs.readFile(excludedRoute, "utf8"), "full-build");
+  });
 });
 
 test("pruneStandaloneArtifacts removes traced _tasks from standalone output", async () => {

@@ -27,6 +27,7 @@ import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { computeDependencyClosure } from "./colocateOptionals.mjs";
+import { isGatewayEditionBuild } from "./gatewayEdition.mjs";
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const STANDALONE = join(ROOT, ".build", "next", "standalone");
@@ -40,6 +41,11 @@ const WORKER_REL = join(
   "onnxWorker.js"
 );
 const GATE_PKG = join("node_modules", "@atjsh", "llmlingua-2", "package.json");
+
+if (isGatewayEditionBuild(process.env)) {
+  console.log("[colocate-standalone] Gateway Edition skips LLMLingua colocation.");
+  process.exit(0);
+}
 
 const hasOptionals = existsSync(
   join(ROOT, "node_modules", "@atjsh", "llmlingua-2", "package.json")

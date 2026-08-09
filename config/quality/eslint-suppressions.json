@@ -1314,6 +1314,9 @@
   "src/shared/components/Sidebar.tsx": {
     "@next/next/no-img-element": {
       "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 2
     }
   },
   "src/shared/contracts/quota.ts": {

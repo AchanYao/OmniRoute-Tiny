@@ -11,6 +11,7 @@ import type {
   SidebarSectionDefinition,
   SidebarPresetDefinition,
 } from "./sidebarVisibility/types";
+import type { BuildProfile } from "./buildProfile";
 
 export const SIDEBAR_ICON_ACCENTS: Partial<Record<SidebarItemId, string>> = {
   home: "#60A5FA",
@@ -242,6 +243,63 @@ const ADMIN_SHOWN: ReadonlySet<HideableSidebarItemId> = new Set([
   "changelog",
 ]);
 
+const GATEWAY_SHOWN: ReadonlySet<HideableSidebarItemId> = new Set([
+  "home",
+  "endpoints",
+  "api-manager",
+  "providers",
+  "embedded-services",
+  "combos",
+  "combos-live",
+  "quota",
+  "costs-quota-share",
+  "traffic-inspector",
+  "discovery",
+  "api-endpoints",
+  "webhooks",
+  "mitm-proxy",
+  "1proxy",
+  "analytics",
+  "analytics-combo-health",
+  "analytics-utilization",
+  "costs",
+  "cache",
+  "provider-stats",
+  "activity",
+  "logs",
+  "logs-proxy",
+  "logs-console",
+  "logs-timeline",
+  "logs-activity",
+  "health",
+  "runtime",
+  "costs-pricing",
+  "costs-budget",
+  "costs-free-tiers",
+  "costs-quota-share",
+  "free-provider-rankings",
+  "radar",
+  "audit",
+  "translator",
+  "playground",
+  "media",
+  "batch",
+  "batch-files",
+  "settings-general",
+  "settings-appearance",
+  "settings-routing",
+  "settings-resilience",
+  "settings-advanced",
+  "settings-security",
+  "settings-access-tokens",
+  "settings-feature-flags",
+  "settings-cache",
+  "settings-sidebar",
+  "docs",
+  "issues",
+  "changelog",
+]);
+
 function buildHiddenList(shown: ReadonlySet<HideableSidebarItemId>): HideableSidebarItemId[] {
   return HIDEABLE_SIDEBAR_ITEM_IDS.filter((id) => !shown.has(id));
 }
@@ -305,5 +363,19 @@ export function normalizeHiddenSidebarItems(value: unknown): HideableSidebarItem
     }
   }
 
+  return HIDEABLE_SIDEBAR_ITEM_IDS.filter((item) => hiddenItems.has(item));
+}
+
+export function getGatewayHiddenSidebarItems(
+  profile: BuildProfile,
+  userHiddenItems: unknown
+): HideableSidebarItemId[] {
+  const normalizedUserItems = normalizeHiddenSidebarItems(userHiddenItems);
+  if (profile !== "gateway") return normalizedUserItems;
+
+  const hiddenItems = new Set<HideableSidebarItemId>([
+    ...normalizedUserItems,
+    ...buildHiddenList(GATEWAY_SHOWN),
+  ]);
   return HIDEABLE_SIDEBAR_ITEM_IDS.filter((item) => hiddenItems.has(item));
 }
