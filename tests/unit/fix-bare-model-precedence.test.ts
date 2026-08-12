@@ -39,43 +39,37 @@ test.after(() => {
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
-test("CODEX_NATIVE_UNPREFIXED_MODELS includes Codex base models but not disabled effort variants", () => {
-  for (const id of [
-    "gpt-5.6-sol",
-    "gpt-5.6-terra",
-    "gpt-5.6-luna",
-    "gpt-5.5",
-    "gpt-5.3-codex-spark",
-    "codex-auto-review",
-  ]) {
-    assert.equal(
-      CODEX_NATIVE_UNPREFIXED_MODELS.has(id),
-      true,
-      `expected CODEX_NATIVE_UNPREFIXED_MODELS to include ${id}`
-    );
-  }
+test("CODEX_NATIVE_UNPREFIXED_MODELS contains only the CLI-internal review model", () => {
+  assert.deepEqual([...CODEX_NATIVE_UNPREFIXED_MODELS], ["codex-auto-review"]);
   for (const id of ["gpt-5.6-sol-max", "gpt-5.6-terra-low", "gpt-5.5-xhigh"]) {
     assert.equal(CODEX_NATIVE_UNPREFIXED_MODELS.has(id), false);
   }
 });
 
 test("bare gpt-5.6-sol resolves to codex (provider native prefix wins)", async () => {
-  await seedActiveCodexConnection();
+  const connection = await providersDb.createProviderConnection({
+    provider: "codex",
+    authType: "oauth",
+    email: "codex-discovered@example.com",
+  });
+  const modelsDb = await import("../../src/lib/db/models.ts");
+  await modelsDb.replaceSyncedAvailableModelsForConnection("codex", connection.id, [
+    { id: "gpt-5.6-sol", name: "GPT 5.6 Sol" },
+  ]);
   const info = await getModelInfoCore("gpt-5.6-sol", null);
   assert.equal(info.provider, "codex", "bare gpt-5.6-sol must route to codex");
   assert.equal(info.model, "gpt-5.6-sol");
 });
 
-test("bare gpt-5.5 resolves to codex", async () => {
+test("undiscovered bare gpt-5.5 does not resolve to codex", async () => {
   const info = await getModelInfoCore("gpt-5.5", null);
-  assert.equal(info.provider, "codex");
+  assert.equal(info.provider, "openai");
   assert.equal(info.model, "gpt-5.5");
 });
 
-test("bare gpt-5.6-sol-max is unavailable when effort variants are disabled", async () => {
+test("undiscovered bare effort-like IDs do not receive Codex precedence", async () => {
   const info = await getModelInfoCore("gpt-5.6-sol-max", null);
-  assert.equal(info.provider, null);
-  assert.equal((info as { errorType?: string }).errorType, "model_not_found");
+  assert.equal(info.provider, "openai");
 });
 
 test("agentrouter/gpt-5.6-sol (explicit prefix) routes to agentrouter", async () => {

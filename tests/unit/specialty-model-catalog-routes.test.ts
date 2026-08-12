@@ -10,6 +10,7 @@ process.env.API_KEY_SECRET = process.env.API_KEY_SECRET || "specialty-catalog-te
 
 const core = await import("../../src/lib/db/core.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");
+const modelsDb = await import("../../src/lib/db/models.ts");
 const imageRoute = await import("../../src/app/api/v1/images/generations/route.ts");
 const embeddingsRoute = await import("../../src/app/api/v1/embeddings/route.ts");
 const videoRoute = await import("../../src/app/api/v1/videos/generations/route.ts");
@@ -63,7 +64,12 @@ test.after(() => {
 });
 
 test("image catalog GET uses the unified active-credential model list", async () => {
-  await seedConnection("codex");
+  const connection = await seedConnection("codex");
+  await modelsDb.replaceSyncedAvailableModelsForConnection("codex", connection.id, [
+    { id: "gpt-5.6-sol", name: "GPT 5.6 Sol", supportedEndpoints: ["responses"] },
+    { id: "gpt-5.6-terra", name: "GPT 5.6 Terra", supportedEndpoints: ["responses"] },
+    { id: "gpt-5.6-luna", name: "GPT 5.6 Luna", supportedEndpoints: ["responses"] },
+  ]);
 
   const ids = await listedIds(imageRoute, "/v1/images/generations");
 

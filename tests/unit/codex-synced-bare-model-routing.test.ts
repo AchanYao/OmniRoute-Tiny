@@ -115,9 +115,9 @@ test("inactive Codex synchronized models do not influence bare-model routing", a
   assert.equal(info.model, GPT_56_CODEX_MODEL);
 });
 
-test("Codex claims an overlapping static model when both connections are active", async () => {
-  await seedConnection("codex");
-  await seedConnection("openai");
+test("Codex claims an overlapping discovered model when both connections are active", async () => {
+  await seedSyncedModel("codex", "gpt-5.5");
+  await seedSyncedModel("openai", "gpt-5.5");
 
   const info = await getModelInfoCore("gpt-5.5", null);
 

@@ -84,10 +84,7 @@ import {
   isAutoFetchModelsEnabled,
   persistDiscoveredModels,
 } from "@/lib/providerModels/modelDiscovery";
-import {
-  buildProviderModelsUrl,
-  getDiscoveryClientVersionOptions,
-} from "./discoveryClientVersion";
+import { buildProviderModelsUrl, getDiscoveryClientVersionOptions } from "./discoveryClientVersion";
 import {
   parseGeminiModelsList,
   type GeminiDiscoveryModel,
@@ -2067,14 +2064,8 @@ export async function GET(
         ? PROVIDER_MODELS_CONFIG[provider as keyof typeof PROVIDER_MODELS_CONFIG]
         : deriveConfigFromRegistryModelsUrl(provider);
     if (provider === "codex") {
-      // Auto-merge live/GitHub/local (future-proof discovery), then apply explicit
-      // denylist filters (e.g. drop GPT-5.4 family). Do not gate remote-only IDs.
-      const staticCodexCatalog = mergeLocalCatalogModels(
-        getModelsByProviderId("codex") || [],
-        getStaticModelsForProvider("codex") || []
-      );
       const finalizeCodexCatalog = (remoteModels: typeof cachedDiscoveryModels) =>
-        buildCodexDiscoveryCatalog(remoteModels, staticCodexCatalog);
+        buildCodexDiscoveryCatalog(remoteModels);
       const cachedCatalogModels = finalizeCodexCatalog(cachedDiscoveryModels);
       const cachedIdsMatchFinalCatalog =
         cachedDiscoveryModels.length === cachedCatalogModels.length &&
@@ -2098,9 +2089,9 @@ export async function GET(
         return buildResponse({
           provider,
           connectionId,
-          models: finalizeCodexCatalog([]),
-          source: "local_catalog",
-          warning: "Auto-fetch disabled — using local catalog",
+          models: [],
+          source: "api",
+          warning: "Auto-fetch disabled — no cached Codex catalog",
         });
       }
 
@@ -2152,10 +2143,10 @@ export async function GET(
       return buildResponse({
         provider,
         connectionId,
-        models: finalizeCodexCatalog([]),
-        source: "local_catalog",
+        models: [],
+        source: "api",
         intentional: true,
-        warning: "Codex live and GitHub catalogs unavailable — using local catalog",
+        warning: "Codex live and GitHub catalogs unavailable — no cached catalog",
       });
     }
 

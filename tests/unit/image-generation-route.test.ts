@@ -10,6 +10,7 @@ process.env.API_KEY_SECRET = process.env.API_KEY_SECRET || "image-route-test-api
 
 const core = await import("../../src/lib/db/core.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");
+const modelsDb = await import("../../src/lib/db/models.ts");
 const apiKeysDb = await import("../../src/lib/db/apiKeys.ts");
 const settingsDb = await import("../../src/lib/db/settings.ts");
 const imageRoute = await import("../../src/app/api/v1/images/generations/route.ts");
@@ -152,7 +153,12 @@ test("v1 image models GET exposes image-only modalities for credential-backed im
 });
 
 test("v1 image models GET exposes current Codex image models and hides inactive providers", async () => {
-  await seedConnection("codex", { apiKey: "codex-key" });
+  const connection = await seedConnection("codex", { apiKey: "codex-key" });
+  await modelsDb.replaceSyncedAvailableModelsForConnection("codex", connection.id, [
+    { id: "gpt-5.6-sol", name: "GPT 5.6 Sol", supportedEndpoints: ["responses"] },
+    { id: "gpt-5.6-terra", name: "GPT 5.6 Terra", supportedEndpoints: ["responses"] },
+    { id: "gpt-5.6-luna", name: "GPT 5.6 Luna", supportedEndpoints: ["responses"] },
+  ]);
 
   const response = await imageRoute.GET();
   const body = (await response.json()) as { data: Array<{ id: string }> };

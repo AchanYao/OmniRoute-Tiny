@@ -148,10 +148,7 @@ const KNOWN_MODEL_IDS = new Set(MODEL_TO_PROVIDERS.keys());
 // canonical ChatGPT subscription stopped working. Override per-request by
 // prefixing the model id (e.g. `agentrouter/gpt-5.6-sol`,
 // `openai/gpt-5.6-sol`) — the prefix path always wins.
-export const CODEX_NATIVE_UNPREFIXED_MODELS = new Set([
-  "codex-auto-review",
-  ...getProviderModels("codex").map((model) => model.id),
-]);
+export const CODEX_NATIVE_UNPREFIXED_MODELS = new Set(["codex-auto-review"]);
 
 interface ProviderConnectionLike {
   provider?: unknown;
@@ -627,7 +624,7 @@ async function resolveModelByProviderInference(modelId: string, extendedContext:
   // single-candidate path, covering future models without version-specific sets.
   if (
     activeProviders?.has("codex") &&
-    !activeProviders.has("openai") &&
+    activeSyncedProviders.includes("codex") &&
     providers.includes("codex")
   ) {
     return {

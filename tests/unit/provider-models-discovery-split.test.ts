@@ -280,6 +280,7 @@ test("codex.normalizeCodexGithubCatalogResponse parses current client catalog me
   assert.equal(parsed[0]?.description, "Latest frontier agentic coding model.");
   assert.equal(parsed[0]?.inputTokenLimit, 372000);
   assert.equal(parsed[0]?.supportsThinking, true);
+  assert.deepEqual(parsed[0]?.supportedThinkingEfforts, ["low", "ultra"]);
   assert.equal(parsed[0]?.supportsVision, true);
 });
 
@@ -407,32 +408,15 @@ test("shared Codex discovery policy only matches explicit GPT-5.4 family boundar
   }
 });
 
-test("codex.buildCodexDiscoveryCatalog merges then filters in one step", () => {
-  const catalog = buildCodexDiscoveryCatalog(
-    [
-      { id: "gpt-5.4", name: "Retired Live" },
-      { id: "brand-new-codex", name: "Brand New" },
-      {
-        id: "gpt-5.6-sol",
-        name: "Live Sol",
-        inputTokenLimit: 111,
-        supportsVision: true,
-      },
-    ],
-    [
-      {
-        id: "gpt-5.6-sol",
-        name: "GPT 5.6 Sol",
-        maxInputTokens: 372000,
-        maxOutputTokens: 128000,
-      },
-      { id: "gpt-5.6-sol-max", name: "GPT 5.6 Sol Max" },
-    ]
-  );
+test("codex.buildCodexDiscoveryCatalog filters upstream models without adding local IDs", () => {
+  const catalog = buildCodexDiscoveryCatalog([
+    { id: "gpt-5.4", name: "Retired Live" },
+    { id: "brand-new-codex", name: "Brand New" },
+  ]);
   const ids = catalog.map((model) => model.id);
   assert.ok(ids.includes("brand-new-codex"));
-  assert.ok(ids.includes("gpt-5.6-sol"));
-  assert.ok(ids.includes("gpt-5.6-sol-max"));
+  assert.equal(ids.includes("gpt-5.6-sol"), false);
+  assert.equal(ids.includes("gpt-5.6-sol-max"), false);
   assert.equal(
     ids.some((id) => String(id).startsWith("gpt-5.4")),
     false

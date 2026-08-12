@@ -9,8 +9,7 @@ const testDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-codex-effor
 process.env.DATA_DIR = testDataDir;
 process.env.API_KEY_SECRET ||= "codex-effort-setting-test-secret";
 
-const { getCodexRegistryModels } =
-  await import("../../open-sse/config/providers/registry/codex/index.ts");
+const { getModelsByProviderId } = await import("../../open-sse/config/providerModels.ts");
 const { resolveModelOrError } = await import("../../src/sse/handlers/chatHelpers.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");
 const catalog = await import("../../src/app/api/v1/models/catalog.ts");
@@ -23,14 +22,8 @@ test.after(async () => {
   else process.env.DATA_DIR = previousDataDir;
 });
 
-test("Codex registry exposes base models only", () => {
-  const ids = getCodexRegistryModels().map((model) => model.id);
-  assert.ok(ids.includes("gpt-5.6-sol"));
-  assert.ok(ids.includes("gpt-5.5"));
-  assert.equal(
-    ids.some((id) => /-(?:low|medium|high|xhigh|max|ultra)$/.test(id)),
-    false
-  );
+test("Codex registry contains protocol metadata but no model inventory", () => {
+  assert.deepEqual(getModelsByProviderId("codex"), []);
 });
 
 test("retired Codex effort variant requests return migration guidance", async () => {
@@ -45,7 +38,7 @@ test("retired Codex effort variant requests return migration guidance", async ()
   assert.match(body.error?.message || "", /reasoning\.effort/);
 });
 
-test("the default /v1/models Codex catalog contains base models but no effort variants", async () => {
+test("the default /v1/models Codex catalog is empty before discovery", async () => {
   await providersDb.createProviderConnection({
     provider: "codex",
     authType: "oauth",
@@ -61,9 +54,5 @@ test("the default /v1/models Codex catalog contains base models but no effort va
   const body = (await response.json()) as { data: Array<{ id: string; owned_by?: string }> };
   const codexIds = body.data.filter((model) => model.owned_by === "codex").map((model) => model.id);
 
-  assert.ok(codexIds.some((id) => id.endsWith("gpt-5.6-sol")));
-  assert.equal(
-    codexIds.some((id) => /-(?:low|medium|high|xhigh|max|ultra)$/.test(id)),
-    false
-  );
+  assert.deepEqual(codexIds, []);
 });

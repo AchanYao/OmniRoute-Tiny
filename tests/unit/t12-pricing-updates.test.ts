@@ -46,12 +46,8 @@ test("T12: pricing table includes current Codex, MiniMax, GLM and Kimi entries",
   assert.ok(pricing.anthropic["claude-opus-4-7"], "missing anthropic/claude-opus-4-7");
 });
 
-test("T12: codex catalog exposes the GPT 5.5 base model by default", () => {
-  const codexModels = new Map(REGISTRY.codex.models.map((m) => [m.id, m]));
-  assert.equal(codexModels.get("gpt-5.5")?.name, "GPT 5.5");
-  assert.equal(codexModels.get("gpt-5.5")?.targetFormat, "openai-responses");
-  assert.equal(codexModels.has("gpt-5.5-medium"), false);
-  assert.equal(codexModels.has("gpt-5.5-xhigh"), false);
+test("T12: codex registry keeps no default model inventory", () => {
+  assert.deepEqual(REGISTRY.codex.models, []);
 });
 
 test("T12: pricing table includes MiniMax-M3 (canonical + lowercase alias)", () => {

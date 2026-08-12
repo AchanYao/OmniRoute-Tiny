@@ -355,6 +355,12 @@ async function buildUnifiedModelsResponseCore(
     const providerSupportsModel = (providerKey: string, modelId: string) => {
       const providerId = aliasToProviderId[providerKey] || providerKey;
       const alias = providerIdToAlias[providerId] || providerKey;
+      // Codex has no repository-owned model inventory. Specialty registries may
+      // describe capabilities for known IDs, but they must not publish an ID
+      // until an active connection has persisted that upstream-discovered model.
+      if (providerId === "codex") {
+        return (syncedModelsByProvider.codex || []).some((model) => model.id === modelId);
+      }
       // noAuth providers have no connection rows — treat every model as eligible. (#2798)
       const isNoAuth = isNoAuthProviderKey(providerId, providerKey, alias);
       if (isNoAuth && !isNoAuthProviderBlocked(blockedProviders, providerId, providerKey, alias))
