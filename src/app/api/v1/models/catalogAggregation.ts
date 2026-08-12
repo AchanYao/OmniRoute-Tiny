@@ -7,7 +7,9 @@ function isChatModel(model: CatalogModel): boolean {
 }
 
 function getAggregateRoot(model: CatalogModel): string | null {
-  if (!isChatModel(model) || model.owned_by === "combo") return null;
+  if (!isChatModel(model) || model.owned_by === "combo" || model.owned_by === "aggregate") {
+    return null;
+  }
   if (typeof model.id !== "string" || typeof model.root !== "string") return null;
   if (
     !model.root ||
@@ -20,7 +22,14 @@ function getAggregateRoot(model: CatalogModel): string | null {
   return model.root;
 }
 
-function getProviderIdentity(model: CatalogModel): string | null {
+function getProviderIdentity(
+  model: CatalogModel,
+  ownerById: ReadonlyMap<string, string>
+): string | null {
+  if (typeof model.parent === "string") {
+    const parentOwner = ownerById.get(model.parent);
+    if (parentOwner) return parentOwner;
+  }
   return typeof model.owned_by === "string" && model.owned_by.length > 0 ? model.owned_by : null;
 }
 
@@ -45,17 +54,25 @@ function commonFields(models: CatalogModel[]): CatalogModel {
   return common;
 }
 
-function buildAggregateModel(root: string, models: CatalogModel[]): CatalogModel {
+function buildAggregateModel(
+  root: string,
+  models: CatalogModel[],
+  ownerById: ReadonlyMap<string, string>
+): CatalogModel {
   const aggregate: CatalogModel = {
     ...commonFields(models),
     id: root,
     object: "model",
-    owned_by: "combo",
+    owned_by: "aggregate",
     permission: [],
     root,
     parent: null,
     providers: Array.from(
-      new Set(models.map(getProviderIdentity).filter((value): value is string => Boolean(value)))
+      new Set(
+        models
+          .map((model) => getProviderIdentity(model, ownerById))
+          .filter((value): value is string => Boolean(value))
+      )
     ),
   };
 
@@ -73,6 +90,12 @@ function buildAggregateModel(root: string, models: CatalogModel[]): CatalogModel
 export function aggregateExactSameIdModels(models: CatalogModel[]): CatalogModel[] {
   if (!Array.isArray(models) || models.length < 2) return models;
 
+  const ownerById = new Map<string, string>();
+  for (const model of models) {
+    if (typeof model.id === "string" && typeof model.owned_by === "string") {
+      ownerById.set(model.id, model.owned_by);
+    }
+  }
   const membersByRoot = new Map<string, CatalogModel[]>();
   const explicitRoots = new Set<string>();
   for (const model of models) {
@@ -88,7 +111,9 @@ export function aggregateExactSameIdModels(models: CatalogModel[]): CatalogModel
 
   const aggregateRoots = new Set<string>();
   for (const [root, members] of membersByRoot) {
-    const providers = new Set(members.map(getProviderIdentity).filter(Boolean));
+    const providers = new Set(
+      members.map((model) => getProviderIdentity(model, ownerById)).filter(Boolean)
+    );
     if (providers.size >= 2) aggregateRoots.add(root);
   }
   if (aggregateRoots.size === 0) return models;
@@ -104,7 +129,7 @@ export function aggregateExactSameIdModels(models: CatalogModel[]): CatalogModel
 
     if (explicitRoots.has(root) || emitted.has(root)) continue;
     emitted.add(root);
-    output.push(buildAggregateModel(root, membersByRoot.get(root) || []));
+    output.push(buildAggregateModel(root, membersByRoot.get(root) || [], ownerById));
   }
   return output;
 }

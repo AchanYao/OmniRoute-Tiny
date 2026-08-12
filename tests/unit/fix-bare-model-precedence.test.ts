@@ -9,23 +9,22 @@ process.env.DATA_DIR = TEST_DATA_DIR;
 
 const core = await import("../../src/lib/db/core.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");
-const { CODEX_NATIVE_UNPREFIXED_MODELS, getModelInfoCore } = await import(
-  "../../open-sse/services/model.ts"
-);
+const { CODEX_NATIVE_UNPREFIXED_MODELS, getModelInfoCore } =
+  await import("../../open-sse/services/model.ts");
 
 // #FIX: bare Codex-default model ids must route to the `codex` provider
 // (chatgpt.com OAuth) when no provider prefix is supplied, even when other
 // providers that also catalog the id (e.g. `agentrouter`, `openai`) are
 // active. The Codex cookie quota is the source of truth — auto-fanning to
-// other providers silently breaks the "default" experience.
+// other providers silently breaks the "default" experience. Legacy effort
+// suffixes are excluded unless MODEL_EFFORT_VARIANTS_ENABLED is enabled.
 //
 // #9447 bounded that precedence: it may only PREEMPT another provider when a
 // codex connection is actually ACTIVE. These cases therefore seed one first.
 // Without that bound, an OpenAI-only install had bare `gpt-5.5` sent to codex
 // and failed with "no active credentials for provider: codex" on a model
-// OpenAI serves. Ids that no other provider catalogs (the tier variants,
-// `codex-auto-review`) still resolve to codex with no connection at all —
-// there is no alternative to preempt — so those cases seed nothing.
+// OpenAI serves. `codex-auto-review` still resolves to codex with no connection
+// because there is no alternative to preempt; disabled effort variants do not.
 async function seedActiveCodexConnection() {
   await providersDb.createProviderConnection({
     provider: "codex",
@@ -40,22 +39,12 @@ test.after(() => {
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
-test("CODEX_NATIVE_UNPREFIXED_MODELS includes gpt-5.6-sol tier set", () => {
+test("CODEX_NATIVE_UNPREFIXED_MODELS includes Codex base models but not disabled effort variants", () => {
   for (const id of [
     "gpt-5.6-sol",
-    "gpt-5.6-sol-max",
-    "gpt-5.6-sol-xhigh",
-    "gpt-5.6-sol-high",
-    "gpt-5.6-sol-medium",
-    "gpt-5.6-sol-low",
     "gpt-5.6-terra",
-    "gpt-5.6-terra-xhigh",
     "gpt-5.6-luna",
-    "gpt-5.6-luna-xhigh",
     "gpt-5.5",
-    "gpt-5.5-xhigh",
-    "gpt-5.5-medium",
-    "gpt-5.5-low",
     "gpt-5.3-codex-spark",
     "codex-auto-review",
   ]) {
@@ -64,6 +53,9 @@ test("CODEX_NATIVE_UNPREFIXED_MODELS includes gpt-5.6-sol tier set", () => {
       true,
       `expected CODEX_NATIVE_UNPREFIXED_MODELS to include ${id}`
     );
+  }
+  for (const id of ["gpt-5.6-sol-max", "gpt-5.6-terra-low", "gpt-5.5-xhigh"]) {
+    assert.equal(CODEX_NATIVE_UNPREFIXED_MODELS.has(id), false);
   }
 });
 
@@ -80,10 +72,10 @@ test("bare gpt-5.5 resolves to codex", async () => {
   assert.equal(info.model, "gpt-5.5");
 });
 
-test("bare gpt-5.6-sol-max resolves to codex", async () => {
+test("bare gpt-5.6-sol-max is unavailable when effort variants are disabled", async () => {
   const info = await getModelInfoCore("gpt-5.6-sol-max", null);
-  assert.equal(info.provider, "codex");
-  assert.equal(info.model, "gpt-5.6-sol-max");
+  assert.equal(info.provider, null);
+  assert.equal((info as { errorType?: string }).errorType, "model_not_found");
 });
 
 test("agentrouter/gpt-5.6-sol (explicit prefix) routes to agentrouter", async () => {

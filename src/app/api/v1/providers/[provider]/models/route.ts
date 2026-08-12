@@ -89,7 +89,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
     return id;
   };
 
-  const filtered = payload.data.filter((model) => model?.owned_by === providerId);
+  const filtered = payload.data.filter(
+    (model) =>
+      model?.owned_by === providerId ||
+      model?.owned_by === providerAlias ||
+      (model?.owned_by === "aggregate" &&
+        Array.isArray(model.providers) &&
+        (model.providers.includes(providerId) || model.providers.includes(providerAlias)))
+  );
   const deduped = new Map<string, Record<string, any>>();
 
   for (const model of filtered) {
@@ -99,6 +106,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
     deduped.set(unprefixedId, {
       ...model,
       id: unprefixedId,
+      owned_by: providerId,
       parent: null,
     });
   }

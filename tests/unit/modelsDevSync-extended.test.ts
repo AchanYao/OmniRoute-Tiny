@@ -245,7 +245,7 @@ test.describe("modelsDevSync-extended", { concurrency: 1 }, async () => {
     modelsDev.saveModelsDevPricing(pricing);
     const saved = modelsDev.getModelsDevPricing();
     assert.equal(saved.openai["gpt-4o"].input, 2.5);
-    assert.equal(saved.cx["gpt-4o"].cache_creation, 2.5);
+    assert.equal(saved.codex["gpt-4o"].cache_creation, 2.5);
 
     const db = core.getDbInstance();
     db.prepare("INSERT INTO key_value (namespace, key, value) VALUES (?, ?, ?)").run(

@@ -16,34 +16,34 @@ const rawReasoningMetadata =
 test("vscode raw and tokenized family-first helpers share behavior", () => {
   assert.equal(
     familyFirstModelIds.resolveFamilyFirstPublishedModelId(
-      "gpt-5.6-sol__provider_cx__tier_priority"
+      "gpt-5.6-sol__provider_codex__tier_priority"
     ),
-    "cx/gpt-5.6-sol__tier_priority"
+    "codex/gpt-5.6-sol__tier_priority"
   );
   assert.deepEqual(
     rawFamilyFirstModelIds.getFamilyFirstModelCandidates(
-      "cx/gpt-5.6-sol__tier_flex",
+      "codex/gpt-5.6-sol__tier_flex",
       "gpt-5.6-sol"
     ),
-    familyFirstModelIds.getFamilyFirstModelCandidates("cx/gpt-5.6-sol__tier_flex", "gpt-5.6-sol")
+    familyFirstModelIds.getFamilyFirstModelCandidates("codex/gpt-5.6-sol__tier_flex", "gpt-5.6-sol")
   );
 });
 
 test("vscode raw and tokenized service tier helpers share behavior", () => {
   const tokenizedPayload = serviceTierVariants.resolveVscodeServiceTierRequest({
-    model: "gpt-5.6-sol__provider_cx__tier_flex",
+    model: "gpt-5.6-sol__provider_codex__tier_flex",
   });
   const rawPayload = rawServiceTierVariants.resolveVscodeServiceTierRequest({
-    model: "gpt-5.6-sol__provider_cx__tier_flex",
+    model: "gpt-5.6-sol__provider_codex__tier_flex",
   });
 
   assert.deepEqual(rawPayload, tokenizedPayload);
   assert.deepEqual(
     serviceTierVariants.expandVscodeServiceTierModels([
-      { id: "cx/gpt-5.6-sol", name: "cx/gpt-5.6-sol", owned_by: "codex" },
+      { id: "codex/gpt-5.6-sol", name: "codex/gpt-5.6-sol", owned_by: "codex" },
     ]),
     rawServiceTierVariants.expandVscodeServiceTierModels([
-      { id: "cx/gpt-5.6-sol", name: "cx/gpt-5.6-sol", owned_by: "codex" },
+      { id: "codex/gpt-5.6-sol", name: "codex/gpt-5.6-sol", owned_by: "codex" },
     ])
   );
 });
@@ -69,17 +69,17 @@ test("vscode raw and tokenized reasoning helpers share behavior", () => {
 
 test("vscode reasoning metadata supports GPT-5.6 Max and Ultra without splitting legacy slugs", () => {
   const sol = {
-    id: "cx/gpt-5.6-sol",
+    id: "codex/gpt-5.6-sol",
     owned_by: "codex",
     capabilities: { reasoning: true },
   };
   const terra = {
-    id: "cx/gpt-5.6-terra",
+    id: "codex/gpt-5.6-terra",
     owned_by: "codex",
     capabilities: { reasoning: true },
   };
   const luna = {
-    id: "cx/gpt-5.6-luna",
+    id: "codex/gpt-5.6-luna",
     owned_by: "codex",
     capabilities: { reasoning: true },
   };
@@ -112,14 +112,14 @@ test("vscode reasoning metadata supports GPT-5.6 Max and Ultra without splitting
   assert.equal(reasoningMetadata.getDefaultReasoningEffort(luna), "medium");
   assert.equal(
     reasoningMetadata.inferSelectedReasoningEffort(
-      { ...sol, id: "cx/gpt-5.6-sol-ultra" },
+      { ...sol, id: "codex/gpt-5.6-sol-ultra" },
       reasoningMetadata.getReasoningEffortValues(sol)
     ),
     "ultra"
   );
   assert.equal(
-    reasoningMetadata.getReasoningVariantBaseModelId("cx/gpt-5.6-sol-max"),
-    "cx/gpt-5.6-sol"
+    reasoningMetadata.getReasoningVariantBaseModelId("codex/gpt-5.6-sol-max"),
+    "codex/gpt-5.6-sol"
   );
   assert.equal(
     reasoningMetadata.getReasoningVariantBaseModelId("cx/gpt-5.1-codex-max"),

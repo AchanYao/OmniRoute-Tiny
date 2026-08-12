@@ -34,6 +34,14 @@ type SameModelCandidate = {
   modelStr: string;
 };
 
+export type SameModelComboCandidate = {
+  modelId: string;
+  providers: Array<{
+    providerId: string;
+    connectionCount: number;
+  }>;
+};
+
 export type SameModelAggregateCombo = {
   id: string;
   name: string;
@@ -94,6 +102,47 @@ function providerSupportsModel(
     return true;
   }
   return containsChatModel(REGISTRY[connection.provider]?.models, modelId);
+}
+
+function addSupportedModelIds(
+  target: Set<string>,
+  connection: Connection,
+  source: Record<string, unknown>
+): void {
+  for (const value of valuesForProvider(source, connection.provider)) {
+    if (!Array.isArray(value)) continue;
+    for (const entry of value as ModelEntry[]) {
+      if (
+        typeof entry?.id === "string" &&
+        entry.id.trim().length > 0 &&
+        (!Array.isArray(entry.supportedEndpoints) || entry.supportedEndpoints.includes("chat"))
+      ) {
+        target.add(entry.id.trim());
+      }
+    }
+  }
+}
+
+function supportedModelIdsForConnection(
+  connection: Connection,
+  customModels: Record<string, unknown>,
+  syncedModels: Record<string, unknown>
+): Set<string> {
+  const ids = new Set<string>();
+  if (connection.defaultModel?.trim()) ids.add(connection.defaultModel.trim());
+  addSupportedModelIds(ids, connection, customModels);
+  addSupportedModelIds(ids, connection, syncedModels);
+  for (const entry of REGISTRY[connection.provider]?.models || []) {
+    const modelEntry = entry as ModelEntry;
+    if (
+      typeof modelEntry?.id === "string" &&
+      (!Array.isArray(modelEntry.supportedEndpoints) ||
+        modelEntry.supportedEndpoints.includes("chat"))
+    ) {
+      ids.add(modelEntry.id);
+    }
+  }
+  return ids;
 }
 
 function isBlocked(provider: string, blockedProviders: Set<string>): boolean {
@@ -205,4 +254,104 @@ export async function resolveSameModelAggregateCombo(
 
   const available = filterResilienceBlockedCandidates(candidates, connectionById);
   return buildCombo(modelId, available);
+}
+
+/** List bare model ids currently routable through at least two providers. */
+export async function resolveSameModelComboCandidates(): Promise<SameModelComboCandidate[]> {
+  const [activeRaw, inactiveRaw, settings, customRaw, syncedRaw] = await Promise.all([
+    getCachedProviderConnections({ isActive: true }),
+    getCachedProviderConnections({ isActive: false }),
+    getSettings().catch(() => ({})),
+    getAllCustomModels().catch(() => ({})),
+    getAllActiveSyncedModels().catch(() => ({})),
+  ]);
+  const activeConnections = activeRaw as Connection[];
+  const inactiveConnections = inactiveRaw as Connection[];
+  const customModels = customRaw as Record<string, unknown>;
+  const syncedModels = syncedRaw as Record<string, unknown>;
+  const blockedProviders = new Set(
+    Array.isArray((settings as Record<string, unknown>).blockedProviders)
+      ? ((settings as Record<string, unknown>).blockedProviders as string[])
+      : []
+  );
+  const hiddenModels = getHiddenModelsByProvider();
+  const connectionById = new Map<string, ConnectionResilienceView>();
+  for (const connection of [...activeConnections, ...inactiveConnections]) {
+    connectionById.set(connection.id, connection);
+  }
+
+  const candidatesByModel = new Map<string, SameModelCandidate[]>();
+  const append = (candidate: SameModelCandidate) => {
+    const candidates = candidatesByModel.get(candidate.model) || [];
+    candidates.push(candidate);
+    candidatesByModel.set(candidate.model, candidates);
+  };
+
+  for (const connection of activeConnections) {
+    if (!hasCredential(connection) || isBlocked(connection.provider, blockedProviders)) continue;
+    for (const modelId of supportedModelIdsForConnection(connection, customModels, syncedModels)) {
+      if (hiddenModels.get(connection.provider)?.has(modelId)) continue;
+      if (isModelExcludedByConnection(modelId, connection.providerSpecificData)) continue;
+      append({
+        provider: connection.provider,
+        connectionId: connection.id,
+        model: modelId,
+        modelStr: `${routingPrefix(connection.provider)}/${modelId}`,
+      });
+    }
+  }
+
+  const disabledNoAuthProviders = new Set(
+    inactiveConnections
+      .filter((connection) => connection.provider in NOAUTH_PROVIDERS)
+      .map((connection) => connection.provider)
+  );
+  for (const providerDefinition of Object.values(NOAUTH_PROVIDERS)) {
+    const provider = providerDefinition.id;
+    if (
+      !provider ||
+      disabledNoAuthProviders.has(provider) ||
+      isBlocked(provider, blockedProviders)
+    ) {
+      continue;
+    }
+    for (const entry of REGISTRY[provider]?.models || []) {
+      const modelEntry = entry as ModelEntry;
+      if (
+        typeof modelEntry?.id !== "string" ||
+        (Array.isArray(modelEntry.supportedEndpoints) &&
+          !modelEntry.supportedEndpoints.includes("chat")) ||
+        hiddenModels.get(provider)?.has(modelEntry.id) ||
+        isModelLocked(provider, SYNTHETIC_NOAUTH_CONNECTION_ID, modelEntry.id)
+      ) {
+        continue;
+      }
+      append({
+        provider,
+        connectionId: `${SYNTHETIC_NOAUTH_CONNECTION_ID}:${provider}`,
+        model: modelEntry.id,
+        modelStr: `${routingPrefix(provider)}/${modelEntry.id}`,
+      });
+    }
+  }
+
+  const result: SameModelComboCandidate[] = [];
+  for (const [modelId, rawCandidates] of candidatesByModel) {
+    const available = filterResilienceBlockedCandidates(rawCandidates, connectionById);
+    const providerCounts = new Map<string, number>();
+    for (const candidate of available) {
+      providerCounts.set(candidate.provider, (providerCounts.get(candidate.provider) || 0) + 1);
+    }
+    if (providerCounts.size < 2) continue;
+    result.push({
+      modelId,
+      providers: [...providerCounts]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([providerId, connectionCount]) => ({
+          providerId,
+          connectionCount,
+        })),
+    });
+  }
+  return result.sort((a, b) => a.modelId.localeCompare(b.modelId));
 }

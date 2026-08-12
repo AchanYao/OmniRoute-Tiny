@@ -15,7 +15,7 @@
  * existing model-id handling once the request lands, same as `no-think/…` and
  * the effort-variant aliases), only overriding `id`, `root` (back-pointer to the
  * real id), and `display_name`. This mirrors the structure of
- * `claudeEffortVariants.ts` and `noThinkingAlias.ts`: pure synthesis over the
+ * `effortVariants.ts` and `noThinkingAlias.ts`: pure synthesis over the
  * already key-filtered catalog list, no I/O, no mutation of the input array.
  *
  * Never aliased:

@@ -96,7 +96,7 @@ test("catalog post-filters expose one bare model for an exact id shared by provi
     ["shared-model", "openai/openai-only"]
   );
   const aggregate = out[0];
-  assert.equal(aggregate.owned_by, "combo");
+  assert.equal(aggregate.owned_by, "aggregate");
   assert.equal(aggregate.root, "shared-model");
   assert.equal(aggregate.context_length, 128_000);
 });

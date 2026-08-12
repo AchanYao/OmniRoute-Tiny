@@ -7,6 +7,7 @@ import {
   CANONICAL_EFFORT_VALUES,
   extendCodexGpt56EffortValues,
 } from "@/shared/reasoning/effortStandardization";
+import { supportsXHighEffort } from "@omniroute/open-sse/config/providerModels";
 
 export interface CustomModelEntry {
   id?: string;
@@ -89,15 +90,19 @@ export function getThinkingCapabilityFields(
 ): Record<string, boolean | string[]> {
   const supportsThinking = resolvedThinking;
   if (typeof supportsThinking !== "boolean") return {};
+  const exposesConfigurableEffort = providerId !== "antigravity";
+  const defaultEfforts = supportsXHighEffort(providerId, modelId)
+    ? CANONICAL_EFFORT_VALUES
+    : CANONICAL_EFFORT_VALUES.filter((effort) => effort !== "xhigh");
   return {
     thinking: supportsThinking,
     supportsThinking,
-    ...(supportsThinking
+    ...(supportsThinking && exposesConfigurableEffort
       ? {
           effort_tiers:
             supportedThinkingEfforts && supportedThinkingEfforts.length > 0
               ? [...supportedThinkingEfforts]
-              : extendCodexGpt56EffortValues(providerId, modelId, CANONICAL_EFFORT_VALUES),
+              : extendCodexGpt56EffortValues(providerId, modelId, defaultEfforts),
         }
       : {}),
   };

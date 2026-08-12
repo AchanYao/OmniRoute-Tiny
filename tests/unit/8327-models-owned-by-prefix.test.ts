@@ -36,6 +36,7 @@ const v1ModelsCatalog = await import("../../src/app/api/v1/models/catalog.ts");
 const NODE_ID = "openai-compatible-chat-550e8400-e29b-41d4-a716-446655440000";
 const UUID_SHAPE_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 const CONFIGURED_PREFIX = "pix4k-talk";
+const UNIQUE_SYNCED_MODEL_ID = "omniroute-owned-by-probe-8327";
 
 async function resetStorage() {
   core.resetDbInstance();
@@ -82,8 +83,8 @@ test("#8327: synced models on a compatible provider node expose the configured p
     (connection as { id: string }).id,
     [
       {
-        id: "glm-5.2",
-        name: "GLM 5.2",
+        id: UNIQUE_SYNCED_MODEL_ID,
+        name: "OmniRoute owned-by probe",
         source: "imported",
         supportedEndpoints: ["chat"],
       },
@@ -97,10 +98,10 @@ test("#8327: synced models on a compatible provider node expose the configured p
 
   assert.equal(response.status, 200);
 
-  const entry = body.data.find((m) => m.id === `${CONFIGURED_PREFIX}/glm-5.2`);
+  const entry = body.data.find((m) => m.id === `${CONFIGURED_PREFIX}/${UNIQUE_SYNCED_MODEL_ID}`);
   assert.ok(
     entry,
-    `expected an entry with id "${CONFIGURED_PREFIX}/glm-5.2" in ${JSON.stringify(body.data.map((m) => m.id))}`
+    `expected an entry with id "${CONFIGURED_PREFIX}/${UNIQUE_SYNCED_MODEL_ID}" in ${JSON.stringify(body.data.map((m) => m.id))}`
   );
   assert.equal(
     entry!.owned_by,
@@ -218,8 +219,8 @@ test("#9416: compatible provider with empty prefix falls back to slugified name,
     (connection as { id: string }).id,
     [
       {
-        id: "glm-5.2",
-        name: "GLM 5.2",
+        id: UNIQUE_SYNCED_MODEL_ID,
+        name: "OmniRoute owned-by probe",
         source: "imported",
         supportedEndpoints: ["chat"],
       },
@@ -233,10 +234,10 @@ test("#9416: compatible provider with empty prefix falls back to slugified name,
 
   // "PIX4K Talk (production-probe)" → slugified "pix4k-talk-production-probe"
   const expectedPrefix = "pix4k-talk-production-probe";
-  const entry = body.data.find((m) => m.id === `${expectedPrefix}/glm-5.2`);
+  const entry = body.data.find((m) => m.id === `${expectedPrefix}/${UNIQUE_SYNCED_MODEL_ID}`);
   assert.ok(
     entry,
-    `expected an entry with id "${expectedPrefix}/glm-5.2" since prefix was empty, name should slugify — got ids: ${JSON.stringify(body.data.map((m) => m.id))}`
+    `expected an entry with id "${expectedPrefix}/${UNIQUE_SYNCED_MODEL_ID}" since prefix was empty, name should slugify — got ids: ${JSON.stringify(body.data.map((m) => m.id))}`
   );
   assert.equal(
     entry!.owned_by,
@@ -346,8 +347,8 @@ test("#9416: provider with configured prefix still uses the configured prefix (r
     (connection as { id: string }).id,
     [
       {
-        id: "glm-5.2",
-        name: "GLM 5.2",
+        id: UNIQUE_SYNCED_MODEL_ID,
+        name: "OmniRoute owned-by probe",
         source: "imported",
         supportedEndpoints: ["chat"],
       },
@@ -360,10 +361,10 @@ test("#9416: provider with configured prefix still uses the configured prefix (r
   const body = (await response.json()) as { data: Array<Record<string, unknown>> };
 
   // Must still use the configured prefix, NOT slugified name
-  const entry = body.data.find((m) => m.id === `${CONFIGURED_PREFIX}/glm-5.2`);
+  const entry = body.data.find((m) => m.id === `${CONFIGURED_PREFIX}/${UNIQUE_SYNCED_MODEL_ID}`);
   assert.ok(
     entry,
-    `expected entry with configured prefix "${CONFIGURED_PREFIX}/glm-5.2"`
+    `expected entry with configured prefix "${CONFIGURED_PREFIX}/${UNIQUE_SYNCED_MODEL_ID}"`
   );
   assert.equal(entry!.owned_by, CONFIGURED_PREFIX);
   assert.notEqual(entry!.owned_by, "pix4k-talk-probe"); // not slugified

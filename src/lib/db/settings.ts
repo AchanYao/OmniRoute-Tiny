@@ -151,7 +151,7 @@ export async function getSettings() {
     comboStrategy: "fallback",
     comboStickyRoundRobinLimit: null, // null = inherit stickyRoundRobinLimit (a literal default here shadows the documented batched-rotation default of 3 — #6678 regression caught by the v3.8.47 release CI)
     providerStrategies: {},
-    // Per-operator quota row visibility (dashboard usage tab). Keyed by
+    // Per-operator quota row visibility on the usage dashboard. Keyed by
     // provider id → { hidden: [<quota visibility key>] }. Independent of the
     // model catalog's isHidden/isDeleted flags (collectHiddenQuotaModelIds in
     // ProviderLimits/utils.tsx) — this is a personal view preference, not an

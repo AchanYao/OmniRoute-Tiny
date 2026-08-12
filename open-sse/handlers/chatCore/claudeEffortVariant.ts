@@ -13,6 +13,7 @@
  */
 
 import { splitClaudeEffortSuffix } from "../../config/providerModels.ts";
+import { isEffortVariantsEnabled } from "../../config/effortVariants.ts";
 import { isClaudeCodeCompatibleProvider } from "../../services/claudeCodeCompatible.ts";
 import { FORMATS } from "../../translator/formats.ts";
 
@@ -41,6 +42,7 @@ export function applyClaudeEffortVariant(opts: {
   let log: string | null = null;
 
   if (
+    isEffortVariantsEnabled() &&
     (provider === "claude" || isClaudeCodeCompatibleProvider(provider)) &&
     typeof effectiveModel === "string"
   ) {

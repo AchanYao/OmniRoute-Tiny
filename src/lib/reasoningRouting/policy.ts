@@ -86,7 +86,7 @@ function splitCodexEffortSuffix(model: string): { model: string; effort: Reasoni
   for (const candidate of ["ultra", "xhigh", "medium", "high", "none", "low", "max"] as const) {
     if (!lower.endsWith(`-${candidate}`)) continue;
     const baseModel = model.slice(0, -(candidate.length + 1));
-    const normalizedBase = baseModel.toLowerCase().replace(/^(?:codex|cx)\//, "");
+    const normalizedBase = baseModel.toLowerCase().replace(/^codex\//, "");
     if (/^gpt-[\w.-]+$/.test(normalizedBase) && supportsCodexSuffix(candidate, normalizedBase)) {
       return { model: baseModel, effort: candidate };
     }
@@ -264,7 +264,7 @@ function capabilityFor(
   const capabilities = getResolvedModelCapabilities(model);
   if (capabilities.supportsThinking === false) return "unsupported" as const;
   if (targetEffort === "max" || targetEffort === "ultra") {
-    const normalized = model.toLowerCase().replace(/^(?:codex|cx)\//, "");
+    const normalized = model.toLowerCase().replace(/^codex\//, "");
     const supported =
       targetEffort === "ultra"
         ? /^gpt-5\.6-(?:sol|terra)(?:-|$)/.test(normalized)
@@ -577,7 +577,7 @@ export function filterComboForReasoningDecision(
 }
 
 export function isCodexTarget(model: string): boolean {
-  return !model.includes("/") || /^(?:codex|cx)\//i.test(model);
+  return !model.includes("/") || /^codex\//i.test(model);
 }
 
 export function validateCodexWsDecision(decision: ReasoningRuleDecision): string | null {

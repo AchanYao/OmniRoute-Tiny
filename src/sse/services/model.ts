@@ -16,6 +16,7 @@ import {
   stripContextWindowSuffix,
 } from "@omniroute/open-sse/services/model.ts";
 import { REGISTRY } from "@omniroute/open-sse/config/providerRegistry.ts";
+import { isEffortVariantsEnabled } from "@omniroute/open-sse/config/effortVariants.ts";
 import { getRegisteredProviderEffortBaseModelId } from "@omniroute/open-sse/utils/registeredEffortVariants.ts";
 
 export { parseModel, stripContextWindowSuffix };
@@ -116,7 +117,7 @@ type RuntimeModelMeta = {
 
 // Providers that already own a native `-{effort}` suffix mechanism — never
 // double-resolve the generic synced suffix on top of theirs (#7694, mirrors the
-// catalog-side skip list in `open-sse/utils/syncedEffortVariants.ts`).
+// catalog-side effort policy in `open-sse/config/effortVariants.ts`).
 const SYNCED_EFFORT_SKIP_PROVIDER_PREFIXES = ["codex", "kimi"];
 
 function isSyncedEffortSkippedProvider(providerId: string): boolean {
@@ -137,7 +138,11 @@ function resolveSyncedModelIdAndEffort(
   modelId: string,
   syncedModels: unknown
 ): { modelId: string; effort: string | null } {
-  if (isSyncedEffortSkippedProvider(providerId) || !Array.isArray(syncedModels)) {
+  if (
+    !isEffortVariantsEnabled() ||
+    isSyncedEffortSkippedProvider(providerId) ||
+    !Array.isArray(syncedModels)
+  ) {
     return { modelId, effort: null };
   }
   if (findSyncedModelMeta(syncedModels, modelId)) return { modelId, effort: null };

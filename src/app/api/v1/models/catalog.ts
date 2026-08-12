@@ -28,7 +28,6 @@ import { getAllModerationModels } from "@omniroute/open-sse/config/moderationReg
 import { getAllVideoModels } from "@omniroute/open-sse/config/videoRegistry";
 import { getAllMusicModels } from "@omniroute/open-sse/config/musicRegistry";
 import { REGISTRY } from "@omniroute/open-sse/config/providerRegistry";
-import { CODEX_NATIVE_UNPREFIXED_MODELS } from "@omniroute/open-sse/services/model";
 import { resolveNestedComboTargets } from "@omniroute/open-sse/services/combo";
 import {
   AUTO_TEMPLATE_VARIANTS,
@@ -755,7 +754,10 @@ async function buildUnifiedModelsResponseCore(
 
         const visionFields =
           getVisionCapabilityFields(aliasId) || getVisionCapabilityFields(model.id);
-        if (includeAlias) {
+        const chatType = isRegisteredImageModel(canonicalProviderId, model.id)
+          ? { type: "chat" }
+          : {};
+        if (includeAlias || (includeCanonical && canonicalProviderId === alias)) {
           models.push({
             id: aliasId,
             object: "model",
@@ -764,6 +766,7 @@ async function buildUnifiedModelsResponseCore(
             permission: [],
             root: model.id,
             parent: null,
+            ...chatType,
             ...(visionFields || {}),
           });
         }
@@ -784,36 +787,10 @@ async function buildUnifiedModelsResponseCore(
             permission: [],
             root: model.id,
             parent: includeAlias ? aliasId : null,
+            ...chatType,
             ...(providerVisionFields || {}),
           });
         }
-      }
-    }
-
-    for (const modelId of CODEX_NATIVE_UNPREFIXED_MODELS) {
-      if (!providerSupportsModel("codex", modelId)) continue;
-      if (getModelIsHidden("codex", modelId)) continue;
-
-      const alias = providerIdToAlias.codex || "cx";
-      const aliasId = `${alias}/${modelId}`;
-      const providerIdModel = `codex/${modelId}`;
-      const entries = [
-        { id: aliasId, parent: null },
-        { id: providerIdModel, parent: aliasId },
-        { id: modelId, parent: providerIdModel },
-      ];
-
-      for (const entry of entries) {
-        if (models.some((existingModel) => existingModel.id === entry.id)) continue;
-        models.push({
-          id: entry.id,
-          object: "model",
-          created: timestamp,
-          owned_by: "codex",
-          permission: [],
-          root: modelId,
-          parent: entry.parent,
-        });
       }
     }
 
@@ -883,8 +860,16 @@ async function buildUnifiedModelsResponseCore(
           else if (endpoints.includes("rerank")) modelType = "rerank";
           else if (endpoints.includes("images")) modelType = "image";
           else if (endpoints.includes("audio")) modelType = "audio";
+          const isExplicitMultiSurfaceChat =
+            explicitlySupportsChat &&
+            (isRegisteredImageModel(canonicalProviderId, sm.id) ||
+              isRegisteredImageModel(providerId, sm.id));
           const syncedFields = {
-            ...(modelType ? { type: modelType } : {}),
+            ...(modelType
+              ? { type: modelType }
+              : isExplicitMultiSurfaceChat
+                ? { type: "chat" }
+                : {}),
             ...(apiFormat !== "chat-completions" ? { api_format: apiFormat } : {}),
             ...(modelType === "audio" ? { subtype: "transcription" } : {}),
             ...(sm.inputTokenLimit ? { context_length: sm.inputTokenLimit } : {}),
@@ -907,7 +892,7 @@ async function buildUnifiedModelsResponseCore(
             continue;
           }
 
-          if (includeAlias) {
+          if (includeAlias || (includeCanonical && canonicalProviderId === alias)) {
             models.push({
               id: aliasId,
               object: "model",
@@ -919,7 +904,10 @@ async function buildUnifiedModelsResponseCore(
               ...syncedFields,
             });
           }
-          if (includeAlias && modelType === "audio") {
+          if (
+            (includeAlias || (includeCanonical && canonicalProviderId === alias)) &&
+            modelType === "audio"
+          ) {
             models.push({
               id: aliasId,
               object: "model",
@@ -1073,9 +1061,7 @@ async function buildUnifiedModelsResponseCore(
     // here would discard all but the last segment and miss stored flags for
     // providers whose model IDs carry a sub-path (e.g. OpenRouter scoped models).
     const getSpecialtyModelRelativeId = (modelId: string, provider: string): string =>
-      modelId.startsWith(`${provider}/`)
-        ? modelId.slice(provider.length + 1)
-        : modelId;
+      modelId.startsWith(`${provider}/`) ? modelId.slice(provider.length + 1) : modelId;
 
     // Add embedding models (filtered by active providers)
     for (const embModel of getAllEmbeddingModels()) {
@@ -1548,6 +1534,21 @@ async function buildUnifiedModelsResponseCore(
 
     const getDefaultContextFallback = (model: any): number | undefined => {
       if (typeof model.context_length === "number") return undefined;
+      if (model.owned_by === "aggregate") {
+        if (!Array.isArray(model.providers) || model.providers.length === 0) return undefined;
+        const modelId = typeof model.root === "string" ? model.root : undefined;
+        if (!modelId) return undefined;
+        const providerLimits = model.providers
+          .map((provider: unknown) => {
+            if (typeof provider !== "string") return undefined;
+            const canonicalId = aliasToProviderId[provider] || provider;
+            return (
+              getTokenLimit(canonicalId, modelId) || REGISTRY[canonicalId]?.defaultContextLength
+            );
+          })
+          .filter((value: unknown): value is number => typeof value === "number");
+        return providerLimits.length > 0 ? Math.min(...providerLimits) : undefined;
+      }
       if (model.owned_by === "combo") return undefined;
       if (model.type && model.type !== "chat") return undefined;
 

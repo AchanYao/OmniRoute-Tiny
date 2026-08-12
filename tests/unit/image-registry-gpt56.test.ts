@@ -21,6 +21,7 @@ test("Codex image catalog exposes only the GPT-5.6 Sol, Terra, and Luna models",
   ]);
 
   for (const model of ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]) {
-    assert.deepEqual(parseImageModel(`cx/${model}`), { provider: "codex", model });
+    assert.deepEqual(parseImageModel(`codex/${model}`), { provider: "codex", model });
+    assert.deepEqual(parseImageModel(`cx/${model}`), { provider: null, model: `cx/${model}` });
   }
 });

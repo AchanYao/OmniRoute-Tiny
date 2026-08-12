@@ -29,12 +29,14 @@ test.after(() => {
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
-async function getModel(target = TARGET) {
+async function getModel(target = TARGET, type?: string) {
   const response = await catalog.getUnifiedModelsResponse(
     new Request("http://localhost/api/v1/models")
   );
   const body = (await response.json()) as { data: Array<Record<string, unknown>> };
-  return body.data.find((model) => model.id === target);
+  return body.data.find(
+    (model) => model.id === target && (type === undefined || model.type === type)
+  );
 }
 
 test("v1 model catalog projects effective context, input, and output overrides and invalidates on delete", async () => {
@@ -82,7 +84,7 @@ test("v1 model catalog projects effective context, input, and output overrides a
   assert.notEqual((await getModel())?.max_output_tokens, sentinelOutput);
 });
 
-test("v1 model catalog projects a synced Codex context to both public aliases", async () => {
+test("v1 model catalog projects a synced Codex context to canonical chat and image entries", async () => {
   const target = "codex/gpt-5.6-sol";
   const connection = await providers.createProviderConnection({
     provider: "codex",
@@ -114,9 +116,9 @@ test("v1 model catalog projects a synced Codex context to both public aliases", 
     true
   );
 
-  for (const publicId of ["cx/gpt-5.6-sol", "codex/gpt-5.6-sol"]) {
-    const projected = await getModel(publicId);
-    assert.ok(projected, `expected ${publicId} in the public catalog`);
+  for (const type of ["chat", "image"]) {
+    const projected = await getModel("codex/gpt-5.6-sol", type);
+    assert.ok(projected, `expected canonical Codex ${type} entry in the public catalog`);
     assert.deepEqual(
       {
         context_length: projected.context_length,
@@ -128,22 +130,24 @@ test("v1 model catalog projects a synced Codex context to both public aliases", 
         max_input_tokens: LIMITS.input,
         max_output_tokens: LIMITS.output,
       },
-      `${publicId} must retain the persisted Codex token-limit overrides`
+      `canonical Codex ${type} entry must retain the persisted token-limit overrides`
     );
   }
 
-  const canonical = await getModel("codex/gpt-5.6-sol");
+  assert.equal(await getModel("cx/gpt-5.6-sol"), undefined);
+
+  const canonical = await getModel("codex/gpt-5.6-sol", "image");
   assert.equal(canonical?.type, "image");
   assert.deepEqual(canonical?.output_modalities, ["image"]);
   assert.ok(Array.isArray(canonical?.supported_sizes));
 
   assert.equal(contextOverrides.removeModelContextOverride("codex", "gpt-5.6-sol"), true);
   assert.equal(
-    (await getModel("codex/gpt-5.6-sol"))?.context_length,
+    (await getModel("codex/gpt-5.6-sol", "image"))?.context_length,
     undefined,
     "the specialty row must not inherit the synced chat context after override removal"
   );
-  assert.equal((await getModel("cx/gpt-5.6-sol"))?.context_length, 272000);
+  assert.equal((await getModel("codex/gpt-5.6-sol", "chat"))?.context_length, 272000);
 });
 
 test("v1 model catalog projects an exact raw-alias context override", async () => {

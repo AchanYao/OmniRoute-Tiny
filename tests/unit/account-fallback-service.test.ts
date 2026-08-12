@@ -1426,10 +1426,10 @@ test("recordModelLockoutFailure caps cooldown at BACKOFF_CONFIG.max to prevent a
 });
 
 test("recordModelLockoutFailure groups provider aliases under canonical provider", () => {
-  const providerAlias = "cx";
-  const providerCanonical = "codex";
+  const providerAlias = "gh";
+  const providerCanonical = "github";
   const connectionId = "conn-alias-test";
-  const model = "gpt-5.5";
+  const model = "gpt-4o";
 
   clearModelLock(providerCanonical, connectionId, model);
   clearModelLock(providerAlias, connectionId, model);

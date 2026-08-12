@@ -84,7 +84,7 @@ export function supportsVscodeServiceTierVariants(model: VscodeServiceTierModelL
 
   const baseModelId = stripVscodeServiceTierVariantModelId(rawModelId);
   const provider = getModelProvider(model, baseModelId);
-  if (provider !== "codex" && provider !== "cx") {
+  if (provider !== "codex") {
     return false;
   }
 

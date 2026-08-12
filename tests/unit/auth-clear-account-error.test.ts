@@ -124,7 +124,7 @@ test("clearRecoveredProviderState ignores empty payloads and clears recoverable 
   assert.equal(updated.backoffLevel, 0);
 });
 
-test("getProviderCredentials resolves provider aliases to canonical DB records", async () => {
+test("getProviderCredentials does not resolve the removed cx alias", async () => {
   await resetStorage();
 
   const created = await providersDb.createProviderConnection({
@@ -136,6 +136,7 @@ test("getProviderCredentials resolves provider aliases to canonical DB records",
     testStatus: "active",
   });
 
-  const credentials = await auth.getProviderCredentials("cx");
-  assert.equal(credentials.connectionId, created.id);
+  assert.equal(await auth.getProviderCredentials("cx"), null);
+  const credentials = await auth.getProviderCredentials("codex");
+  assert.equal(credentials?.connectionId, created.id);
 });

@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { getModelInfoCore } from "../../open-sse/services/model.ts";
+process.env.MODEL_ALIAS_COMPAT_ENABLED = "true";
+
+const { getModelInfoCore } = await import("../../open-sse/services/model.ts");
 
 test("cross-proxy aliases normalize to canonical model ids without bypassing local aliases", async () => {
   const localAliasWins = await getModelInfoCore("gpt-oss:120b", {

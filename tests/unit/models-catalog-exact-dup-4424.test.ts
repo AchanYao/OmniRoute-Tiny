@@ -60,6 +60,15 @@ describe("dedupeExactCatalogIds (#4424 / #8015)", () => {
     );
   });
 
+  it("preserves explicitly typed chat and image surfaces under the same id", () => {
+    const models = [
+      { id: "codex/gpt-5.6-sol", owned_by: "codex", type: "chat" },
+      { id: "codex/gpt-5.6-sol", owned_by: "codex", type: "image" },
+    ];
+
+    assert.deepEqual(dedupeExactCatalogIds(models), models);
+  });
+
   it("preserves intentional audio transcription + speech surfaces under the same id", () => {
     const models = [
       { id: "openai/gpt-4o-mini-tts", type: "audio", subtype: "transcription" },

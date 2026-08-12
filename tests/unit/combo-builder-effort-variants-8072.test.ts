@@ -3,12 +3,12 @@
  * reasoning-effort variants that the catalog/Playground already surface for
  * synced models declaring `supportedThinkingEfforts` (#7694). PR #8165 wired
  * `buildModelOptions()` (src/lib/combos/builderOptions.ts) to run the shared
- * `appendSyncedEffortVariants` utility and add the resulting variant ids.
+ * common effort-variant utility and add the resulting variant ids.
  *
  * Regression guard for a baseId-derivation bug found in that wiring:
- * `appendSyncedEffortVariants` sets a variant's own `root` field to
+ * `appendEffortVariants` sets a variant's own `root` field to
  * `${baseRoot}-${tier}` (still tier-suffixed — see
- * open-sse/utils/syncedEffortVariants.ts), not the true base model id. Deriving
+ * open-sse/config/effortVariants.ts), not the true base model id. Deriving
  * `baseId` from `variant.root` therefore never matches an entry in `modelMap`,
  * so every effort variant silently fell back to bare defaults instead of
  * inheriting contextLength/outputTokenLimit/supportedEndpoints/supportsThinking
@@ -25,6 +25,7 @@ import path from "node:path";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-combo-effort-8072-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
+process.env.MODEL_EFFORT_VARIANTS_ENABLED = "true";
 
 const core = await import("../../src/lib/db/core.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");

@@ -100,7 +100,7 @@ const LITELLM_PRICING_URL =
 // ─── Provider mapping: LiteLLM provider → OmniRoute aliases ─────
 
 const LITELLM_PROVIDER_MAP: Record<string, string[]> = {
-  openai: ["openai", "cx"],
+  openai: ["openai", "codex"],
   anthropic: ["anthropic", "cc"],
   vertex_ai: ["gemini"],
   "vertex_ai-anthropic_models": ["anthropic"],

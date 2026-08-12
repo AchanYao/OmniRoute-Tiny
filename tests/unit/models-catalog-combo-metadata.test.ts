@@ -38,7 +38,7 @@ test("single-target combo preserves its direct model metadata", async () => {
     new Request("http://localhost/api/v1/models")
   );
   const body = (await response.json()) as { data: Array<Record<string, unknown>> };
-  const direct = body.data.find((item) => item.id === "cx/gpt-5.6-sol");
+  const direct = body.data.find((item) => item.id === "codex/gpt-5.6-sol" && item.type === "chat");
   const combo = body.data.find((item) => item.id === "gpt-5.6-sol-combo");
 
   assert.equal(response.status, 200);

@@ -37,7 +37,7 @@ const isNonChatSpecialtyType = (type: string): boolean => {
 
 const isGenericChatLike = (model: CatalogModelEntry): boolean => {
   const type = asStr(model.type);
-  return !type || type === "chat";
+  return !type;
 };
 
 const listingKey = (model: CatalogModelEntry): string =>

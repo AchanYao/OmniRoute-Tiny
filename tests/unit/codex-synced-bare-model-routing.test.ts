@@ -147,15 +147,15 @@ test("OpenAI remains selected for an overlapping static model when Codex is inac
   assert.equal(info.model, "gpt-5.5");
 });
 
-test("explicit Codex and OpenAI prefixes remain authoritative", async () => {
+test("canonical Codex and OpenAI prefixes remain authoritative without the removed cx alias", async () => {
   await seedSyncedModel("codex", GPT_56_CODEX_MODEL);
   await seedSyncedModel("openai", GPT_56_CODEX_MODEL);
 
-  const codexAlias = await getModelInfoCore(`cx/${GPT_56_CODEX_MODEL}`, null);
+  const removedAlias = await getModelInfoCore(`cx/${GPT_56_CODEX_MODEL}`, null);
   const codexCanonical = await getModelInfoCore(`codex/${GPT_56_CODEX_MODEL}`, null);
   const openai = await getModelInfoCore(`openai/${GPT_56_CODEX_MODEL}`, null);
 
-  assert.equal(codexAlias.provider, "codex");
+  assert.equal(removedAlias.provider, "cx");
   assert.equal(codexCanonical.provider, "codex");
   assert.equal(openai.provider, "openai");
 });

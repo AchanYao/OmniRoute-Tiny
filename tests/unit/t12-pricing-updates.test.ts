@@ -7,17 +7,17 @@ import { REGISTRY } from "../../open-sse/config/providerRegistry.ts";
 test("T12: pricing table includes current Codex, MiniMax, GLM and Kimi entries", () => {
   const pricing = getDefaultPricing();
 
-  assert.ok(pricing.cx["gpt-5.6-sol-ultra"], "missing cx/gpt-5.6-sol-ultra");
-  assert.ok(pricing.cx["gpt-5.6-terra-max"], "missing cx/gpt-5.6-terra-max");
-  assert.ok(pricing.cx["gpt-5.6-luna-max"], "missing cx/gpt-5.6-luna-max");
-  assert.equal(pricing.cx["gpt-5.6-sol"].input, 5);
-  assert.equal(pricing.cx["gpt-5.6-sol"].output, 30);
-  assert.equal(pricing.cx["gpt-5.6-terra"].input, 2.5);
-  assert.equal(pricing.cx["gpt-5.6-terra"].output, 15);
-  assert.equal(pricing.cx["gpt-5.6-luna"].input, 1);
-  assert.equal(pricing.cx["gpt-5.6-luna"].output, 6);
-  assert.equal(pricing.cx["gpt-5.4"], undefined);
-  assert.equal(pricing.cx["gpt-5.4-mini"], undefined);
+  assert.ok(pricing.codex["gpt-5.6-sol-ultra"], "missing codex/gpt-5.6-sol-ultra");
+  assert.ok(pricing.codex["gpt-5.6-terra-max"], "missing codex/gpt-5.6-terra-max");
+  assert.ok(pricing.codex["gpt-5.6-luna-max"], "missing codex/gpt-5.6-luna-max");
+  assert.equal(pricing.codex["gpt-5.6-sol"].input, 5);
+  assert.equal(pricing.codex["gpt-5.6-sol"].output, 30);
+  assert.equal(pricing.codex["gpt-5.6-terra"].input, 2.5);
+  assert.equal(pricing.codex["gpt-5.6-terra"].output, 15);
+  assert.equal(pricing.codex["gpt-5.6-luna"].input, 1);
+  assert.equal(pricing.codex["gpt-5.6-luna"].output, 6);
+  assert.equal(pricing.codex["gpt-5.4"], undefined);
+  assert.equal(pricing.codex["gpt-5.4-mini"], undefined);
 
   assert.ok(pricing.minimax["minimax-m2.5"], "missing minimax/minimax-m2.5");
   assert.ok(pricing.minimax["minimax-m2.7"], "missing minimax/minimax-m2.7");
@@ -46,13 +46,12 @@ test("T12: pricing table includes current Codex, MiniMax, GLM and Kimi entries",
   assert.ok(pricing.anthropic["claude-opus-4-7"], "missing anthropic/claude-opus-4-7");
 });
 
-test("T12: codex catalog includes GPT 5.5 variations", () => {
+test("T12: codex catalog exposes the GPT 5.5 base model by default", () => {
   const codexModels = new Map(REGISTRY.codex.models.map((m) => [m.id, m]));
-  assert.ok(codexModels.has("gpt-5.5-medium"), "missing codex/gpt-5.5-medium");
-  assert.ok(codexModels.has("gpt-5.5-xhigh"), "missing codex/gpt-5.5-xhigh");
-  assert.equal(codexModels.get("gpt-5.5-medium")?.name, "GPT 5.5 (Medium)");
-  assert.equal(codexModels.get("gpt-5.5-medium")?.targetFormat, "openai-responses");
-  assert.equal(codexModels.get("gpt-5.5-xhigh")?.targetFormat, "openai-responses");
+  assert.equal(codexModels.get("gpt-5.5")?.name, "GPT 5.5");
+  assert.equal(codexModels.get("gpt-5.5")?.targetFormat, "openai-responses");
+  assert.equal(codexModels.has("gpt-5.5-medium"), false);
+  assert.equal(codexModels.has("gpt-5.5-xhigh"), false);
 });
 
 test("T12: pricing table includes MiniMax-M3 (canonical + lowercase alias)", () => {

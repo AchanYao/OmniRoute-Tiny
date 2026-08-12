@@ -20,7 +20,7 @@ import {
 
 describe("modelsDevSync/transform split-guard", () => {
   it("maps known models.dev provider ids to OmniRoute aliases", () => {
-    assert.deepEqual(mapProviderId("openai"), ["openai", "cx"]);
+    assert.deepEqual(mapProviderId("openai"), ["openai", "codex"]);
     assert.deepEqual(mapProviderId("anthropic"), ["anthropic", "cc"]);
     assert.deepEqual(mapProviderId("zai"), ["zai", "glm"]);
     assert.deepEqual(mapProviderId("bedrock"), ["kiro", "kr"]);
@@ -57,8 +57,8 @@ describe("modelsDevSync/transform split-guard", () => {
       cache_creation: 3,
       reasoning: 4,
     });
-    // openai maps to ["openai", "cx"] — both must receive the entry.
-    assert.deepEqual(pricing.cx["gpt-x"], pricing.openai["gpt-x"]);
+    // OpenAI metadata is also copied to the canonical Codex namespace.
+    assert.deepEqual(pricing.codex["gpt-x"], pricing.openai["gpt-x"]);
   });
 
   it("skips models with no cost or missing input pricing", () => {

@@ -65,10 +65,9 @@ test("createApiKey with scopes stores them", async () => {
 
 test("createApiKey rejects empty machineId", async () => {
   await resetStorage();
-  await assert.rejects(
-    () => apiKeys.createApiKey("Bad Key", ""),
-    { message: /machineId is required/i }
-  );
+  await assert.rejects(() => apiKeys.createApiKey("Bad Key", ""), {
+    message: /machineId is required/i,
+  });
 });
 
 // ──────────────── getApiKeys ────────────────
@@ -272,32 +271,32 @@ test("isModelAllowedForKey wildcard match", async () => {
   assert.equal(await apiKeys.isModelAllowedForKey(created.key, "gpt-4"), false);
 });
 
-test("isModelAllowedForKey treats cx and codex provider prefixes as equivalent (allowed cx, request codex)", async () => {
+test("isModelAllowedForKey does not treat removed cx permissions as Codex permissions", async () => {
   await resetStorage();
   const created = await apiKeys.createApiKey("Codex Alias Allow Cx", "ma-cx-001");
   await apiKeys.updateApiKeyPermissions(created.id, { allowedModels: ["cx/gpt-5.6-terra"] });
   apiKeys.resetApiKeyState();
-  assert.equal(await apiKeys.isModelAllowedForKey(created.key, "codex/gpt-5.6-terra"), true);
+  assert.equal(await apiKeys.isModelAllowedForKey(created.key, "codex/gpt-5.6-terra"), false);
 });
 
-test("isModelAllowedForKey treats cx and codex provider prefixes as equivalent (allowed codex, request cx)", async () => {
+test("isModelAllowedForKey does not treat Codex permissions as removed cx permissions", async () => {
   await resetStorage();
   const created = await apiKeys.createApiKey("Codex Alias Allow Codex", "ma-cx-002");
   await apiKeys.updateApiKeyPermissions(created.id, { allowedModels: ["codex/gpt-5.6-terra"] });
   apiKeys.resetApiKeyState();
-  assert.equal(await apiKeys.isModelAllowedForKey(created.key, "cx/gpt-5.6-terra"), true);
+  assert.equal(await apiKeys.isModelAllowedForKey(created.key, "cx/gpt-5.6-terra"), false);
 });
 
-test("isModelAllowedForKey cx wildcard allows codex-prefixed model variants", async () => {
+test("isModelAllowedForKey removed cx wildcard does not allow Codex model variants", async () => {
   await resetStorage();
   const created = await apiKeys.createApiKey("Codex Wildcard", "ma-cx-003");
   await apiKeys.updateApiKeyPermissions(created.id, { allowedModels: ["cx/gpt-5.6-terra*"] });
   apiKeys.resetApiKeyState();
-  assert.equal(await apiKeys.isModelAllowedForKey(created.key, "codex/gpt-5.6-terra-high"), true);
+  assert.equal(await apiKeys.isModelAllowedForKey(created.key, "codex/gpt-5.6-terra-high"), false);
   assert.equal(await apiKeys.isModelAllowedForKey(created.key, "openai/gpt-5.6-terra"), false);
 });
 
-test("isModelAllowedForKey blockedModels treats cx and codex provider prefixes as equivalent", async () => {
+test("isModelAllowedForKey removed cx block does not block canonical Codex models", async () => {
   await resetStorage();
   const created = await apiKeys.createApiKey("Codex Block Alias", "ma-cx-004");
   await apiKeys.updateApiKeyPermissions(created.id, {
@@ -305,7 +304,7 @@ test("isModelAllowedForKey blockedModels treats cx and codex provider prefixes a
     blockedModels: ["cx/gpt-5.6-terra"],
   });
   apiKeys.resetApiKeyState();
-  assert.equal(await apiKeys.isModelAllowedForKey(created.key, "codex/gpt-5.6-terra"), false);
+  assert.equal(await apiKeys.isModelAllowedForKey(created.key, "codex/gpt-5.6-terra"), true);
   assert.equal(await apiKeys.isModelAllowedForKey(created.key, "codex/gpt-5.6-other"), true);
 });
 
@@ -375,7 +374,10 @@ test("updateApiKeyPermissions clears accessSchedule with null", async () => {
 test("updateApiKeyPermissions sets rateLimits", async () => {
   await resetStorage();
   const created = await apiKeys.createApiKey("Rate Limited", "ma-026");
-  const limits = [{ limit: 100, window: 60 }, { limit: 1000, window: 3600 }];
+  const limits = [
+    { limit: 100, window: 60 },
+    { limit: 1000, window: 3600 },
+  ];
   await apiKeys.updateApiKeyPermissions(created.id, { rateLimits: limits });
   const loaded = await apiKeys.getApiKeyById(created.id);
   assert.deepEqual(loaded!.rateLimits, limits);

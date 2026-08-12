@@ -1,6 +1,12 @@
-import { PROVIDER_ID_TO_ALIAS, PROVIDER_MODELS } from "../config/providerModels.ts";
+import {
+  getProviderModels,
+  PROVIDER_ID_TO_ALIAS,
+  PROVIDER_MODELS,
+} from "../config/providerModels.ts";
 import { resolveWildcardAlias } from "./wildcardRouter.ts";
 import { getRegisteredProviderEffortBaseModelId } from "../utils/registeredEffortVariants.ts";
+import { isEffortVariantsEnabled } from "../config/effortVariants.ts";
+import { splitCodexReasoningSuffix } from "../executors/codex/reasoningSuffix.ts";
 
 type ProviderModelAliasMap = Record<string, Record<string, string>>;
 type ModelAliasValue = string | { provider?: string; model?: string };
@@ -146,32 +152,7 @@ const KNOWN_MODEL_IDS = new Set(MODEL_TO_PROVIDERS.keys());
 // `openai/gpt-5.6-sol`) — the prefix path always wins.
 export const CODEX_NATIVE_UNPREFIXED_MODELS = new Set([
   "codex-auto-review",
-  "gpt-5.6-sol",
-  "gpt-5.6-sol-ultra",
-  "gpt-5.6-sol-max",
-  "gpt-5.6-sol-xhigh",
-  "gpt-5.6-sol-high",
-  "gpt-5.6-sol-medium",
-  "gpt-5.6-sol-low",
-  "gpt-5.6-terra",
-  "gpt-5.6-terra-ultra",
-  "gpt-5.6-terra-max",
-  "gpt-5.6-terra-xhigh",
-  "gpt-5.6-terra-high",
-  "gpt-5.6-terra-medium",
-  "gpt-5.6-terra-low",
-  "gpt-5.6-luna",
-  "gpt-5.6-luna-max",
-  "gpt-5.6-luna-xhigh",
-  "gpt-5.6-luna-high",
-  "gpt-5.6-luna-medium",
-  "gpt-5.6-luna-low",
-  "gpt-5.5",
-  "gpt-5.5-xhigh",
-  "gpt-5.5-high",
-  "gpt-5.5-medium",
-  "gpt-5.5-low",
-  "gpt-5.3-codex-spark",
+  ...getProviderModels("codex").map((model) => model.id),
 ]);
 
 interface ProviderConnectionLike {
@@ -235,7 +216,7 @@ export function resolveBareModelToConnectionDefault(
 
 function isCrossProxyModelCompatEnabled() {
   const raw = process.env.MODEL_ALIAS_COMPAT_ENABLED;
-  return raw !== "false" && raw !== "0";
+  return raw === "true" || raw === "1" || raw === "yes";
 }
 
 export function normalizeCrossProxyModelId(modelId: unknown): {
@@ -632,6 +613,21 @@ async function resolveModelByProviderInference(modelId: string, extendedContext:
   // connection at all — there is no alternative to preempt, and "no codex credentials"
   // is the honest error. With codex active the preference still beats OpenAI, and an
   // explicit `openai/…` prefix remains the per-request override either way.
+  const codexEffortVariant = splitCodexReasoningSuffix(modelId);
+  if (
+    codexEffortVariant.effort &&
+    getProviderModels("codex").some((candidate) => candidate.id === codexEffortVariant.baseModel) &&
+    !isEffortVariantsEnabled()
+  ) {
+    return {
+      provider: null,
+      model: modelId,
+      extendedContext,
+      errorType: "model_not_found",
+      errorMessage: `Model '${modelId}' is disabled. Use '${codexEffortVariant.baseModel}' with reasoning.effort instead.`,
+    };
+  }
+
   if (CODEX_NATIVE_UNPREFIXED_MODELS.has(modelId)) {
     const codexNativeAlternatives = (MODEL_TO_PROVIDERS.get(modelId) || []).filter(
       (p) => p !== "codex"
@@ -662,7 +658,7 @@ async function resolveModelByProviderInference(modelId: string, extendedContext:
   }
   const nonOpenAIProviders = providers.filter((p) => p !== "openai");
 
-  // Bare model IDs from Codex CLI do not preserve OmniRoute's `cx/` prefix.
+  // Bare model IDs from Codex CLI do not preserve OmniRoute's provider prefix.
   // Route overlapping models through Codex only for Codex-only installations;
   // when OpenAI is also active, preserve the historical OpenAI default below.
   // Models advertised only by an active synced Codex catalog still reach the

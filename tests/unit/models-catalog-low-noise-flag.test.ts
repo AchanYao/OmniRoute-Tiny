@@ -58,16 +58,9 @@ test.after(async () => {
 test("MODELS_CATALOG_PREFIX_MODE=alias suppresses canonical provider-id prefixes", async () => {
   featureFlagsDb.setFeatureFlagOverride("MODELS_CATALOG_PREFIX_MODE", "alias");
   try {
-    await seedConnection("claude", "claude-access");
     await seedConnection("cline", "cline-access");
     await modelsDb.addCustomModel("cline", "demo-custom", "Demo Custom");
     const ids = await getIds();
-    assert.ok(ids.has("cc/claude-sonnet-4-6"), "alias prefix cc/ should be present");
-    assert.equal(
-      ids.has("claude/claude-sonnet-4-6"),
-      false,
-      "canonical prefix claude/ should be absent"
-    );
     assert.ok(ids.has("cl/demo-custom"), "alias prefix cl/ should be present");
     assert.equal(ids.has("cline/demo-custom"), false, "canonical prefix cline/ should be absent");
   } finally {
@@ -78,13 +71,14 @@ test("MODELS_CATALOG_PREFIX_MODE=alias suppresses canonical provider-id prefixes
 test("MODELS_CATALOG_PREFIX_MODE=dual emits both alias and canonical prefixes (default)", async () => {
   featureFlagsDb.setFeatureFlagOverride("MODELS_CATALOG_PREFIX_MODE", "dual");
   try {
-    await seedConnection("claude", "claude-access");
+    await seedConnection("cline", "cline-access");
+    await modelsDb.addCustomModel("cline", "dual-custom", "Dual Custom");
     const ids = await getIds();
-    assert.ok(ids.has("cc/claude-sonnet-4-6"), "alias prefix cc/ should be present in dual mode");
     assert.ok(
-      ids.has("claude/claude-sonnet-4-6"),
-      "canonical prefix claude/ should be present in dual mode"
+      ids.has("cl/dual-custom"),
+      `alias prefix should be present in dual mode: ${JSON.stringify([...ids].filter((id) => id.includes("dual-custom")))}`
     );
+    assert.ok(ids.has("cline/dual-custom"), "canonical prefix should be present in dual mode");
   } finally {
     featureFlagsDb.removeFeatureFlagOverride("MODELS_CATALOG_PREFIX_MODE");
   }
@@ -93,14 +87,11 @@ test("MODELS_CATALOG_PREFIX_MODE=dual emits both alias and canonical prefixes (d
 test("?prefix=alias query param overrides flag to alias-only mode", async () => {
   featureFlagsDb.setFeatureFlagOverride("MODELS_CATALOG_PREFIX_MODE", "dual");
   try {
-    await seedConnection("claude", "claude-access");
+    await seedConnection("cline", "cline-access");
+    await modelsDb.addCustomModel("cline", "query-alias-custom", "Query Alias Custom");
     const ids = await getIds("http://localhost/api/v1/models?prefix=alias");
-    assert.ok(ids.has("cc/claude-sonnet-4-6"), "alias prefix present with ?prefix=alias");
-    assert.equal(
-      ids.has("claude/claude-sonnet-4-6"),
-      false,
-      "canonical prefix absent with ?prefix=alias"
-    );
+    assert.ok(ids.has("cl/query-alias-custom"), "alias prefix present with ?prefix=alias");
+    assert.equal(ids.has("cline/query-alias-custom"), false, "canonical prefix absent");
   } finally {
     featureFlagsDb.removeFeatureFlagOverride("MODELS_CATALOG_PREFIX_MODE");
   }
@@ -109,17 +100,11 @@ test("?prefix=alias query param overrides flag to alias-only mode", async () => 
 test("?prefix=canonical query param overrides flag to canonical-only mode", async () => {
   featureFlagsDb.setFeatureFlagOverride("MODELS_CATALOG_PREFIX_MODE", "dual");
   try {
-    await seedConnection("claude", "claude-access");
+    await seedConnection("cline", "cline-access");
+    await modelsDb.addCustomModel("cline", "query-canonical-custom", "Query Canonical Custom");
     const ids = await getIds("http://localhost/api/v1/models?prefix=canonical");
-    assert.equal(
-      ids.has("cc/claude-sonnet-4-6"),
-      false,
-      "alias prefix absent with ?prefix=canonical"
-    );
-    assert.ok(
-      ids.has("claude/claude-sonnet-4-6"),
-      "canonical prefix present with ?prefix=canonical"
-    );
+    assert.equal(ids.has("cl/query-canonical-custom"), false, "alias prefix absent");
+    assert.ok(ids.has("cline/query-canonical-custom"), "canonical prefix present");
   } finally {
     featureFlagsDb.removeFeatureFlagOverride("MODELS_CATALOG_PREFIX_MODE");
   }

@@ -105,13 +105,13 @@ export type ModelsDevData = Record<string, ModelsDevProvider>;
 // ─── Provider mapping: models.dev provider ID → OmniRoute provider IDs/aliases ──
 //
 // models.dev uses canonical provider IDs (e.g. "openai", "anthropic", "google").
-// OmniRoute uses both full IDs and short aliases (e.g. "cc" for claude, "cx" for codex).
+// OmniRoute uses both full IDs and short aliases (e.g. "cc" for Claude Code).
 // We map each models.dev provider to ALL OmniRoute identifiers that should receive
 // its pricing/capability data.
 
 export const MODELS_DEV_PROVIDER_MAP: Record<string, string[]> = {
   // Major providers
-  openai: ["openai", "cx"], // cx = Codex (uses OpenAI models)
+  openai: ["openai", "codex"], // Codex uses OpenAI model metadata
   anthropic: ["anthropic", "cc"], // cc = Claude Code
   google: ["gemini"],
   "google-vertex": ["gemini", "vertex"],

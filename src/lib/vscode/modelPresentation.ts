@@ -20,7 +20,6 @@ type VscodeCatalogModel = {
 
 const PROVIDER_NAME_OVERRIDES: Record<string, string> = {
   codex: "Codex",
-  cx: "Codex",
   github: "GitHub",
   gh: "GitHub",
   gemini: "Gemini",

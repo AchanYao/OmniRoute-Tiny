@@ -1,34 +1,18 @@
 import { getProviderModels } from "../config/providerModels.ts";
-
-const REGISTERED_EFFORT_SUFFIXES = ["none", "low", "medium", "high", "max", "xhigh"] as const;
+import { resolveKnownEffortVariant } from "../config/effortVariants.ts";
 
 /**
  * Return the registered base model for an explicit effort variant.
  *
- * Both the exact variant and its base must exist in the provider registry.
- * Callers with an authoritative live catalog must additionally verify that
- * the returned base model is present in that live catalog.
+ * The base must exist in the provider registry and declare the requested tier.
+ * The synthetic variant itself does not need a static registry row.
  */
 export function getRegisteredProviderEffortBaseModelId(
   providerId: string,
   modelId: string
 ): string | null {
-  const providerModels = getProviderModels(providerId);
-
-  if (!providerModels.some((candidate) => candidate.id === modelId)) {
-    return null;
-  }
-
-  for (const effort of REGISTERED_EFFORT_SUFFIXES) {
-    const suffix = `-${effort}`;
-    if (!modelId.endsWith(suffix)) continue;
-
-    const baseModelId = modelId.slice(0, -suffix.length);
-
-    return providerModels.some((candidate) => candidate.id === baseModelId) ? baseModelId : null;
-  }
-
-  return null;
+  const resolved = resolveKnownEffortVariant(modelId, getProviderModels(providerId));
+  return resolved.effort ? resolved.baseModel : null;
 }
 
 export function isRegisteredProviderEffortVariant(providerId: string, modelId: string): boolean {

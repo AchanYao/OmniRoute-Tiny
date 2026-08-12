@@ -16,6 +16,8 @@ const settingsDb = await import("../../src/lib/db/settings.ts");
 const apiKeysDb = await import("../../src/lib/db/apiKeys.ts");
 const vscodeRawModelsRoute =
   await import("../../src/app/api/v1/vscode/raw/[token]/models/route.ts");
+const { expandVscodeRawModels } =
+  await import("../../src/app/api/v1/vscode/[token]/models/route.ts");
 
 interface RawModel {
   id: string;
@@ -39,7 +41,7 @@ test.after(() => {
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
-test("vscode models route preserves gateway-owned Ollama Cloud effort tiers", async () => {
+test("vscode models route keeps gateway-owned Ollama Cloud models", async () => {
   await settingsDb.updateSettings({
     requireLogin: true,
     password: "hashed-password",
@@ -71,6 +73,8 @@ test("vscode models route preserves gateway-owned Ollama Cloud effort tiers", as
       supportedReasoningEfforts?: string[];
       defaultReasoningEffort?: string;
       capabilities?: { effort_tiers?: string[] };
+      owned_by?: string;
+      providers?: string[];
     }>;
   };
   const model = (body.data || []).find(
@@ -79,13 +83,14 @@ test("vscode models route preserves gateway-owned Ollama Cloud effort tiers", as
 
   assert.equal(response.status, 200);
   assert.ok(model, "missing Ollama Cloud GPT-OSS model");
+  assert.equal(model.owned_by, "ollama-cloud");
   assert.deepEqual(model.capabilities?.effort_tiers, ["low", "medium", "high"]);
   assert.deepEqual(model.supportsReasoningEffort, ["low", "medium", "high"]);
   assert.deepEqual(model.supportedReasoningEfforts, ["low", "medium", "high"]);
   assert.equal(model.defaultReasoningEffort, "low");
 });
 
-test("vscode raw models route exposes native GPT-5.6 IDs and effort tiers", async () => {
+test("vscode raw models route exposes GPT-5.6 base IDs with effort metadata", async () => {
   await settingsDb.updateSettings({
     requireLogin: true,
     password: "hashed-password",
@@ -112,18 +117,18 @@ test("vscode raw models route exposes native GPT-5.6 IDs and effort tiers", asyn
   const models = body.data ?? [];
   const importedIds = new Set(models.map((entry) => entry.id));
   const findModel = (id: string) => models.find((entry) => entry.id === id);
-  const defaultModel = findModel("cx/gpt-5.6-sol");
-  const fastModel = findModel("cx/gpt-5.6-sol__tier_priority");
-  const flexModel = findModel("cx/gpt-5.6-sol__tier_flex");
+  const defaultModel = findModel("codex/gpt-5.6-sol");
+  const fastModel = findModel("codex/gpt-5.6-sol__tier_priority");
+  const flexModel = findModel("codex/gpt-5.6-sol__tier_flex");
 
   assert.equal(response.status, 200);
-  assert.ok(defaultModel, "missing cx/gpt-5.6-sol in raw VS Code models route");
-  assert.ok(fastModel, "missing cx/gpt-5.6-sol__tier_priority in raw VS Code models route");
-  assert.ok(flexModel, "missing cx/gpt-5.6-sol__tier_flex in raw VS Code models route");
+  assert.ok(defaultModel, "missing codex/gpt-5.6-sol in raw VS Code models route");
+  assert.ok(fastModel, "missing codex/gpt-5.6-sol__tier_priority in raw VS Code models route");
+  assert.ok(flexModel, "missing codex/gpt-5.6-sol__tier_flex in raw VS Code models route");
   assert.equal(importedIds.size, models.length, "raw VS Code models route must not duplicate ids");
-  assert.ok(!importedIds.has("gpt-5.6-sol__provider_cx"));
-  assert.ok(!importedIds.has("gpt-5.6-sol__provider_cx__tier_priority"));
-  assert.ok(!importedIds.has("gpt-5.6-sol__provider_cx__tier_flex"));
+  assert.ok(!importedIds.has("gpt-5.6-sol__provider_codex"));
+  assert.ok(!importedIds.has("gpt-5.6-sol__provider_codex__tier_priority"));
+  assert.ok(!importedIds.has("gpt-5.6-sol__provider_codex__tier_flex"));
   assert.equal(defaultModel.object, "model");
   assert.equal(typeof defaultModel.created, "number");
   assert.equal(defaultModel.owned_by, "codex");
@@ -154,27 +159,38 @@ test("vscode raw models route exposes native GPT-5.6 IDs and effort tiers", asyn
     assert.equal(defaultModel[field], undefined);
   }
 
-  const lowModel = findModel("cx/gpt-5.6-sol-low");
-  const mediumModel = findModel("cx/gpt-5.6-sol-medium");
-  const highModel = findModel("cx/gpt-5.6-sol-high");
-  const lowFastModel = findModel("cx/gpt-5.6-sol-low__tier_priority");
-  const mediumFastModel = findModel("cx/gpt-5.6-sol-medium__tier_priority");
-  const highFastModel = findModel("cx/gpt-5.6-sol-high__tier_priority");
+  const lowModel = findModel("codex/gpt-5.6-sol-low");
+  const mediumModel = findModel("codex/gpt-5.6-sol-medium");
+  const highModel = findModel("codex/gpt-5.6-sol-high");
+  const lowFastModel = findModel("codex/gpt-5.6-sol-low__tier_priority");
+  const mediumFastModel = findModel("codex/gpt-5.6-sol-medium__tier_priority");
+  const highFastModel = findModel("codex/gpt-5.6-sol-high__tier_priority");
 
-  assert.ok(lowModel, "missing cx/gpt-5.6-sol-low in raw VS Code models route");
-  assert.ok(mediumModel, "missing cx/gpt-5.6-sol-medium in raw VS Code models route");
-  assert.ok(highModel, "missing cx/gpt-5.6-sol-high in raw VS Code models route");
-  assert.ok(lowFastModel, "missing cx/gpt-5.6-sol-low__tier_priority in raw VS Code models route");
-  assert.ok(
-    mediumFastModel,
-    "missing cx/gpt-5.6-sol-medium__tier_priority in raw VS Code models route"
-  );
-  assert.ok(
-    highFastModel,
-    "missing cx/gpt-5.6-sol-high__tier_priority in raw VS Code models route"
-  );
-  assert.equal(lowModel.name, "Codex GPT 5.6 Sol (Low)");
-  assert.equal(lowFastModel.name, "Codex GPT 5.6 Sol (Low) (Fast)");
-  assert.equal(mediumFastModel.name, "Codex GPT 5.6 Sol (Medium) (Fast)");
-  assert.equal(highFastModel.name, "Codex GPT 5.6 Sol (High) (Fast)");
+  assert.equal(lowModel, undefined);
+  assert.equal(mediumModel, undefined);
+  assert.equal(highModel, undefined);
+  assert.equal(lowFastModel, undefined);
+  assert.equal(mediumFastModel, undefined);
+  assert.equal(highFastModel, undefined);
+});
+
+test("vscode raw model expansion restores Codex effort variants when enabled", () => {
+  const previous = process.env.MODEL_EFFORT_VARIANTS_ENABLED;
+  process.env.MODEL_EFFORT_VARIANTS_ENABLED = "true";
+  try {
+    const ids = expandVscodeRawModels([
+      {
+        id: "codex/gpt-5.6-sol",
+        name: "GPT 5.6 Sol",
+        root: "codex/gpt-5.6-sol",
+        owned_by: "codex",
+        capabilities: { reasoning: true },
+      },
+    ]).map((model) => model.id);
+    assert.ok(ids.includes("codex/gpt-5.6-sol-low"));
+    assert.ok(ids.includes("codex/gpt-5.6-sol-ultra"));
+  } finally {
+    if (previous === undefined) delete process.env.MODEL_EFFORT_VARIANTS_ENABLED;
+    else process.env.MODEL_EFFORT_VARIANTS_ENABLED = previous;
+  }
 });

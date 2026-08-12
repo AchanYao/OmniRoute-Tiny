@@ -23,6 +23,7 @@ import path from "node:path";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-gpt55-routing-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
+process.env.MODEL_EFFORT_VARIANTS_ENABLED = "true";
 
 const core = await import("../../src/lib/db/core.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");

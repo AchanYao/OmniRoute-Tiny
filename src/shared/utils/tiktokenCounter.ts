@@ -25,13 +25,7 @@ function normalize(value: unknown): string {
 export function isCodexTokenizerContext(context?: TokenizerContext): boolean {
   const provider = normalize(context?.provider);
   const model = normalize(context?.model);
-  return (
-    provider === "codex" ||
-    provider === "cx" ||
-    model.startsWith("codex/") ||
-    model.startsWith("cx/") ||
-    model.includes("codex")
-  );
+  return provider === "codex" || model.startsWith("codex/") || model.includes("codex");
 }
 
 export function resolveTokenizerEncoding(context?: TokenizerContext): TokenizerEncoding {

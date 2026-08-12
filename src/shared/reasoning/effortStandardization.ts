@@ -30,7 +30,7 @@ export function extendCodexGpt56EffortValues(
   const normalizedModel = model
     ?.trim()
     .toLowerCase()
-    .replace(/^(?:codex|cx|kiro|kr)\//, "");
+    .replace(/^(?:codex|kiro|kr)\//, "");
   if (!normalizedModel) return values;
 
   const match = normalizedModel.match(
@@ -43,7 +43,7 @@ export function extendCodexGpt56EffortValues(
     return values.includes("max") ? values : [...values, "max"];
   }
 
-  if (normalizedProvider !== "codex" && normalizedProvider !== "cx") return values;
+  if (normalizedProvider !== "codex") return values;
 
   const nativeValues = ["low", "medium", "high", "xhigh", "max"];
   return match[1] === "luna" ? nativeValues : [...nativeValues, "ultra"];

@@ -171,6 +171,15 @@ test("Antigravity Gemini 3.5 upstream IDs share the Flash capability profile", (
   }
 });
 
+test("Antigravity Claude Sonnet 4.6 is published as a thinking model", () => {
+  const capabilities = modelCapabilities.getResolvedModelCapabilities(
+    "antigravity/claude-sonnet-4-6"
+  );
+
+  assert.equal(capabilities.reasoning, true);
+  assert.equal(capabilities.supportsThinking, true);
+});
+
 test("Antigravity Gemini 3.6 tier IDs share the Flash capability profile", () => {
   for (const modelId of [
     "gemini-3.6-flash-high",

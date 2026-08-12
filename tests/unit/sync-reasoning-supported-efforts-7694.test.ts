@@ -18,24 +18,18 @@ import path from "node:path";
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-7694-effort-sync-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
 process.env.API_KEY_SECRET = process.env.API_KEY_SECRET || "catalog-test-secret-7694";
+process.env.MODEL_EFFORT_VARIANTS_ENABLED = "true";
 
 const core = await import("../../src/lib/db/core.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");
 const modelsDb = await import("../../src/lib/db/models.ts");
 const v1ModelsCatalog = await import("../../src/app/api/v1/models/catalog.ts");
 const { getModelInfo } = await import("../../src/sse/services/model.ts");
-const { normalizeDiscoveredModels, detectSupportedThinkingEfforts } = await import(
-  "../../src/lib/providerModels/modelDiscovery.ts"
-);
+const { normalizeDiscoveredModels, detectSupportedThinkingEfforts } =
+  await import("../../src/lib/providerModels/modelDiscovery.ts");
 const { splitSyncedEffortSuffix } = await import("../../open-sse/services/model.ts");
-const {
-  appendSyncedEffortVariants,
-  shouldExposeSyncedEffortVariants,
-  SYNCED_EFFORT_SKIP_PROVIDERS,
-} = await import("../../open-sse/utils/syncedEffortVariants.ts");
-const { applyDefaultReasoningEffort } = await import(
-  "../../open-sse/services/defaultReasoningEffort.ts"
-);
+const { applyDefaultReasoningEffort } =
+  await import("../../open-sse/services/defaultReasoningEffort.ts");
 
 async function resetStorage() {
   core.resetDbInstance();
@@ -195,76 +189,6 @@ test("#7694 catalog: GET /api/v1/models advertises a <model>-<tier> alias id per
   const lowVariant = body.data.find((m) => m.id === `${baseEntry!.id}-low`);
   assert.ok(highVariant, `expected a "${baseEntry!.id}-high" alias entry`);
   assert.ok(lowVariant, `expected a "${baseEntry!.id}-low" alias entry`);
-});
-
-// ---------------------------------------------------------------------------
-// shouldExposeSyncedEffortVariants / appendSyncedEffortVariants — pure unit tests.
-// ---------------------------------------------------------------------------
-
-test("shouldExposeSyncedEffortVariants: skips codex/kimi-owned models (own suffix mechanism) — Kimi/codex regression guard", () => {
-  assert.equal(
-    shouldExposeSyncedEffortVariants({
-      id: "codex/gpt-5.5",
-      owned_by: "codex",
-      capabilities: { effort_tiers: ["low", "high"] },
-    }),
-    false
-  );
-  assert.equal(
-    shouldExposeSyncedEffortVariants({
-      id: "kimi/kimi-k3",
-      owned_by: "kimi-coding",
-      capabilities: { effort_tiers: ["low", "high"] },
-    }),
-    false
-  );
-  assert.equal(
-    shouldExposeSyncedEffortVariants({
-      id: "kimi/kimi-k3",
-      owned_by: "kimi-coding-apikey",
-      capabilities: { effort_tiers: ["low", "high"] },
-    }),
-    false
-  );
-  assert.ok(SYNCED_EFFORT_SKIP_PROVIDERS.has("codex"));
-});
-
-test("shouldExposeSyncedEffortVariants: skips a model id that already ends in a token matching a canonical effort value (collision guard)", () => {
-  assert.equal(
-    shouldExposeSyncedEffortVariants({
-      id: "someprovider/my-model-high", // legitimately ends in "-high"
-      owned_by: "someprovider",
-      capabilities: { effort_tiers: ["low", "high"] },
-    }),
-    false
-  );
-});
-
-test("shouldExposeSyncedEffortVariants: exposes a plain synced model carrying effort_tiers", () => {
-  assert.equal(
-    shouldExposeSyncedEffortVariants({
-      id: "someprovider/my-model",
-      owned_by: "someprovider",
-      capabilities: { effort_tiers: ["low", "high"] },
-    }),
-    true
-  );
-});
-
-test("appendSyncedEffortVariants: generates one variant per tier, inheriting the base model's fields", () => {
-  const base = {
-    id: "someprovider/my-model",
-    owned_by: "someprovider",
-    root: "my-model",
-    capabilities: { effort_tiers: ["low", "high"] },
-    hidden: false,
-  };
-  const result = appendSyncedEffortVariants([base]);
-  assert.equal(result.length, 3);
-  const high = result.find((m) => m.id === "someprovider/my-model-high");
-  assert.ok(high);
-  assert.equal(high!.root, "my-model-high");
-  assert.equal(high!.hidden, false); // inherited, not re-derived
 });
 
 // ---------------------------------------------------------------------------

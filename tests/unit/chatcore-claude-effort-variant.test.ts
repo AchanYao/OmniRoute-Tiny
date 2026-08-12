@@ -10,6 +10,32 @@ import assert from "node:assert/strict";
 import { applyClaudeEffortVariant } from "../../open-sse/handlers/chatCore/claudeEffortVariant.ts";
 import { FORMATS } from "../../open-sse/translator/formats.ts";
 
+const previousSetting = process.env.MODEL_EFFORT_VARIANTS_ENABLED;
+test.beforeEach(() => {
+  process.env.MODEL_EFFORT_VARIANTS_ENABLED = "true";
+});
+test.after(() => {
+  if (previousSetting === undefined) delete process.env.MODEL_EFFORT_VARIANTS_ENABLED;
+  else process.env.MODEL_EFFORT_VARIANTS_ENABLED = previousSetting;
+});
+
+test("disabled compatibility variants are not normalized", () => {
+  delete process.env.MODEL_EFFORT_VARIANTS_ENABLED;
+  const body: Record<string, unknown> = { model: "claude-sonnet-4-high", messages: [] };
+
+  const result = applyClaudeEffortVariant({
+    provider: "claude",
+    effectiveModel: "claude-sonnet-4-high",
+    body,
+    sourceFormat: FORMATS.OPENAI,
+  });
+
+  assert.equal(result.effectiveModel, "claude-sonnet-4-high");
+  assert.equal(body.model, "claude-sonnet-4-high");
+  assert.equal(body.reasoning_effort, undefined);
+  assert.equal(result.log, null);
+});
+
 test("claude provider + effort suffix → strips to base, mutates body model + reasoning_effort, returns log", () => {
   const body: Record<string, unknown> = { model: "claude-sonnet-4-high", messages: [] };
   const r = applyClaudeEffortVariant({
@@ -51,7 +77,11 @@ test("sourceFormat 'claude' strips the model but does NOT inject reasoning_effor
 });
 
 test("an explicit client reasoning_effort wins (not overwritten)", () => {
-  const body: Record<string, unknown> = { model: "claude-sonnet-4-low", reasoning_effort: "high", messages: [] };
+  const body: Record<string, unknown> = {
+    model: "claude-sonnet-4-low",
+    reasoning_effort: "high",
+    messages: [],
+  };
   const r = applyClaudeEffortVariant({
     provider: "claude",
     effectiveModel: "claude-sonnet-4-low",

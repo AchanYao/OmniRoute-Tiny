@@ -186,7 +186,6 @@ export const IMAGE_PROVIDERS: Record<string, ImageProviderConfig> = {
   // by handleCodexImageGeneration.
   codex: {
     id: "codex",
-    alias: "cx",
     baseUrl: "https://chatgpt.com/backend-api/codex/responses",
     authType: "oauth",
     authHeader: "bearer",

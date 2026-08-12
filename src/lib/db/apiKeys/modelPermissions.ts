@@ -41,7 +41,7 @@ export function addModelCandidate(candidates: Set<string>, modelId: string): voi
 
 /**
  * Expand provider-scoped model ids with canonical provider id + public alias forms
- * (e.g. codex/gpt-5.6-terra ↔ cx/gpt-5.6-terra) so API-key allow/block patterns match
+ * so API-key allow/block patterns match
  * dashboard restrictions regardless of which prefix the client sends.
  */
 export function addProviderAliasScopedCandidates(

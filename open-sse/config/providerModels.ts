@@ -153,10 +153,8 @@ export function getModelsByProviderId(providerId: string): RegistryModel[] {
  * provider-level/global defaults unchanged.
  */
 export function getModelTimeoutMs(aliasOrId: string, modelId: string): number | undefined {
-  // Callers (e.g. chatCore's timeout resolution) pass the raw provider id
-  // ("codex"), not the public alias ("cx") that PROVIDER_MODELS is keyed by
-  // — resolve id→alias the same way getProviderModels()/getModelsByProviderId()
-  // do, so the override actually resolves (#6354).
+  // Resolve id→alias the same way getProviderModels()/getModelsByProviderId()
+  // do, so the override also works for providers that retain a public alias (#6354).
   const alias = PROVIDER_ID_TO_ALIAS[aliasOrId] || aliasOrId;
   return getProviderModel(alias, modelId)?.timeoutMs;
 }

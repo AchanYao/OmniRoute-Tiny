@@ -163,7 +163,7 @@ function resolveModelPricing(
   let providerPricing = findKeyInsensitive(pricingByProvider, pLower);
 
   if (!providerPricing) {
-    // providerAliasMap maps ID -> ALIAS. So if pLower is "codex", alias is "cx".
+    // providerAliasMap maps ID -> configured alias.
     const alias = providerAliasMap[pLower];
     if (alias) {
       providerPricing = findKeyInsensitive(pricingByProvider, alias);

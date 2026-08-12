@@ -89,7 +89,7 @@ export function getCodexFastCostMultiplier(
 ): number {
   const providerKey = normalizeServiceTier(provider);
   const tier = normalizeServiceTier(serviceTier);
-  if (providerKey !== "codex" && providerKey !== "cx") {
+  if (providerKey !== "codex") {
     return 1;
   }
 
@@ -197,7 +197,7 @@ export async function calculateCost(
         pricing = await getPricingForModel(provider, normalized);
       }
       const providerKey = normalizeServiceTier(provider);
-      if (!pricing && (providerKey === "codex" || providerKey === "cx")) {
+      if (!pricing && providerKey === "codex") {
         const effortlessModel = stripCodexEffortSuffix(normalized);
         if (effortlessModel !== normalized) {
           pricing = await getPricingForModel(provider, effortlessModel);

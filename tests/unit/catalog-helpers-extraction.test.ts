@@ -84,6 +84,13 @@ test("catalogHelpers: Kiro GPT-5.6 models expose the native Max tier", () => {
   }
 });
 
+test("catalogHelpers: Antigravity thinking models do not advertise configurable effort tiers", () => {
+  assert.deepEqual(getThinkingCapabilityFields("antigravity", "claude-sonnet-4-6", true), {
+    thinking: true,
+    supportsThinking: true,
+  });
+});
+
 test("catalogHelpers: minKnownNumber ignores non-positive/unknown", () => {
   assert.equal(minKnownNumber([3, 1, 2]), 1);
   assert.equal(minKnownNumber([undefined, 0, -5, 7]), 7);
@@ -172,7 +179,8 @@ test("catalogProviderMaps: buildAliasMaps seeds the fallback aliases", () => {
   for (const [alias, providerId] of Object.entries(FALLBACK_ALIAS_TO_PROVIDER)) {
     assert.equal(aliasToProviderId[alias], providerId, `alias ${alias} -> ${providerId}`);
   }
-  assert.equal(aliasToProviderId["cx"], "codex");
+  assert.equal(aliasToProviderId["cx"], undefined);
+  assert.equal(providerIdToAlias["codex"], "codex");
   assert.equal(aliasToProviderId["kr"], "kiro");
 });
 

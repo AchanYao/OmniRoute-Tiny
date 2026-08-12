@@ -420,7 +420,7 @@ export async function getRuntimeProviderProfile(provider: string | null | undefi
 const modelLockouts = new Map<string, ModelLockoutEntry>();
 const modelFailureState = new Map<string, ModelFailureState>();
 
-// Aliases (e.g. "cx" → "codex") must share lockout state with their canonical
+// Configured aliases must share lockout state with their canonical
 // provider, otherwise a model locked via one spelling stays routable via the other.
 const canonicalProviderCache = new Map<string, string>();
 function getCanonicalLockProvider(provider: string): string {

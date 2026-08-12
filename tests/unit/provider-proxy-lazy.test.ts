@@ -16,9 +16,8 @@ const {
   AUDIO_ONLY_PROVIDERS,
 } = await import("../../src/shared/constants/providers.ts");
 
-const { IMAGE_PROVIDERS, getImageProvider } = await import(
-  "../../open-sse/config/imageRegistry.ts"
-);
+const { IMAGE_PROVIDERS, getImageProvider, parseImageModel } =
+  await import("../../open-sse/config/imageRegistry.ts");
 
 function getImageProviders() {
   return IMAGE_PROVIDERS;
@@ -76,7 +75,7 @@ test("AI_PROVIDERS: spread works", () => {
 test("ALIAS_TO_ID: maps aliases to IDs correctly", () => {
   assert.equal(ALIAS_TO_ID["cc"], "claude");
   assert.equal(ALIAS_TO_ID["ds"], "deepseek");
-  assert.equal(ALIAS_TO_ID["cx"], "codex");
+  assert.equal(ALIAS_TO_ID["cx"], undefined);
   assert.equal(ALIAS_TO_ID["gh"], "github");
 });
 
@@ -90,7 +89,7 @@ test("ALIAS_TO_ID: 'in' operator and Object.keys work", () => {
 test("ID_TO_ALIAS: maps IDs to aliases correctly", () => {
   assert.equal(ID_TO_ALIAS["claude"], "cc");
   assert.equal(ID_TO_ALIAS["deepseek"], "ds");
-  assert.equal(ID_TO_ALIAS["codex"], "cx");
+  assert.equal(ID_TO_ALIAS["codex"], "codex");
   assert.equal(ID_TO_ALIAS["github"], "gh");
 });
 
@@ -123,6 +122,19 @@ test("getProviderByAlias: returns correct provider for known alias", () => {
 test("getProviderByAlias: returns null for unknown alias", () => {
   const provider = getProviderByAlias("nonexistent_alias_xyz");
   assert.equal(provider, null);
+});
+
+test("Codex has no built-in cx provider alias", () => {
+  assert.equal(getProviderByAlias("cx"), null);
+  assert.equal(getProviderByAlias("codex")?.id, "codex");
+  assert.deepEqual(parseImageModel("cx/gpt-5.6-sol"), {
+    provider: null,
+    model: "cx/gpt-5.6-sol",
+  });
+  assert.deepEqual(parseImageModel("codex/gpt-5.6-sol"), {
+    provider: "codex",
+    model: "gpt-5.6-sol",
+  });
 });
 
 test("getProviderByAlias: also matches by ID", () => {

@@ -87,7 +87,7 @@ function supportsExtendedCodexEffort(model: string, effort: "max" | "ultra"): bo
   const normalized = model
     .trim()
     .toLowerCase()
-    .replace(/^(?:codex|cx)\//, "");
+    .replace(/^codex\//, "");
   return effort === "ultra"
     ? /^gpt-5\.6-(?:sol|terra)(?:-|$)/.test(normalized)
     : /^gpt-5\.6-(?:sol|terra|luna)(?:-|$)/.test(normalized);

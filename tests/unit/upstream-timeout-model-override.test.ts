@@ -1,16 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { getExecutorTimeoutMs } from "../../open-sse/handlers/chatCore/upstreamTimeouts.ts";
-import { FETCH_TIMEOUT_MS } from "../../open-sse/config/constants.ts";
-import { getModelTimeoutMs } from "../../open-sse/config/providerModels.ts";
+process.env.MODEL_EFFORT_VARIANTS_ENABLED = "true";
 
-test("model-level timeoutMs wins over provider-level and global", () => {
+const { getExecutorTimeoutMs } =
+  await import("../../open-sse/handlers/chatCore/upstreamTimeouts.ts");
+const { FETCH_TIMEOUT_MS } = await import("../../open-sse/config/constants.ts");
+const { getModelTimeoutMs } = await import("../../open-sse/config/providerModels.ts");
+
+test("Codex effort variants no longer carry repository-authored timeout overrides", () => {
   const executor = { getTimeoutMs: () => 30000 };
   const result = getExecutorTimeoutMs(executor, "codex", "gpt-5.5-high");
-  assert.equal(result, 1200000);
-  assert.notEqual(result, 30000);
-  assert.notEqual(result, FETCH_TIMEOUT_MS);
+  assert.equal(result, 30000);
 });
 
 test("provider-level timeoutMs still wins over global when no model override exists (regression guard)", () => {
@@ -32,18 +33,18 @@ test("getExecutorTimeoutMs is backward compatible when called with only an execu
   assert.equal(getExecutorTimeoutMs(executor), 5000);
 });
 
-test("gpt-5.5-high resolves to its override; gpt-5.5-medium resolves to the provider/global default (reported-scenario guard)", () => {
+test("all gpt-5.5 effort aliases use the same global fallback", () => {
   const executor = {};
   const highResult = getExecutorTimeoutMs(executor, "codex", "gpt-5.5-high");
   const mediumResult = getExecutorTimeoutMs(executor, "codex", "gpt-5.5-medium");
-  assert.equal(highResult, 1200000);
+  assert.equal(highResult, FETCH_TIMEOUT_MS);
   assert.equal(mediumResult, FETCH_TIMEOUT_MS);
-  assert.notEqual(highResult, mediumResult);
+  assert.equal(highResult, mediumResult);
 });
 
-test("getModelTimeoutMs returns the registered override for reasoning-heavy codex tiers", () => {
-  assert.equal(getModelTimeoutMs("codex", "gpt-5.5-high"), 1200000);
-  assert.equal(getModelTimeoutMs("codex", "gpt-5.5-xhigh"), 1200000);
+test("getModelTimeoutMs has no Codex effort-tier override", () => {
+  assert.equal(getModelTimeoutMs("codex", "gpt-5.5-high"), undefined);
+  assert.equal(getModelTimeoutMs("codex", "gpt-5.5-xhigh"), undefined);
   assert.equal(getModelTimeoutMs("codex", "gpt-5.5-medium"), undefined);
   assert.equal(getModelTimeoutMs("codex", "nonexistent-model"), undefined);
 });

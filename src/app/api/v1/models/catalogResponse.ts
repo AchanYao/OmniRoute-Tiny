@@ -9,8 +9,10 @@
  */
 
 import { appendNoThinkingVariants } from "@omniroute/open-sse/utils/noThinkingAlias";
-import { appendClaudeEffortVariants } from "@omniroute/open-sse/utils/claudeEffortVariants";
-import { appendSyncedEffortVariants } from "@omniroute/open-sse/utils/syncedEffortVariants";
+import {
+  appendEffortVariants,
+  isEffortVariantsEnabled,
+} from "@omniroute/open-sse/config/effortVariants";
 import { appendCcDiscoveryAliases } from "@omniroute/open-sse/utils/ccDiscoveryAliases";
 import { appendFunctionalGatewayMirrors } from "@omniroute/open-sse/utils/functionalGatewayMirrors";
 import { isCcAliasGlobalEnabled, getCcAliasSettingsBulk } from "@/lib/db/ccDiscoveryAliases";
@@ -61,15 +63,12 @@ export function applyCatalogPostFilters(
     });
   }
 
-  // Advertise Claude reasoning-effort variants (claude/<model>-{low,medium,high[,xhigh]}).
-  // Derived from the already key-filtered list so a variant only appears when its real
-  // model is permitted. Runs before the no-thinking pass: the gateway already routes these
-  // suffixed ids (claudeEffortVariant.ts), this just makes them selectable in catalog-only
-  // clients (OpenCode) that can't set a reasoning_effort config the way VS Code does.
-  finalModels = appendClaudeEffortVariants(
-    finalModels,
-    ctx.prefixMode === "canonical" ? ctx.aliasToProviderId : undefined
-  );
+  // Legacy effort-suffixed ids are one global compatibility surface. By default clients
+  // see one base model plus capabilities.effort_tiers; enabling the startup switch derives
+  // aliases for Codex, Claude, and synced models from that metadata in one pass.
+  if (isEffortVariantsEnabled()) {
+    finalModels = appendEffortVariants(finalModels);
+  }
 
   // Advertise no-thinking gateway variants (Fase 8.1). Derived from the already
   // key-filtered list, so a variant only appears when its real model is permitted.
@@ -135,11 +134,6 @@ export function applyCatalogPostFilters(
     );
   }
 
-  // #7694: advertise `<provider>/<model>-<tier>` variants for synced models that
-  // captured `reasoning.supported_efforts` at sync time (capabilities.effort_tiers).
-  // Derived from the already key-filtered list; skips codex/kimi (own suffix mechanism).
-  finalModels = appendSyncedEffortVariants(finalModels);
-
   // #4424 follow-up — drop exact-duplicate ids that slip through the per-source push
   // guards (e.g. `codex/gpt-5.5`, `veo-free/seedance` listed twice). Keyed by listing
   // identity (id, type, subtype) so the intentional same-id audio transcription/speech
@@ -167,10 +161,11 @@ export function finalizeCatalogResponse(
   const includeModelNames = isModelCatalogNamesEnabled();
   const enrichedModels = disambiguateCatalogModelNames(
     finalModels.map((model) => {
+      const isAggregatedModel = model.owned_by === "aggregate";
       if (model.owned_by === "combo") {
         return maybeOmitCatalogModelName(model, includeModelNames);
       }
-      const enriched = enrichCatalogModelEntry(model);
+      const enriched = isAggregatedModel ? model : enrichCatalogModelEntry(model);
       const fallbackContextLength = getContextFallback(enriched);
       const listedModel = fallbackContextLength
         ? { ...enriched, context_length: fallbackContextLength }

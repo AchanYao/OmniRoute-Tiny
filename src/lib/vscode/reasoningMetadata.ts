@@ -184,7 +184,7 @@ function getCodexGpt56DefaultReasoningEffort(model: VscodeCatalogModel) {
   const modelId = getCatalogModelName(model);
   const parsed = parseModel(modelId);
   const providerId = (parsed.provider || model.owned_by || "").trim().toLowerCase();
-  if (providerId !== "codex" && providerId !== "cx") return undefined;
+  if (providerId !== "codex") return undefined;
 
   const providerModelId = (parsed.model || model.root || modelId.split("/").pop() || modelId)
     .trim()

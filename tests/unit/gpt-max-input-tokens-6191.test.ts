@@ -12,6 +12,7 @@ import path from "node:path";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-gpt-input-cap-6191-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
+process.env.MODEL_EFFORT_VARIANTS_ENABLED = "true";
 
 const core = await import("../../src/lib/db/core.ts");
 const modelCapabilities = await import("../../src/lib/modelCapabilities.ts");

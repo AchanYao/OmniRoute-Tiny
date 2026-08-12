@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { getModelInfoCore } from "../../open-sse/services/model.ts";
+process.env.MODEL_ALIAS_COMPAT_ENABLED = "true";
+
+const { getModelInfoCore } = await import("../../open-sse/services/model.ts");
 
 // These tests cover the early-return path added in this PR (open-sse/services/model.ts):
 // when a local alias map provides a slashful string target (e.g. "openai/gpt-4o"),

@@ -78,7 +78,7 @@ export const DEFAULT_PRICING_OAUTH = {
       cache_creation: 1.25,
     },
   },
-  cx: {
+  codex: {
     "codex-auto-review": GPT_5_5_PRICING,
     // Codex uses credits per 1M tokens. OmniRoute stores the dollar-equivalent
     // values below at the documented conversion of 25 credits per USD.

@@ -219,10 +219,13 @@ test("v1 models catalog hides models excluded by every active connection while k
     new Request("http://localhost/api/v1/models")
   );
   let body = (await response.json()) as any;
-  let ids = new Set(body.data.map((item) => item.id));
 
   assert.equal(response.status, 200);
-  assert.equal(ids.has("openai/gpt-5.4-mini"), true);
+  const initiallyVisible = body.data.find((item) => item.root === "gpt-5.4-mini");
+  assert.ok(initiallyVisible);
+  assert.ok(
+    initiallyVisible.owned_by === "openai" || initiallyVisible.providers?.includes("openai")
+  );
 
   await providersDb.updateProviderConnection((second as any).id, {
     providerSpecificData: {
@@ -234,10 +237,13 @@ test("v1 models catalog hides models excluded by every active connection while k
     new Request("http://localhost/api/v1/models")
   );
   body = (await response.json()) as any;
-  ids = new Set(body.data.map((item) => item.id));
 
   assert.equal(response.status, 200);
-  assert.equal(ids.has("openai/gpt-5.4-mini"), false);
+  const afterBothExclude = body.data.find((item) => item.root === "gpt-5.4-mini");
+  assert.ok(
+    !afterBothExclude ||
+      !(afterBothExclude.owned_by === "openai" || afterBothExclude.providers?.includes("openai"))
+  );
 
   await providersDb.updateProviderConnection((first as any).id, {
     providerSpecificData: {
@@ -601,16 +607,14 @@ test("v1 models catalog exposes claude alias and provider-prefixed built-in mode
     new Request("http://localhost/api/v1/models")
   );
   const body = (await response.json()) as any;
-  const aliasModel = body.data.find((item) => item.id === "cc/claude-sonnet-4-6");
-  const providerModel = body.data.find((item) => item.id === "claude/claude-sonnet-4-6");
+  const providerModel = body.data.find((item) => item.id === "claude-sonnet-4-6");
 
   assert.equal(response.status, 200);
-  assert.ok(aliasModel);
   assert.ok(providerModel);
-  assert.equal(providerModel.parent, aliasModel.id);
-  assert.equal(aliasModel.capabilities?.vision, true);
-  assert.deepEqual(aliasModel.input_modalities, ["text", "image"]);
-  assert.deepEqual(aliasModel.output_modalities, ["text"]);
+  assert.ok(providerModel.providers?.includes("claude"));
+  assert.equal(providerModel.capabilities?.vision, true);
+  assert.deepEqual(providerModel.input_modalities, ["text", "image"]);
+  assert.deepEqual(providerModel.output_modalities, ["text"]);
 });
 
 test("v1 models catalog exposes refreshed GitHub Copilot aliases and drops retired models", async () => {
@@ -649,7 +653,7 @@ test("v1 models catalog exposes refreshed GitHub Copilot aliases and drops retir
   );
 });
 
-test("v1 models catalog exposes bare Codex-preferred IDs for native Codex clients", async () => {
+test("v1 models catalog publishes Codex models through the canonical provider entry only", async () => {
   await seedConnection("codex", {
     authType: "oauth",
     name: "codex-native",
@@ -664,19 +668,18 @@ test("v1 models catalog exposes bare Codex-preferred IDs for native Codex client
   const getModel = (id: string) => body.data.find((item) => item.id === id);
 
   assert.equal(response.status, 200);
-  const modelId = "codex-auto-review";
+  const modelId = "gpt-5.3-codex-spark";
   const bareModel = getModel(modelId);
   const providerModel = getModel(`codex/${modelId}`);
   const aliasModel = getModel(`cx/${modelId}`);
   const openAiModel = getModel(`openai/${modelId}`);
 
-  assert.ok(bareModel, `expected bare ${modelId} model`);
   assert.ok(providerModel, `expected codex/${modelId} model`);
-  assert.ok(aliasModel, `expected cx/${modelId} model`);
+  assert.equal(bareModel, undefined);
+  assert.equal(aliasModel, undefined);
   assert.equal(openAiModel, undefined);
-  assert.equal(bareModel.owned_by, "codex");
-  assert.equal(bareModel.parent, providerModel.id);
-  assert.equal(providerModel.parent, aliasModel.id);
+  assert.equal(providerModel.owned_by, "codex");
+  assert.equal(providerModel.parent, null);
 });
 
 test("v1 models catalog exposes current Antigravity aliases without retired model IDs", async () => {
@@ -958,7 +961,6 @@ test("v1 models catalog advertises GLM-5.2 provider aliases with hosted context 
     for (const [id, expectedContext] of [
       ["huggingface/zai-org/GLM-5.2", 262144],
       ["cloudflare-ai/@cf/zai-org/glm-5.2", 262144],
-      ["opencode-go/glm-5.2", 1000000],
       ["zenmux/z-ai/glm-5.2", 1000000],
     ] as const) {
       const model = byId.get(id) as any;
@@ -967,6 +969,12 @@ test("v1 models catalog advertises GLM-5.2 provider aliases with hosted context 
       assert.equal(model.max_input_tokens, expectedContext, id);
       assert.notEqual(model.context_length, 128000, id);
     }
+
+    const aggregatedGlm = byId.get("glm-5.2") as
+      { providers?: string[]; context_length?: number } | undefined;
+    assert.ok(aggregatedGlm, "expected aggregated glm-5.2 in catalog");
+    assert.ok(aggregatedGlm.providers?.includes("opencode-go"));
+    assert.equal(typeof aggregatedGlm.context_length, "number");
   } finally {
     modelsDevSync.saveModelsDevCapabilities({});
   }
@@ -1435,8 +1443,8 @@ test("v1 models catalog adds managed fallback models for Claude-compatible provi
   const ids = new Set(body.data.map((item) => item.id));
 
   assert.equal(response.status, 200);
+  assert.ok(ids.has("ccdemo/claude-opus-4-8"));
   assert.ok(ids.has("ccdemo/claude-opus-4-7"));
-  assert.ok(ids.has("ccdemo/claude-opus-4-6"));
   assert.equal(ids.has("ccdemo/claude-sonnet-4-6"), false);
 });
 

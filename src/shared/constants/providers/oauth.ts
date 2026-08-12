@@ -108,7 +108,7 @@ export const OAUTH_PROVIDERS = {
   },
   codex: {
     id: "codex",
-    alias: "cx",
+    alias: undefined,
     name: "OpenAI Codex",
     icon: "code",
     color: "#3B82F6",

@@ -14,6 +14,8 @@ const providersDb = await import("../../src/lib/db/providers.ts");
 const chatRoute = await import("../../src/app/api/v1/chat/completions/route.ts");
 const responsesRoute = await import("../../src/app/api/v1/responses/route.ts");
 const stickiness = await import("../../open-sse/services/combo/sessionStickiness.ts");
+const aggregation = await import("../../src/sse/services/sameModelAggregation.ts");
+const candidatesRoute = await import("../../src/app/api/combos/same-model-candidates/route.ts");
 
 const originalFetch = globalThis.fetch;
 
@@ -97,6 +99,45 @@ test("bare exact id routes through a sticky priority combo spanning providers", 
   assert.equal(response.status, 200, body);
   assert.ok(urls.length > 0, "expected an upstream request");
   assert.match(urls[0], /api\.anthropic\.com/);
+});
+
+test("same-model Combo candidates list model ids available from multiple providers", async () => {
+  await providersDb.createProviderConnection({
+    provider: "openai",
+    authType: "apikey",
+    name: "same-model-candidate-openai",
+    apiKey: "sk-same-model-candidate-openai",
+    defaultModel: "candidate-model",
+    isActive: true,
+    testStatus: "active",
+  });
+  await providersDb.createProviderConnection({
+    provider: "anthropic",
+    authType: "apikey",
+    name: "same-model-candidate-anthropic",
+    apiKey: "sk-same-model-candidate-anthropic",
+    defaultModel: "candidate-model",
+    isActive: true,
+    testStatus: "active",
+  });
+
+  const response = await candidatesRoute.GET(
+    new Request("http://localhost/api/combos/same-model-candidates")
+  );
+  const body = (await response.json()) as {
+    candidates: Array<{
+      modelId: string;
+      providers: Array<{ providerId: string; connectionCount: number }>;
+    }>;
+  };
+  const candidate = body.candidates.find((entry) => entry.modelId === "candidate-model");
+
+  assert.equal(response.status, 200);
+  assert.ok(candidate);
+  assert.deepEqual(candidate.providers, [
+    { providerId: "anthropic", connectionCount: 1 },
+    { providerId: "openai", connectionCount: 1 },
+  ]);
 });
 
 test("provider-prefixed ids remain direct routes instead of aggregate aliases", async () => {

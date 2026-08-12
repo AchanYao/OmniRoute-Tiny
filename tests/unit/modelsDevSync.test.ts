@@ -191,7 +191,7 @@ describe("modelsDevSync — transformModelsDevToPricing", () => {
   it("transforms pricing data correctly for openai provider", () => {
     const pricing = transformModelsDevToPricing(MOCK_MODELS_DEV_DATA);
 
-    // openai maps to ["openai", "cx"]
+    // OpenAI metadata is also copied to the canonical Codex namespace.
     assert.ok(pricing.openai, "openai provider should exist");
     assert.ok(pricing.openai["gpt-4o"], "gpt-4o pricing should exist");
     assert.equal(pricing.openai["gpt-4o"].input, 2.5);
@@ -199,10 +199,10 @@ describe("modelsDevSync — transformModelsDevToPricing", () => {
     assert.equal(pricing.openai["gpt-4o"].cached, 1.25);
     assert.equal(pricing.openai["gpt-4o"].cache_creation, 2.5);
 
-    // cx (Codex alias) should also have the same pricing
-    assert.ok(pricing.cx, "cx provider should exist");
-    assert.ok(pricing.cx["gpt-4o"], "gpt-4o pricing in cx should exist");
-    assert.equal(pricing.cx["gpt-4o"].input, 2.5);
+    // Codex should also have the same pricing.
+    assert.ok(pricing.codex, "codex provider should exist");
+    assert.ok(pricing.codex["gpt-4o"], "gpt-4o pricing in codex should exist");
+    assert.equal(pricing.codex["gpt-4o"].input, 2.5);
   });
 
   it("maps reasoning cost correctly", () => {
@@ -385,8 +385,8 @@ describe("modelsDevSync — transformModelsDevToCapabilities", () => {
 });
 
 describe("modelsDevSync — mapProviderId", () => {
-  it("maps openai to [openai, cx]", () => {
-    assert.deepEqual(mapProviderId("openai"), ["openai", "cx"]);
+  it("maps openai metadata to OpenAI and Codex", () => {
+    assert.deepEqual(mapProviderId("openai"), ["openai", "codex"]);
   });
 
   it("maps anthropic to [anthropic, cc]", () => {

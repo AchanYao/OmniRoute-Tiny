@@ -53,9 +53,10 @@ test("bare gpt-5.5 routes to codex", async () => {
   assert.equal(info.provider, "codex");
 });
 
-test("bare gpt-5.6-sol-xhigh (a tier id) routes to codex", async () => {
+test("bare gpt-5.6-sol-xhigh is not registered when effort variants are disabled", async () => {
   const info = await getModelInfoCore("gpt-5.6-sol-xhigh", null);
-  assert.equal(info.provider, "codex");
+  assert.equal(info.provider, null);
+  assert.equal((info as { errorType?: string }).errorType, "model_not_found");
 });
 
 test("explicit prefix overrides bare precedence (agentrouter/gpt-5.6-sol)", async () => {

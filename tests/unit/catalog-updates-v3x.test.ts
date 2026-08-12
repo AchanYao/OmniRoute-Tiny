@@ -190,22 +190,21 @@ test("Every OpenAI registry model resolves a non-zero pricing row (alias: openai
   }
 });
 
-test("Every Codex registry model resolves a non-zero pricing row (alias: cx)", async () => {
+test("Every Codex registry model resolves a non-zero pricing row", async () => {
   const { getPricingForModel } = await import("../../src/shared/constants/pricing.ts");
   const models = getModelsByProviderId("codex");
   assert.ok(models.length > 0, "codex must expose models");
 
   for (const model of models) {
-    // Codex pricing lives under the "cx" alias (its DEFAULT_PRICING key).
-    const pricing = getPricingForModel("cx", model.id) as {
+    const pricing = getPricingForModel("codex", model.id) as {
       input?: number;
       output?: number;
     } | null;
-    assert.ok(pricing, `cx pricing must include codex model "${model.id}"`);
+    assert.ok(pricing, `codex pricing must include model "${model.id}"`);
     assert.equal(
       typeof pricing?.input === "number" && typeof pricing?.output === "number",
       true,
-      `cx pricing for "${model.id}" must have numeric input/output`
+      `codex pricing for "${model.id}" must have numeric input/output`
     );
   }
 });

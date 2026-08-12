@@ -380,7 +380,7 @@ test("model helpers cover malformed input, alias maps, wildcard aliases, ambigui
       "alias-b": { provider: "cx", model: "gpt-5.2-codex" },
     }),
     {
-      provider: "codex",
+      provider: "cx",
       model: "gpt-5.2-codex",
     }
   );

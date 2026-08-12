@@ -44,6 +44,7 @@ import {
 import { normalizeComboConfigMode } from "@/shared/constants/comboConfigMode";
 import AutoComboCatalog from "./AutoComboCatalog";
 import KimiComboPresetCard from "./KimiComboPresetCard";
+import SameModelComboCreator, { type SameModelComboCandidate } from "./SameModelComboCreator";
 import { KIMI_CODING_PRESET, hasKimiCodingPreset } from "./kimiComboPreset";
 import BuilderIntelligentStep from "./BuilderIntelligentStep";
 import IntelligentComboPanel from "./IntelligentComboPanel";
@@ -733,6 +734,7 @@ export default function CombosPage() {
   const [showUsageGuide, setShowUsageGuide] = useState(true);
   const [recentlyCreatedCombo, setRecentlyCreatedCombo] = useState("");
   const [creatingKimiPreset, setCreatingKimiPreset] = useState(false);
+  const [creatingSameModelCombo, setCreatingSameModelCombo] = useState(false);
   const [comboDragIndex, setComboDragIndex] = useState(null);
   const [comboDragOverIndex, setComboDragOverIndex] = useState(null);
   const [savingComboOrder, setSavingComboOrder] = useState(false);
@@ -837,10 +839,12 @@ export default function CombosPage() {
         body: JSON.stringify(data),
       });
       if (res.ok) {
+        const createdCombo = await res.json();
         await fetchData();
         setShowCreateModal(false);
         setRecentlyCreatedCombo(data.name?.trim() || "");
         notify.success(t("comboCreated"));
+        return createdCombo;
       } else {
         const err = await res.json();
         notify.error(err.error?.message || err.error || t("failedCreate"));
@@ -848,6 +852,7 @@ export default function CombosPage() {
     } catch (error) {
       notify.error(t("errorCreating"));
     }
+    return null;
   };
 
   const handleUpdate = async (id, data) => {
@@ -912,6 +917,26 @@ export default function CombosPage() {
       await handleCreate(KIMI_CODING_PRESET);
     } finally {
       setCreatingKimiPreset(false);
+    }
+  };
+
+  const handleCreateSameModelCombo = async (candidate: SameModelComboCandidate) => {
+    setCreatingSameModelCombo(true);
+    try {
+      const createdCombo = await handleCreate({
+        name: candidate.modelId,
+        strategy: "priority",
+        models: candidate.providers.map((provider) => ({
+          kind: "model",
+          providerId: provider.providerId,
+          model: `${provider.providerId}/${candidate.modelId}`,
+          connectionId: null,
+          weight: 0,
+        })),
+      });
+      if (createdCombo) setEditingCombo(createdCombo);
+    } finally {
+      setCreatingSameModelCombo(false);
     }
   };
 
@@ -1096,6 +1121,12 @@ export default function CombosPage() {
       </div>
 
       <AutoComboCatalog />
+
+      <SameModelComboCreator
+        existingNames={combos.map((combo) => combo.name)}
+        creating={creatingSameModelCombo}
+        onCreate={handleCreateSameModelCombo}
+      />
 
       <KimiComboPresetCard
         alreadyCreated={hasKimiCodingPreset(combos)}

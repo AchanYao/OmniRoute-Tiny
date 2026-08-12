@@ -59,7 +59,7 @@ function supportsNativeMaxReasoningEffort(model: unknown): boolean {
   const normalizedModel = toString(model)
     .trim()
     .toLowerCase()
-    .replace(/^(?:codex|cx)\//, "");
+    .replace(/^codex\//, "");
   return (
     CODEX_GPT_5_6_MODEL_PATTERN.test(normalizedModel) ||
     KIRO_GPT_5_6_MODEL_PATTERN.test(toString(model).trim().toLowerCase())

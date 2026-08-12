@@ -19,12 +19,12 @@ import assert from "node:assert/strict";
 
 import { getModelInfoCore } from "../../open-sse/services/model.ts";
 
-// ── Scenario A: direct exact alias "gpt-5.6-sol" → "cx/gpt-5.6-sol" ─────────
-// When aliases contain { "gpt-5.6-sol": "cx/gpt-5.6-sol" }, the request for "gpt-5.6-sol"
-// must resolve to provider "codex" (cx = codex alias), NOT "openai".
+// ── Scenario A: direct exact alias "gpt-5.6-sol" → "codex/gpt-5.6-sol" ──────
+// When aliases target the canonical provider, the request must resolve to Codex,
+// not the provider selected by bare-model inference.
 
-test("A: custom alias gpt-5.6-sol → cx/gpt-5.6-sol resolves to codex, not openai", async () => {
-  const aliases = { "gpt-5.6-sol": "cx/gpt-5.6-sol" };
+test("A: custom alias gpt-5.6-sol → codex/gpt-5.6-sol resolves to codex", async () => {
+  const aliases = { "gpt-5.6-sol": "codex/gpt-5.6-sol" };
   const result = await getModelInfoCore("gpt-5.6-sol", aliases);
   assert.strictEqual(
     result.provider,
@@ -34,8 +34,8 @@ test("A: custom alias gpt-5.6-sol → cx/gpt-5.6-sol resolves to codex, not open
   assert.strictEqual(result.model, "gpt-5.6-sol");
 });
 
-test("A: custom alias gpt-5.6-sol → cx/gpt-5.6-sol with async getter resolves to codex", async () => {
-  const aliases = { "gpt-5.6-sol": "cx/gpt-5.6-sol" };
+test("A: canonical Codex custom alias works with an async getter", async () => {
+  const aliases = { "gpt-5.6-sol": "codex/gpt-5.6-sol" };
   const result = await getModelInfoCore("gpt-5.6-sol", async () => aliases);
   assert.strictEqual(result.provider, "codex");
   assert.strictEqual(result.model, "gpt-5.6-sol");
@@ -48,18 +48,18 @@ test("A: without alias, gpt-5.6-sol resolves to openai via inference (baseline)"
   assert.strictEqual(result.model, "gpt-5.6-sol");
 });
 
-// ── Scenario B: wildcard alias "*gpt-5.6*" → "cx/gpt-5.6-sol" ───────────────
+// ── Scenario B: wildcard alias "*gpt-5.6*" → "codex/gpt-5.6-sol" ────────────
 // Glob patterns are also supported via resolveWildcardAlias.
 
-test("B: wildcard alias *gpt-5.6* → cx/gpt-5.6-sol resolves to codex", async () => {
-  const aliases = { "*gpt-5.6*": "cx/gpt-5.6-sol" };
+test("B: canonical Codex wildcard alias resolves to codex", async () => {
+  const aliases = { "*gpt-5.6*": "codex/gpt-5.6-sol" };
   const result = await getModelInfoCore("gpt-5.6-sol", aliases);
   assert.strictEqual(result.provider, "codex");
   assert.strictEqual(result.model, "gpt-5.6-sol");
 });
 
-test("B: wildcard alias *gpt-5* → cx/gpt-5.6-sol resolves to codex", async () => {
-  const aliases = { "*gpt-5*": "cx/gpt-5.6-sol" };
+test("B: broad canonical Codex wildcard alias resolves to codex", async () => {
+  const aliases = { "*gpt-5*": "codex/gpt-5.6-sol" };
   const result = await getModelInfoCore("gpt-5.6-sol", aliases);
   assert.strictEqual(result.provider, "codex");
 });
@@ -67,15 +67,15 @@ test("B: wildcard alias *gpt-5* → cx/gpt-5.6-sol resolves to codex", async () 
 // ── Scenario C: explicit provider prefix "openai/gpt-5.6-sol" ────────────────
 // When the client sends "openai/gpt-5.6-sol" explicitly, parseModel returns
 // isAlias=false. This bypasses the alias lookup in getModelInfoCore (by design —
-// explicit provider prefixes override aliases). The alias "gpt-5.6-sol → cx/gpt-5.6-sol"
+// explicit provider prefixes override aliases). The alias "gpt-5.6-sol → codex/gpt-5.6-sol"
 // should NOT apply here; this is intentional behavior.
-// NOTE: Aliases for "openai/gpt-5.6-sol" → "cx/gpt-5.6-sol" are a distinct key and
+// NOTE: Aliases for "openai/gpt-5.6-sol" → "codex/gpt-5.6-sol" are a distinct key and
 // must be configured explicitly if desired.
 
 test("C: explicit openai/gpt-5.6-sol resolves to openai regardless of bare alias", async () => {
   // The alias is for bare "gpt-5.6-sol", NOT for "openai/gpt-5.6-sol".
   // An explicit provider prefix takes precedence over aliases on the bare name.
-  const aliases = { "gpt-5.6-sol": "cx/gpt-5.6-sol" };
+  const aliases = { "gpt-5.6-sol": "codex/gpt-5.6-sol" };
   const result = await getModelInfoCore("openai/gpt-5.6-sol", aliases);
   assert.strictEqual(result.provider, "openai");
   assert.strictEqual(result.model, "gpt-5.6-sol");
@@ -84,8 +84,8 @@ test("C: explicit openai/gpt-5.6-sol resolves to openai regardless of bare alias
 test("C: explicit openai/gpt-5.6-sol alias is not applied on the isAlias=false path", async () => {
   // A slashful input is NOT treated as an alias key by getModelInfoCore.
   // The alias lookup only runs when isAlias=true (bare model name).
-  // Users wanting Codex must send cx/gpt-5.6-sol explicitly.
-  const aliases = { "openai/gpt-5.6-sol": "cx/gpt-5.6-sol" };
+  // Users wanting Codex must send codex/gpt-5.6-sol explicitly.
+  const aliases = { "openai/gpt-5.6-sol": "codex/gpt-5.6-sol" };
   const result = await getModelInfoCore("openai/gpt-5.6-sol", aliases);
   // The slashful input is parsed as provider=openai, model=gpt-5.6-sol — alias not consulted.
   assert.strictEqual(result.provider, "openai");
@@ -94,7 +94,7 @@ test("C: explicit openai/gpt-5.6-sol alias is not applied on the isAlias=false p
 // ── Scenario D: non-gpt aliases are unaffected ───────────────────────────────
 
 test("D: unrelated models with no alias still route by inference", async () => {
-  const aliases = { "gpt-5.6-sol": "cx/gpt-5.6-sol" };
+  const aliases = { "gpt-5.6-sol": "codex/gpt-5.6-sol" };
   const result = await getModelInfoCore("gpt-4o", aliases);
   assert.strictEqual(result.provider, "openai");
   assert.strictEqual(result.model, "gpt-4o");
@@ -103,7 +103,7 @@ test("D: unrelated models with no alias still route by inference", async () => {
 test("D: claude model alias routes to requested provider", async () => {
   // Explicit alias for a multi-provider model wins over inference
   const aliases = {
-    "gpt-5.6-sol": "cx/gpt-5.6-sol",
+    "gpt-5.6-sol": "codex/gpt-5.6-sol",
     "my-claude": "anthropic/claude-opus-4-7",
   };
   const result = await getModelInfoCore("my-claude", aliases);

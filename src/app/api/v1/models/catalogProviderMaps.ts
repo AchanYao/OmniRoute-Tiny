@@ -10,7 +10,6 @@ export const FALLBACK_ALIAS_TO_PROVIDER = {
   cc: "claude",
   cl: "cline",
   cu: "cursor",
-  cx: "codex",
   gh: "github",
   kc: "kilocode",
   kmc: "kimi-coding",

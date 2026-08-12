@@ -5,8 +5,8 @@ import { MODELS_DEV_PROVIDER_MAP } from "../../src/lib/modelsDevSync/transform.t
 
 describe("reverseModelsDevProviders memoization (#8697-adjacent)", () => {
   it("stays correct across repeated calls for the same provider", () => {
-    // codex/claude only list their alias (cx/cc) in MODELS_DEV_PROVIDER_MAP — exercises
-    // the reverse-lookup fallback this function builds (#8429).
+    // Claude Code still lists its cc alias in MODELS_DEV_PROVIDER_MAP, while Codex uses
+    // its canonical provider ID. Both paths must remain stable across memoized lookups.
     const first = getResolvedModelCapabilities({ provider: "codex", model: "gpt-5.6" });
     const second = getResolvedModelCapabilities({ provider: "codex", model: "gpt-5.6" });
     assert.deepEqual(first, second, "memoized reverse-provider lookup must not change results");

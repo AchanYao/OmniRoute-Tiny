@@ -42,9 +42,6 @@ const TOOL_CALLING_UNSUPPORTED_PATTERNS: string[] = [
   "stable-diffusion",
 ];
 const REASONING_UNSUPPORTED_PATTERNS = [
-  "antigravity/claude-sonnet-4-6",
-  "antigravity/claude-sonnet-4-5",
-  "antigravity/claude-sonnet-4",
   // Non-Claude antigravity models don't support thinking params (#1361)
   "antigravity/gemini-",
   "antigravity/gpt-oss-",
@@ -334,13 +331,12 @@ const reverseModelsDevProvidersCache = new Map<string, readonly string[]>();
 function reverseModelsDevProviders(provider: string): readonly string[] {
   // models.dev may store capabilities under a different OmniRoute provider id
   // that also maps from the same upstream models.dev provider. Build reverse
-  // candidates from MODELS_DEV_PROVIDER_MAP (e.g. openai ↔ cx).
+  // candidates from MODELS_DEV_PROVIDER_MAP when provider ids differ.
   //
   // MODELS_DEV_PROVIDER_MAP's RHS is inconsistent: most providers list their
-  // canonical id directly, but the OAuth CLI providers (codex/claude) only
-  // list their alias (cx/cc), never the canonical id. Also probe the
-  // provider's alias so a canonical id like "codex"/"claude" still matches
-  // the map entries keyed only by "cx"/"cc" (#8429).
+  // canonical id directly, but some providers only list an alias. Also probe
+  // the provider's configured alias so canonical ids still match those map
+  // entries (#8429).
   const cached = reverseModelsDevProvidersCache.get(provider);
   if (cached) return cached;
 

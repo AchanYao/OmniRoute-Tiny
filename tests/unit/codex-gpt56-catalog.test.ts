@@ -3,33 +3,12 @@ import assert from "node:assert/strict";
 
 import { getModelsByProviderId } from "../../open-sse/config/providerModels.ts";
 
-test("Codex catalog exposes the GPT-5.6 lineup in configured priority order", () => {
+test("Codex catalog exposes one base entry per GPT-5.6 model by default", () => {
   const models = getModelsByProviderId("codex");
-  const expectedIds = [
-    "gpt-5.6-sol",
-    "gpt-5.6-sol-ultra",
-    "gpt-5.6-sol-max",
-    "gpt-5.6-sol-xhigh",
-    "gpt-5.6-sol-high",
-    "gpt-5.6-sol-medium",
-    "gpt-5.6-sol-low",
-    "gpt-5.6-terra",
-    "gpt-5.6-terra-ultra",
-    "gpt-5.6-terra-max",
-    "gpt-5.6-terra-xhigh",
-    "gpt-5.6-terra-high",
-    "gpt-5.6-terra-medium",
-    "gpt-5.6-terra-low",
-    "gpt-5.6-luna",
-    "gpt-5.6-luna-max",
-    "gpt-5.6-luna-xhigh",
-    "gpt-5.6-luna-high",
-    "gpt-5.6-luna-medium",
-    "gpt-5.6-luna-low",
-  ];
+  const expectedIds = ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"];
 
   assert.deepEqual(
-    models.slice(0, expectedIds.length).map((model) => model.id),
+    models.filter((model) => model.id.startsWith("gpt-5.6-")).map((model) => model.id),
     expectedIds
   );
 
@@ -47,7 +26,7 @@ test("Codex catalog exposes the GPT-5.6 lineup in configured priority order", ()
   }
 
   assert.equal(
-    models.some((model) => model.id === "gpt-5.6-luna-ultra"),
+    models.some((model) => /-(?:low|medium|high|xhigh|max|ultra)$/.test(model.id)),
     false
   );
 });

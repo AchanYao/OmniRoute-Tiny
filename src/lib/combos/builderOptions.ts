@@ -20,7 +20,10 @@ import {
   isOpenAICompatibleProvider,
 } from "@/shared/constants/providers";
 import type { RegistryModel } from "@omniroute/open-sse/config/providerRegistry.ts";
-import { appendSyncedEffortVariants } from "@omniroute/open-sse/utils/syncedEffortVariants";
+import {
+  appendEffortVariants,
+  isEffortVariantsEnabled,
+} from "@omniroute/open-sse/config/effortVariants.ts";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -387,9 +390,9 @@ function buildModelOptions(
   // #8072: expose reasoning-effort variants (e.g. model-high, model-medium)
   // in the Combo Builder picker, matching the catalog/Playground behaviour.
   // Convert synced models with supportedThinkingEfforts into catalog-shaped
-  // entries, run the shared appendSyncedEffortVariants utility, and add any
+  // entries, run the shared appendEffortVariants utility, and add any
   // new variant ids that aren't already in the model map.
-  const catalogShaped = syncedModels
+  const catalogShaped = (isEffortVariantsEnabled() ? syncedModels : [])
     .filter(
       (m): m is SyncedModelLike & { id: string; supportedThinkingEfforts: string[] } =>
         typeof m.id === "string" &&
@@ -406,9 +409,9 @@ function buildModelOptions(
   if (catalogShaped.length > 0) {
     // Track each tier variant's true base model id (the synced model's own raw,
     // unsuffixed id) directly while iterating tiers here. We can't re-derive the
-    // base id from `variant.root` after calling appendSyncedEffortVariants: that
+    // base id from `variant.root` after calling appendEffortVariants: that
     // utility sets a variant's `root` to `${baseRoot}-${tier}` (still tier-suffixed,
-    // see open-sse/utils/syncedEffortVariants.ts), not the base model id, so a
+    // see open-sse/config/effortVariants.ts), not the base model id, so a
     // lookup keyed on it never matches an entry in modelMap and variants silently
     // fail to inherit contextLength/outputTokenLimit/supportedEndpoints/supportsThinking.
     const baseRawIdByVariantId = new Map<string, string>();
@@ -420,7 +423,7 @@ function buildModelOptions(
       }
     }
 
-    const withVariants = appendSyncedEffortVariants(catalogShaped);
+    const withVariants = appendEffortVariants(catalogShaped);
     for (const variant of withVariants) {
       if (typeof variant.id !== "string") continue;
       // Strip the provider prefix to get the raw model id for the builder
