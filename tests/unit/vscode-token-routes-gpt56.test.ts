@@ -173,24 +173,3 @@ test("vscode raw models route exposes GPT-5.6 base IDs with effort metadata", as
   assert.equal(mediumFastModel, undefined);
   assert.equal(highFastModel, undefined);
 });
-
-test("vscode raw model expansion restores Codex effort variants when enabled", () => {
-  const previous = process.env.MODEL_EFFORT_VARIANTS_ENABLED;
-  process.env.MODEL_EFFORT_VARIANTS_ENABLED = "true";
-  try {
-    const ids = expandVscodeRawModels([
-      {
-        id: "codex/gpt-5.6-sol",
-        name: "GPT 5.6 Sol",
-        root: "codex/gpt-5.6-sol",
-        owned_by: "codex",
-        capabilities: { reasoning: true },
-      },
-    ]).map((model) => model.id);
-    assert.ok(ids.includes("codex/gpt-5.6-sol-low"));
-    assert.ok(ids.includes("codex/gpt-5.6-sol-ultra"));
-  } finally {
-    if (previous === undefined) delete process.env.MODEL_EFFORT_VARIANTS_ENABLED;
-    else process.env.MODEL_EFFORT_VARIANTS_ENABLED = previous;
-  }
-});

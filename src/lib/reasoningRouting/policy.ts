@@ -8,7 +8,6 @@ import {
 } from "@/lib/db/reasoningRoutingRules";
 import { getResolvedModelCapabilities } from "@/lib/modelCapabilities";
 import { normalizeRoutingTags } from "@/domain/tagRouter";
-import { splitClaudeEffortSuffix } from "@omniroute/open-sse/config/providerModels.ts";
 
 type JsonRecord = Record<string, unknown>;
 const EFFORTS = new Set<ReasoningEffort>([
@@ -64,34 +63,6 @@ function thinkingLevelEffort(value: unknown): ReasoningEffort | null {
   const normalized = value.trim().toLowerCase();
   if (["disabled", "off", "false"].includes(normalized)) return "none";
   return effort(normalized);
-}
-
-function splitGenericEffortSuffix(model: string): {
-  model: string;
-  effort: ReasoningEffort | null;
-} {
-  const claude = model.toLowerCase().includes("claude") ? splitClaudeEffortSuffix(model) : null;
-  if (claude?.effort) return { model: claude.baseModel, effort: claude.effort };
-  return splitCodexEffortSuffix(model) ?? { model, effort: null };
-}
-
-function supportsCodexSuffix(candidate: string, normalizedBase: string): boolean {
-  if (candidate === "max") return /^gpt-5\.6-(?:sol|terra|luna)$/.test(normalizedBase);
-  if (candidate === "ultra") return /^gpt-5\.6-(?:sol|terra)$/.test(normalizedBase);
-  return true;
-}
-
-function splitCodexEffortSuffix(model: string): { model: string; effort: ReasoningEffort } | null {
-  const lower = model.toLowerCase();
-  for (const candidate of ["ultra", "xhigh", "medium", "high", "none", "low", "max"] as const) {
-    if (!lower.endsWith(`-${candidate}`)) continue;
-    const baseModel = model.slice(0, -(candidate.length + 1));
-    const normalizedBase = baseModel.toLowerCase().replace(/^codex\//, "");
-    if (/^gpt-[\w.-]+$/.test(normalizedBase) && supportsCodexSuffix(candidate, normalizedBase)) {
-      return { model: baseModel, effort: candidate };
-    }
-  }
-  return null;
 }
 
 function firstDefinedEffort(
@@ -172,20 +143,13 @@ export function extractReasoningIntent(
 ): ExtractedReasoningIntent {
   const body = asRecord(bodyInput);
   const rawModel = typeof modelInput === "string" ? modelInput.trim() : "";
-  const suffixed = splitGenericEffortSuffix(rawModel);
   const reasoning = asRecord(body.reasoning);
   const thinking = asRecord(body.thinking);
   const generationConfig = asRecord(body.generationConfig);
   const thinkingConfig = asRecord(
     generationConfig.thinkingConfig ?? generationConfig.thinking_config
   );
-  const explicitEffort = firstDefinedEffort(
-    body,
-    reasoning,
-    thinking,
-    thinkingConfig,
-    suffixed.effort
-  );
+  const explicitEffort = firstDefinedEffort(body, reasoning, thinking, thinkingConfig, null);
   const hasThinkingBudget = detectThinkingBudget(body, reasoning, thinking, thinkingConfig);
   const hasReasoningSignalValue = hasReasoningSignal(
     body,
@@ -195,7 +159,7 @@ export function extractReasoningIntent(
     hasThinkingBudget
   );
   return {
-    model: suffixed.model,
+    model: rawModel,
     effort: explicitEffort,
     sourceEffort: explicitEffort ?? (hasReasoningSignalValue ? "signal" : "missing"),
     hasReasoningSignal: hasReasoningSignalValue,

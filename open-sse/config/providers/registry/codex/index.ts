@@ -1,5 +1,4 @@
 import type { RegistryEntry } from "../../shared.ts";
-import { appendEffortVariants, isEffortVariantsEnabled } from "../../../effortVariants.ts";
 import {
   GPT_5_6_CODEX_CAPABILITIES,
   GPT_5_5_CODEX_CAPABILITIES,
@@ -47,10 +46,8 @@ const CODEX_BASE_MODELS: NonNullable<RegistryEntry["models"]> = [
   { id: "gpt-5.3-codex-spark", name: "GPT 5.3 Codex Spark" },
 ];
 
-export function getCodexRegistryModels(
-  includeEffortVariants = isEffortVariantsEnabled()
-): NonNullable<RegistryEntry["models"]> {
-  return includeEffortVariants ? appendEffortVariants(CODEX_BASE_MODELS) : [...CODEX_BASE_MODELS];
+export function getCodexRegistryModels(): NonNullable<RegistryEntry["models"]> {
+  return [...CODEX_BASE_MODELS];
 }
 
 export const codexProvider: RegistryEntry = {

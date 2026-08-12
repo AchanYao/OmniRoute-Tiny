@@ -877,9 +877,9 @@ test("v1 models catalog retains registered effort aliases beside synced OpenCode
 
   assert.equal(response.status, 200);
   assert.ok(ids.includes("opencode-go/hy3"));
-  assert.ok(ids.includes("opencode-go/hy3-none"));
-  assert.ok(ids.includes("opencode-go/hy3-low"));
-  assert.ok(ids.includes("opencode-go/hy3-high"));
+  assert.equal(ids.includes("opencode-go/hy3-none"), false);
+  assert.equal(ids.includes("opencode-go/hy3-low"), false);
+  assert.equal(ids.includes("opencode-go/hy3-high"), false);
 });
 
 test("v1 models catalog advertises GLM-5.2 provider aliases with hosted context limits", async () => {

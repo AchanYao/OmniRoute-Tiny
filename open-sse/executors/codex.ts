@@ -50,8 +50,6 @@ export {
 import { isCodexFreePlan, normalizeCodexTools } from "./codex/tools.ts";
 import {
   CODEX_EFFORT_ORDER as EFFORT_ORDER,
-  GPT_5_6_ULTRA_ALIAS_MODELS,
-  splitCodexReasoningSuffix,
   type CodexEffortLevel as EffortLevel,
 } from "./codex/reasoningSuffix.ts";
 // Re-exported for external importers (tests + provider services).
@@ -158,10 +156,20 @@ function isCodexResponsesLiteRequest(
 // sub-agents via parallel tool calls (see the effort-clamp comment near clampEffort()).
 // Responses Lite must not strip parallel_tool_calls for those model/effort combos, or
 // delegation silently breaks while the request still returns HTTP 200 (issue #7821).
-function isCodexDelegationDependentModel(model: unknown): boolean {
-  const { baseModel, effort } = splitCodexReasoningSuffix(model);
-  if (effort === "ultra" && GPT_5_6_ULTRA_ALIAS_MODELS.has(baseModel)) return true;
-  if (effort === "max" && baseModel === "gpt-5.6-luna") return true;
+function isCodexDelegationDependentModel(model: unknown, bodyInput: unknown): boolean {
+  const modelId = typeof model === "string" ? model : "";
+  const body =
+    bodyInput && typeof bodyInput === "object" && !Array.isArray(bodyInput)
+      ? (bodyInput as Record<string, unknown>)
+      : {};
+  const reasoning =
+    body.reasoning && typeof body.reasoning === "object" && !Array.isArray(body.reasoning)
+      ? (body.reasoning as Record<string, unknown>)
+      : {};
+  const effort =
+    normalizeEffortValue(reasoning.effort) ?? normalizeEffortValue(body.reasoning_effort);
+  if (effort === "ultra" && /^(?:gpt-5\.6-(?:sol|terra))$/.test(modelId)) return true;
+  if (effort === "max" && modelId === "gpt-5.6-luna") return true;
   return false;
 }
 
@@ -175,7 +183,7 @@ function enforceCodexResponsesLiteParallelToolCalls(
     !bodyInput ||
     typeof bodyInput !== "object" ||
     Array.isArray(bodyInput) ||
-    isCodexDelegationDependentModel(model)
+    isCodexDelegationDependentModel(model, bodyInput)
   ) {
     return bodyInput;
   }
@@ -183,10 +191,6 @@ function enforceCodexResponsesLiteParallelToolCalls(
   const body = bodyInput as Record<string, unknown>;
   if (body.parallel_tool_calls === false) return bodyInput;
   return { ...body, parallel_tool_calls: false };
-}
-
-export function getCodexUpstreamModel(model: unknown): string {
-  return splitCodexReasoningSuffix(model).baseModel;
 }
 
 /**
@@ -958,7 +962,7 @@ export class CodexExecutor extends BaseExecutor {
       true,
       nextInput.credentials
     )) as Record<string, unknown>;
-    transformedBody.model = getCodexUpstreamModel(transformedBody.model || nextInput.model);
+    transformedBody.model = transformedBody.model || nextInput.model;
     delete transformedBody.stream;
     delete transformedBody.stream_options;
 
@@ -1429,14 +1433,7 @@ export class CodexExecutor extends BaseExecutor {
     delete body.messages;
     delete body.prompt;
 
-    let modelEffort: string | null = null;
     let cleanModel = typeof body.model === "string" ? body.model : model;
-    const splitModel = splitCodexReasoningSuffix(cleanModel);
-    if (splitModel.effort) {
-      modelEffort = splitModel.effort;
-      body.model = splitModel.baseModel;
-      cleanModel = splitModel.baseModel;
-    }
 
     const reasoningRecord =
       body.reasoning && typeof body.reasoning === "object" && !Array.isArray(body.reasoning)
@@ -1447,11 +1444,7 @@ export class CodexExecutor extends BaseExecutor {
     const fallbackReasoningEffort = allowConnectionReasoningDefaults
       ? requestDefaults.reasoningEffort || "medium"
       : undefined;
-    // Issue #2331: model suffix aliases (for example gpt-5.5-xhigh) represent an
-    // explicit model selection, so they must override client-injected defaults such
-    // as OpenCode's automatic reasoning.effort=medium for GPT-5-family requests.
-    const rawEffort =
-      modelEffort || explicitReasoning || requestReasoningEffort || fallbackReasoningEffort;
+    const rawEffort = explicitReasoning || requestReasoningEffort || fallbackReasoningEffort;
 
     if (rawEffort) {
       const clampedEffort = clampEffort(cleanModel, rawEffort);

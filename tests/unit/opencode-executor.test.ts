@@ -78,18 +78,22 @@ describe("OpencodeExecutor", () => {
       assert.equal(model.supportsReasoning, true);
     });
 
-    it("exposes DeepSeek V4 Pro effort variants on opencode-go only", () => {
+    it("exposes DeepSeek V4 Pro base model on opencode-go only", () => {
       const goModels = PROVIDER_MODELS["opencode-go"] || [];
       const zenModels = PROVIDER_MODELS["opencode-zen"] || [];
-      const variants = ["low", "medium", "high", "max"].map((level) => `deepseek-v4-pro-${level}`);
-      for (const variant of variants) {
-        const model = goModels.find((m) => m.id === variant);
-        assert.ok(model, `${variant} should be in opencode-go model list`);
-        assert.equal(model?.supportsReasoning, true);
+      const model = goModels.find((m) => m.id === "deepseek-v4-pro");
+      assert.ok(model, "deepseek-v4-pro should be in opencode-go model list");
+      assert.equal(model?.supportsReasoning, true);
+      assert.equal(
+        zenModels.some((m) => m.id === "deepseek-v4-pro"),
+        false,
+        "deepseek-v4-pro should not be exposed on opencode-zen"
+      );
+      for (const level of ["low", "medium", "high", "max"]) {
         assert.equal(
-          zenModels.some((m) => m.id === variant),
+          goModels.some((m) => m.id === `deepseek-v4-pro-${level}`),
           false,
-          `${variant} should not be exposed on opencode-zen`
+          `synthetic deepseek-v4-pro-${level} must not be registered`
         );
       }
     });
@@ -544,7 +548,7 @@ describe("OpencodeExecutor", () => {
     });
   });
 
-  describe("DeepSeek V4 Pro reasoning-effort variants", () => {
+  describe("DeepSeek V4 Pro request-level reasoning effort", () => {
     function baseBody(model) {
       return {
         model,
@@ -554,23 +558,10 @@ describe("OpencodeExecutor", () => {
       };
     }
 
-    const levels = ["low", "medium", "high", "max"];
-    for (const level of levels) {
-      it(`maps deepseek-v4-pro-${level} to base id + reasoning_effort=${level}`, () => {
-        const variant = `deepseek-v4-pro-${level}`;
-        const out = goExecutor.transformRequest(variant, baseBody(variant), false, {
-          apiKey: "test-key",
-        });
-        assert.equal(out.model, "deepseek-v4-pro");
-        assert.equal(out.reasoning_effort, level);
-        assert.ok(!String(out.model).endsWith(`-${level}`));
-      });
-    }
-
-    it("preserves explicit reasoning_effort over the variant suffix", () => {
-      const body = baseBody("deepseek-v4-pro-high") as Record<string, unknown>;
+    it("preserves request-level reasoning_effort on the base model", () => {
+      const body = baseBody("deepseek-v4-pro") as Record<string, unknown>;
       body.reasoning_effort = "max";
-      const out = goExecutor.transformRequest("deepseek-v4-pro-high", body, false, {
+      const out = goExecutor.transformRequest("deepseek-v4-pro", body, false, {
         apiKey: "test-key",
       });
       assert.equal(out.reasoning_effort, "max");
@@ -588,7 +579,7 @@ describe("OpencodeExecutor", () => {
       assert.equal(out.reasoning_effort, undefined);
     });
 
-    it("does not rewrite unrelated models with matching suffixes", () => {
+    it("leaves unrelated models with effort-like suffixes untouched", () => {
       const out = goExecutor.transformRequest(
         "some-other-model-high",
         baseBody("some-other-model-high"),

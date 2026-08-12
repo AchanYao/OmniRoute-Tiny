@@ -1,8 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-process.env.MODEL_EFFORT_VARIANTS_ENABLED = "true";
-
 const { getExecutorTimeoutMs } =
   await import("../../open-sse/handlers/chatCore/upstreamTimeouts.ts");
 const { FETCH_TIMEOUT_MS } = await import("../../open-sse/config/constants.ts");

@@ -17,7 +17,7 @@ const { CODEX_NATIVE_UNPREFIXED_MODELS, getModelInfoCore } =
 // providers that also catalog the id (e.g. `agentrouter`, `openai`) are
 // active. The Codex cookie quota is the source of truth — auto-fanning to
 // other providers silently breaks the "default" experience. Legacy effort
-// suffixes are excluded unless MODEL_EFFORT_VARIANTS_ENABLED is enabled.
+// suffixes are permanently excluded.
 //
 // #9447 bounded that precedence: it may only PREEMPT another provider when a
 // codex connection is actually ACTIVE. These cases therefore seed one first.

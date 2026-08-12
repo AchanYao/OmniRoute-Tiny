@@ -14,8 +14,7 @@
  * Pure function, no I/O: every lookup the decision depends on (is `rest` a
  * real Claude-provider model? is the first path segment a known provider
  * prefix? does the combo exist? is the alias gate on for this real id?) is
- * injected via `deps`, mirroring the `applyClaudeEffortVariant` /
- * `stripNoThinkingAlias` precedent so the branch logic here stays testable
+ * injected via `deps`, mirroring the `stripNoThinkingAlias` precedent so the branch logic stays testable
  * without touching the DB or the provider registry directly.
  */
 

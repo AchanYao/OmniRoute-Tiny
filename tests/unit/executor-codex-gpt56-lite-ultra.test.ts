@@ -15,7 +15,7 @@ import { CodexExecutor } from "../../open-sse/executors/codex.ts";
 // Covers the interaction (lite marker + delegation-dependent model/effort together),
 // not just each behavior in isolation — that interaction was the actual blind spot.
 
-async function runLiteRequest(model: string): Promise<Record<string, unknown>[]> {
+async function runLiteRequest(model: string, effort?: string): Promise<Record<string, unknown>[]> {
   const executor = new CodexExecutor();
   const originalFetch = globalThis.fetch;
   const capturedBodies: Record<string, unknown>[] = [];
@@ -33,6 +33,7 @@ async function runLiteRequest(model: string): Promise<Record<string, unknown>[]>
     model,
     input: [],
     parallel_tool_calls: true,
+    ...(effort ? { reasoning: { effort } } : {}),
   };
 
   try {
@@ -51,7 +52,7 @@ async function runLiteRequest(model: string): Promise<Record<string, unknown>[]>
 }
 
 test("Responses Lite must not strip parallel_tool_calls for GPT-5.6 sol ultra-tier delegation", async () => {
-  const capturedBodies = await runLiteRequest("gpt-5.6-sol-ultra");
+  const capturedBodies = await runLiteRequest("gpt-5.6-sol", "ultra");
   assert.equal(
     capturedBodies[0].parallel_tool_calls,
     true,
@@ -61,12 +62,12 @@ test("Responses Lite must not strip parallel_tool_calls for GPT-5.6 sol ultra-ti
 });
 
 test("Responses Lite must not strip parallel_tool_calls for GPT-5.6 terra ultra-tier delegation", async () => {
-  const capturedBodies = await runLiteRequest("gpt-5.6-terra-ultra");
+  const capturedBodies = await runLiteRequest("gpt-5.6-terra", "ultra");
   assert.equal(capturedBodies[0].parallel_tool_calls, true);
 });
 
 test("Responses Lite must not strip parallel_tool_calls for GPT-5.6 luna max-tier delegation", async () => {
-  const capturedBodies = await runLiteRequest("gpt-5.6-luna-max");
+  const capturedBodies = await runLiteRequest("gpt-5.6-luna", "max");
   assert.equal(capturedBodies[0].parallel_tool_calls, true);
 });
 
@@ -80,7 +81,7 @@ test("Responses Lite still forces parallel_tool_calls:false for non-delegation G
 });
 
 test("Responses Lite still forces parallel_tool_calls:false for GPT-5.6 sol at non-ultra effort", async () => {
-  const capturedBodies = await runLiteRequest("gpt-5.6-sol-high");
+  const capturedBodies = await runLiteRequest("gpt-5.6-sol", "high");
   assert.equal(
     capturedBodies[0].parallel_tool_calls,
     false,

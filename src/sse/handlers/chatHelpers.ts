@@ -34,8 +34,7 @@ import {
 } from "../../shared/utils/circuitBreaker";
 import { classify429FromError, type FailureKind } from "../../shared/utils/classify429";
 import { resolveUseUpstream429BreakerHints } from "../../shared/utils/providerHints";
-import { isEffortVariantsEnabled } from "@omniroute/open-sse/config/effortVariants.ts";
-import { splitCodexReasoningSuffix } from "@omniroute/open-sse/executors/codex/reasoningSuffix.ts";
+import { resolveRetiredCodexEffortModelId } from "@omniroute/open-sse/executors/codex/reasoningSuffix.ts";
 
 import { logProxyEvent } from "../../lib/proxyLogger";
 import { logTranslationEvent } from "../../lib/translatorEvents";
@@ -127,8 +126,7 @@ export async function resolveModelOrError(
   if (
     modelInfo.provider === "codex" &&
     typeof modelInfo.model === "string" &&
-    splitCodexReasoningSuffix(modelInfo.model).effort &&
-    !isEffortVariantsEnabled()
+    resolveRetiredCodexEffortModelId(modelInfo.model).effort
   ) {
     return {
       error: errorResponse(

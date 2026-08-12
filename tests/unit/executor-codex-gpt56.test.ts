@@ -52,15 +52,18 @@ test("CodexExecutor.transformRequest preserves max effort for GPT-5.6", () => {
   assert.equal(result.reasoning_effort, undefined);
 });
 
-test("CodexExecutor.transformRequest maps GPT-5.6 ultra aliases to max wire effort", () => {
+test("CodexExecutor.transformRequest maps GPT-5.6 request-level ultra to max wire effort", () => {
   const executor = new CodexExecutor();
 
-  for (const model of ["gpt-5.6-sol-ultra", "gpt-5.6-terra-ultra"]) {
-    const result = executor.transformRequest(model, { model, input: [] }, false, {
-      requestEndpointPath: "/responses",
-    });
+  for (const model of ["gpt-5.6-sol", "gpt-5.6-terra"]) {
+    const result = executor.transformRequest(
+      model,
+      { model, input: [], reasoning: { effort: "ultra" } },
+      false,
+      { requestEndpointPath: "/responses" }
+    );
 
-    assert.equal(result.model, model.replace(/-ultra$/, ""));
+    assert.equal(result.model, model);
     assert.equal(result.reasoning.effort, "max");
   }
 });
@@ -80,32 +83,6 @@ test("CodexExecutor.transformRequest clamps Luna ultra requests to its max effor
 
   assert.equal(result.model, "gpt-5.6-luna");
   assert.equal(result.reasoning.effort, "max");
-});
-
-test("CodexExecutor.transformRequest accepts parenthesized GPT-5.6 effort overrides", () => {
-  const executor = new CodexExecutor();
-  const cases = [
-    { model: "gpt-5.6-sol(ultra)", expectedModel: "gpt-5.6-sol", expectedEffort: "max" },
-    { model: "gpt-5.6-terra(max)", expectedModel: "gpt-5.6-terra", expectedEffort: "max" },
-    { model: "gpt-5.6-luna(ultra)", expectedModel: "gpt-5.6-luna", expectedEffort: "max" },
-  ];
-
-  for (const { model, expectedModel, expectedEffort } of cases) {
-    const result = executor.transformRequest(
-      model,
-      {
-        model,
-        input: [],
-        reasoning: { effort: "low", summary: "detailed" },
-      },
-      false,
-      { requestEndpointPath: "/responses" }
-    );
-
-    assert.equal(result.model, expectedModel);
-    assert.equal(result.reasoning.effort, expectedEffort);
-    assert.equal(result.reasoning.summary, "detailed");
-  }
 });
 
 test("CodexExecutor.execute disables parallel tool calls for Responses Lite markers", async () => {

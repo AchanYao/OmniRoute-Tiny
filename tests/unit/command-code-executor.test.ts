@@ -180,12 +180,12 @@ test("Command Code executor honors body.model rewrite from payload rules", async
     return commandCodeStream([{ type: "text-delta", text: "ok" }, { type: "finish" }]);
   };
 
-  // Simulate a payload-rule rewrite: combo resolves to "deepseek-v4-pro-max"
+  // Simulate a payload-rule rewrite: combo resolves to the base model
   // (passed as the execute() model arg), but the payload rule overwrites
   // body.model to "deepseek/deepseek-v4-pro" (the vendor-prefixed form
   // Command Code's API expects).
   await getExecutor("command-code").execute({
-    model: "deepseek-v4-pro-max",
+    model: "deepseek-v4-pro",
     stream: false,
     credentials: { apiKey: "cc_test_key" },
     body: {

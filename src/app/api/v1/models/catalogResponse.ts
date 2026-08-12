@@ -9,10 +9,6 @@
  */
 
 import { appendNoThinkingVariants } from "@omniroute/open-sse/utils/noThinkingAlias";
-import {
-  appendEffortVariants,
-  isEffortVariantsEnabled,
-} from "@omniroute/open-sse/config/effortVariants";
 import { appendCcDiscoveryAliases } from "@omniroute/open-sse/utils/ccDiscoveryAliases";
 import { appendFunctionalGatewayMirrors } from "@omniroute/open-sse/utils/functionalGatewayMirrors";
 import { isCcAliasGlobalEnabled, getCcAliasSettingsBulk } from "@/lib/db/ccDiscoveryAliases";
@@ -61,13 +57,6 @@ export function applyCatalogPostFilters(
       if (!m.root) return true;
       return hasEligibleConnectionForModel(ctx.connections, m.root);
     });
-  }
-
-  // Legacy effort-suffixed ids are one global compatibility surface. By default clients
-  // see one base model plus capabilities.effort_tiers; enabling the startup switch derives
-  // aliases for Codex, Claude, and synced models from that metadata in one pass.
-  if (isEffortVariantsEnabled()) {
-    finalModels = appendEffortVariants(finalModels);
   }
 
   // Advertise no-thinking gateway variants (Fase 8.1). Derived from the already

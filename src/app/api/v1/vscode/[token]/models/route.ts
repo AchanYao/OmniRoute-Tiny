@@ -1,7 +1,6 @@
 import { getUnifiedModelsResponse } from "@/app/api/v1/models/catalog";
 import { getResolvedModelCapabilities } from "@/lib/modelCapabilities";
 import { getCanonicalModelMetadata } from "@/lib/modelMetadataRegistry";
-import { isEffortVariantsEnabled } from "@omniroute/open-sse/config/effortVariants.ts";
 import {
   buildReasoningConfigSchema,
   buildSupportedReasoningEfforts,
@@ -276,45 +275,7 @@ export function expandVscodeRawModels(models: CatalogModelEntry[]) {
     };
   });
 
-  const tierExpandedModels = expandVscodeServiceTierModels(normalizedModels);
-  const expandedModels: CatalogModelEntry[] = [];
-
-  for (const model of tierExpandedModels) {
-    expandedModels.push(model);
-    if (!isEffortVariantsEnabled()) {
-      continue;
-    }
-
-    const reasoningEffortValues = getReasoningEffortValues(model as VscodeCatalogModel);
-    if (!reasoningEffortValues || reasoningEffortValues.length === 0) {
-      continue;
-    }
-
-    const rawModelId = (model.id || model.name || model.root || "").trim();
-    if (!rawModelId) {
-      continue;
-    }
-
-    const parsedTierModel = parseVscodeServiceTierVariantModelId(rawModelId);
-    const baseReasoningModelId = getReasoningVariantBaseModelId(parsedTierModel.baseModelId);
-
-    for (const reasoningEffort of reasoningEffortValues) {
-      if (reasoningEffort === "none") {
-        continue;
-      }
-
-      const reasoningBaseModelId = `${baseReasoningModelId}-${reasoningEffort}`;
-      const reasoningVariantModelId = parsedTierModel.serviceTier
-        ? getVscodeServiceTierVariantModelId(reasoningBaseModelId, parsedTierModel.serviceTier)
-        : reasoningBaseModelId;
-      expandedModels.push({
-        ...model,
-        ...(model.id ? { id: reasoningVariantModelId } : {}),
-        ...(model.name ? { name: reasoningVariantModelId } : {}),
-        ...(model.root ? { root: reasoningVariantModelId } : {}),
-      });
-    }
-  }
+  const expandedModels = expandVscodeServiceTierModels(normalizedModels);
 
   const uniqueModels = new Map<string, CatalogModelEntry>();
 

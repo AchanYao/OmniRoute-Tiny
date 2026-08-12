@@ -15,9 +15,6 @@ const { addCustomModel, replaceSyncedAvailableModelsForConnection } =
   await import("../../src/lib/db/models.ts");
 const { getActiveSyncedCatalog, getAllActiveSyncedModels } =
   await import("../../src/lib/db/models/activeSyncedCatalog.ts");
-const { isRegisteredProviderEffortVariant } =
-  await import("../../open-sse/utils/registeredEffortVariants.ts");
-
 const { getModelInfo } = await import("../../src/sse/services/model.ts");
 const { getProviderModels } = await import("../../open-sse/config/providerModels.ts");
 
@@ -116,28 +113,18 @@ test("#8926: explicit custom model overrides live-catalog exclusion", async () =
   assert.equal(resolved.model, PHANTOM_MODEL);
 });
 
-test("#8926: effort helper identifies only explicitly registered variants", () => {
-  assert.equal(isRegisteredProviderEffortVariant("cursor", "gpt-5.3-codex-high"), true);
-
-  assert.equal(
-    isRegisteredProviderEffortVariant("cursor", "gpt-5.3-codex-max"),
-    false,
-    "an invented suffix must not bypass live-catalog authority"
-  );
-});
-
-test("#8926: registered effort route survives while invented effort route is rejected", async () => {
+test("#8926: exact live model ids route while missing suffixed ids are rejected", async () => {
   await seedProviderCatalog("cursor", "cursor-live-8926", ["gpt-5.3-codex"]);
 
-  const registered = await getModelInfo("cursor/gpt-5.3-codex-high");
+  const exact = await getModelInfo("cursor/gpt-5.3-codex");
 
-  assert.equal(registered.provider, "cursor");
-  assert.equal(registered.model, "gpt-5.3-codex-high");
+  assert.equal(exact.provider, "cursor");
+  assert.equal(exact.model, "gpt-5.3-codex");
 
-  const invented = await getModelInfo("cursor/gpt-5.3-codex-max");
+  const missing = await getModelInfo("cursor/gpt-5.3-codex-high");
 
-  assert.equal(invented.provider, null);
-  assert.equal(invented.errorType, "model_not_found");
+  assert.equal(missing.provider, null);
+  assert.equal(missing.errorType, "model_not_found");
 });
 
 test("#8926: active-only catalog excludes inactive siblings and resolves aliases", async () => {
@@ -167,7 +154,7 @@ test("#8926: providers without an authoritative live catalog retain static fallb
   assert.equal(resolved.model, "gpt-4o-mini");
 });
 
-test("#8926: registered effort variant is rejected when its live base is absent", async () => {
+test("#8926: a suffixed upstream model is rejected when its exact live id is absent", async () => {
   await seedProviderCatalog("cursor", "cursor-live-without-base-8926", ["cursor-live-only-8926"]);
 
   const explicit = await getModelInfo("cursor/gpt-5.3-codex-high");

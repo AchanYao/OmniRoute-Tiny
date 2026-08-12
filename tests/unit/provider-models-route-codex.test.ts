@@ -8,7 +8,6 @@ const TEST_DATA_DIR = fs.mkdtempSync(
   path.join(os.tmpdir(), "omniroute-provider-model-routes-codex-")
 );
 process.env.DATA_DIR = TEST_DATA_DIR;
-process.env.MODEL_EFFORT_VARIANTS_ENABLED = "true";
 
 const core = await import("../../src/lib/db/core.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");

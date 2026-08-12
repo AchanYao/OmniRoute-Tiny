@@ -38,8 +38,6 @@ interface OpencodeAccountState {
 const OPENCODE_COOLDOWN_BASE_MS = 5_000;
 const OPENCODE_COOLDOWN_MAX_MS = 60_000;
 
-const EFFORT_LEVELS = ["low", "medium", "high", "max"] as const;
-
 /**
  * Models that work WITHOUT any API key on the free/noauth opencode tier.
  *
@@ -64,52 +62,6 @@ const OPENCODE_FREE_MODELS = new Set([
   "nemotron-3-ultra-free",
   "north-mini-code-free",
 ]);
-
-/**
- * Models on opencode-go that support effort-tier aliases. Each entry maps the
- * canonical base id to the set of effort suffixes the upstream supports.
- *
- * - deepseek-v4-pro: all four tiers (low/medium/high/max)
- * - glm-5.2: high/max only (Z.AI maps these through the reasoning plane;
- *   low/medium are not supported on the OpenAI transport)
- * - mimo-v2.5: high/max only (same reasoning; Xiaomi MiMo does not document
- *   low/medium effort tiers)
- * - #8353 OpenCode Go registry effort variants (exact suffix sets from
- *   `opencode models opencode-go --verbose`; MiniMax M3 excluded — different
- *   thinking-mode mapping):
- *   deepseek-v4-flash high/max; grok-4.5 low/medium/high; hy3 none/low/high;
- *   kimi-k3 max; qwen3.6-plus / qwen3.7-max / qwen3.7-plus high/max
- */
-const EFFORT_TIERS: Record<string, readonly string[]> = {
-  "deepseek-v4-pro": EFFORT_LEVELS,
-  "deepseek-v4-flash": ["high", "max"],
-  "glm-5.2": ["high", "max"],
-  "mimo-v2.5": ["high", "max"],
-  "grok-4.5": ["low", "medium", "high"],
-  hy3: ["none", "low", "high"],
-  "kimi-k3": ["max"],
-  "qwen3.6-plus": ["high", "max"],
-  "qwen3.7-max": ["high", "max"],
-  "qwen3.7-plus": ["high", "max"],
-};
-
-/**
- * Parse a model string with an effort-level suffix.
- * e.g. "deepseek-v4-pro-low" → { baseModel: "deepseek-v4-pro", effort: "low" }
- *      "glm-5.2-high"         → { baseModel: "glm-5.2", effort: "high" }
- * Returns null if the model doesn't match any known effort-tier pattern.
- */
-export function parseEffortLevel(model: string): { baseModel: string; effort: string } | null {
-  const m = String(model || "");
-  for (const [baseModel, levels] of Object.entries(EFFORT_TIERS)) {
-    for (const level of levels) {
-      if (m === `${baseModel}-${level}`) {
-        return { baseModel, effort: level };
-      }
-    }
-  }
-  return null;
-}
 
 /**
  * Determine whether a model requires an API key on the given opencode provider.
@@ -241,8 +193,7 @@ export class OpencodeExecutor extends BaseExecutor {
     if (isKeyless && isPremiumOpencodeModel(input.model, this.provider)) {
       const bodyJson = JSON.stringify({
         error: {
-          message:
-            "This model requires an opencode API key — add one in Settings → Providers.",
+          message: "This model requires an opencode API key — add one in Settings → Providers.",
           type: "invalid_request_error",
           code: "premium_model_requires_key",
         },
@@ -423,16 +374,6 @@ export class OpencodeExecutor extends BaseExecutor {
       const mb = modifiedBody as Record<string, unknown>;
       if (Array.isArray(mb.tools) && mb.tools.length > 128) {
         mb.tools = mb.tools.slice(0, 128);
-      }
-    }
-    if (modifiedBody && typeof modifiedBody === "object" && !Array.isArray(modifiedBody)) {
-      const mb = modifiedBody as Record<string, unknown>;
-      const parsed = parseEffortLevel(model);
-      if (parsed) {
-        mb.model = parsed.baseModel;
-        if (mb.reasoning_effort === undefined) {
-          mb.reasoning_effort = parsed.effort;
-        }
       }
     }
     // #1543 / upstream PR #1099: thinking-mode upstreams routed through OpenCode

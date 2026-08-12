@@ -12,12 +12,9 @@ import { getActiveSyncedCatalog } from "@/lib/db/models/activeSyncedCatalog";
 import {
   parseModel,
   getModelInfoCore,
-  splitSyncedEffortSuffix,
   stripContextWindowSuffix,
 } from "@omniroute/open-sse/services/model.ts";
 import { REGISTRY } from "@omniroute/open-sse/config/providerRegistry.ts";
-import { isEffortVariantsEnabled } from "@omniroute/open-sse/config/effortVariants.ts";
-import { getRegisteredProviderEffortBaseModelId } from "@omniroute/open-sse/utils/registeredEffortVariants.ts";
 
 export { parseModel, stripContextWindowSuffix };
 
@@ -108,62 +105,7 @@ type RuntimeModelMeta = {
   alwaysThinking?: boolean;
   supportedThinkingEfforts?: string[];
   defaultThinkingEffort?: string;
-  // #7694: set when `modelId` carried a `-{effort}` suffix resolved against a synced
-  // model's own `supportedThinkingEfforts` (see `resolveSyncedModelIdAndEffort` below).
-  // Threaded through to `handleChatCore` -> `applyDefaultReasoningEffort` so the suffix
-  // becomes `reasoning_effort` only when the request itself carries no reasoning field.
-  resolvedThinkingEffort?: string;
 };
-
-// Providers that already own a native `-{effort}` suffix mechanism — never
-// double-resolve the generic synced suffix on top of theirs (#7694, mirrors the
-// catalog-side effort policy in `open-sse/config/effortVariants.ts`).
-const SYNCED_EFFORT_SKIP_PROVIDER_PREFIXES = ["codex", "kimi"];
-
-function isSyncedEffortSkippedProvider(providerId: string): boolean {
-  return SYNCED_EFFORT_SKIP_PROVIDER_PREFIXES.some((prefix) => providerId.startsWith(prefix));
-}
-
-/**
- * #7694: when `modelId` has no direct synced-model match, try stripping a trailing
- * `-{effort}` token by testing it against each candidate synced model's OWN declared
- * `supportedThinkingEfforts` (`splitSyncedEffortSuffix`) — never a blind/global effort
- * list, so a model id that legitimately ends in an effort-like token is left untouched
- * unless some synced model's real tier list says otherwise. Returns the original
- * `modelId` with `effort: null` when nothing matches or the provider already owns its
- * own suffix mechanism.
- */
-function resolveSyncedModelIdAndEffort(
-  providerId: string,
-  modelId: string,
-  syncedModels: unknown
-): { modelId: string; effort: string | null } {
-  if (
-    !isEffortVariantsEnabled() ||
-    isSyncedEffortSkippedProvider(providerId) ||
-    !Array.isArray(syncedModels)
-  ) {
-    return { modelId, effort: null };
-  }
-  if (findSyncedModelMeta(syncedModels, modelId)) return { modelId, effort: null };
-
-  for (const candidate of syncedModels as Array<{
-    id?: unknown;
-    supportedThinkingEfforts?: unknown;
-  }>) {
-    if (typeof candidate?.id !== "string" || !Array.isArray(candidate.supportedThinkingEfforts)) {
-      continue;
-    }
-    const attempt = splitSyncedEffortSuffix(
-      modelId,
-      candidate.supportedThinkingEfforts as string[]
-    );
-    if (attempt.effort && attempt.baseModel === candidate.id) {
-      return { modelId: attempt.baseModel, effort: attempt.effort };
-    }
-  }
-  return { modelId, effort: null };
-}
 
 function findCustomModelMeta(models: unknown, modelId: string): any {
   if (!Array.isArray(models)) return undefined;
@@ -228,31 +170,15 @@ async function lookupModelMeta(
     ]);
     const syncedModels = liveCatalog.models;
 
-    // #7694: no direct match on the raw modelId? try a synced-declared `-{effort}`
-    // suffix before falling back to the literal id, so `<prefix>/<model>-<tier>`
-    // resolves to the real base model + a resolved effort.
-    const { modelId: resolvedModelId, effort } = resolveSyncedModelIdAndEffort(
-      providerId,
-      modelId,
-      syncedModels
-    );
-
     // Custom models remain explicit operator overrides even when live discovery
     // is authoritative for the provider.
-    const customMatch = findCustomModelMeta(customModels, resolvedModelId);
-    const syncedMatch = findSyncedModelMeta(syncedModels, resolvedModelId);
-    const effortBaseModelId = getRegisteredProviderEffortBaseModelId(providerId, modelId);
+    const customMatch = findCustomModelMeta(customModels, modelId);
+    const syncedMatch = findSyncedModelMeta(syncedModels, modelId);
 
-    const liveBackedEffortVariant =
-      effortBaseModelId !== null && syncedModels.some((model) => model.id === effortBaseModelId);
-
-    const available =
-      !liveCatalog.authoritative || Boolean(customMatch || syncedMatch || liveBackedEffortVariant);
+    const available = !liveCatalog.authoritative || Boolean(customMatch || syncedMatch);
 
     const metadata = buildRuntimeModelMeta(customMatch, syncedMatch);
-    if (effort) metadata.resolvedThinkingEffort = effort;
-
-    return { modelId: resolvedModelId, metadata, available };
+    return { modelId, metadata, available };
   } catch {
     return { modelId, metadata: {}, available: true };
   }

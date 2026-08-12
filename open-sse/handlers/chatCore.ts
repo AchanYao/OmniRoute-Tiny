@@ -108,7 +108,6 @@ import { createRequestLogger } from "../utils/requestLogger.ts";
 import { createPreparedRequestLogger, runWithCapture } from "../utils/providerRequestLogging.ts";
 import { summarizeToolSources } from "../utils/toolSources.ts";
 import { applyResponsesPreviousResponseIdPolicy } from "../utils/responsesStatePolicy.ts";
-import { applyClaudeEffortVariant } from "./chatCore/claudeEffortVariant.ts";
 import { DEFAULT_THINKING_CLAUDE_SIGNATURE } from "../config/defaultThinkingSignature.ts";
 import {
   getStripTypesForProviderModel,
@@ -724,29 +723,6 @@ export async function handleChatCore({
   let effectiveModel = resolvedModel === model ? model : resolvedModel;
   if (resolvedModel !== model) {
     log?.info?.("ALIAS", `Model alias applied: ${model} → ${resolvedModel}`);
-  }
-
-  // Effort-variant model ids: the Claude / Claude-Code model picker (e.g. VS Code's
-  // "Effort" slider) advertises claude-...-{low,medium,high,xhigh,max}. Anthropic has
-  // no such model, so the suffixed id 404s upstream. Strip it back to the real base id
-  // (forwarded as the upstream model via finalModelToUpstream below) and surface the
-  // level as reasoning_effort so the OpenAI→Claude translator / Claude-Code bridge turn
-  // it into Claude thinking/effort config. An explicit client-supplied effort always
-  // wins; native Claude passthrough is left untouched (it carries its own `thinking`),
-  // and non-thinking base models are cleaned up later by normalizeThinkingForModel().
-  // Extracted to chatCore/claudeEffortVariant.ts (#3501); mutates body in place and returns the
-  // stripped model + an optional log line, keeping behaviour byte-identical.
-  {
-    const effortVariant = applyClaudeEffortVariant({
-      provider,
-      effectiveModel,
-      body,
-      sourceFormat,
-    });
-    effectiveModel = effortVariant.effectiveModel;
-    if (effortVariant.log) {
-      log?.info?.("PARAMS", effortVariant.log);
-    }
   }
 
   // Wire target-format resolution extracted to chatCore/targetFormat.ts (#3501); `alias` is reused
@@ -1372,8 +1348,7 @@ export async function handleChatCore({
       }
       // Phase 4A: unified output styles (supersedes cavemanOutputMode via the back-compat shim).
       let outputStyleResult:
-        | import("../services/compression/outputStyles/apply.ts").OutputStylesResult
-        | null = null;
+        import("../services/compression/outputStyles/apply.ts").OutputStylesResult | null = null;
       if (config.enabled && compressionHeader?.trim().toLowerCase() !== "off") {
         try {
           const { resolveOutputStyleSelection } =
@@ -1425,8 +1400,8 @@ export async function handleChatCore({
           ? ((compressionInputBody as Record<string, unknown>).max_tokens as number)
           : null;
       let adaptiveTelemetry:
-        | import("../services/compression/adaptiveCompression/types.ts").AdaptiveTelemetry
-        | null = null;
+        import("../services/compression/adaptiveCompression/types.ts").AdaptiveTelemetry | null =
+        null;
       const compressionPlan = selectCompressionPlan(
         config,
         compressionComboKey,
@@ -2379,16 +2354,9 @@ export async function handleChatCore({
     // carries no reasoning field of any shape — an explicit client/combo-leg value
     // always wins. Scoped to the OpenAI Chat Completions dispatch shape (the shape
     // `reasoning_effort` is native to); unset ModelSpec.defaultReasoningEffort is a
-    // no-op. #7694: `modelInfo.resolvedThinkingEffort` — set when the request's model
-    // id carried a `<prefix>/<model>-{effort}` synced-model alias suffix
-    // (`src/sse/services/model.ts`) — takes priority over the static per-model default.
-    // See open-sse/services/defaultReasoningEffort.ts.
+    // no-op. See open-sse/services/defaultReasoningEffort.ts.
     if (targetFormat === FORMATS.OPENAI) {
-      translatedBody = applyDefaultReasoningEffort(
-        translatedBody,
-        finalModelToUpstream,
-        (modelInfo as { resolvedThinkingEffort?: string })?.resolvedThinkingEffort
-      );
+      translatedBody = applyDefaultReasoningEffort(translatedBody, finalModelToUpstream);
     }
   }
 
@@ -2656,8 +2624,7 @@ export async function handleChatCore({
 
   let onPipelineStreamError: streamFailure.PipelineStreamErrorHandler | null = null;
   let onClientDisconnectFinalize:
-    | ((event: { reason: string; duration: number }) => boolean)
-    | null = null;
+    ((event: { reason: string; duration: number }) => boolean) | null = null;
 
   // Create stream controller for disconnect detection
   const streamController = createStreamController({

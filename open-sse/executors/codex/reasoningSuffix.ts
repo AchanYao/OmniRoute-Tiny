@@ -8,10 +8,18 @@ export const CODEX_EFFORT_ORDER = [
   "ultra",
 ] as const;
 export type CodexEffortLevel = (typeof CODEX_EFFORT_ORDER)[number];
-export const GPT_5_6_MAX_ALIAS_MODELS = new Set(["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]);
-export const GPT_5_6_ULTRA_ALIAS_MODELS = new Set(["gpt-5.6-sol", "gpt-5.6-terra"]);
+const GPT_5_6_MAX_ALIAS_MODELS: Record<string, true> = {
+  "gpt-5.6-sol": true,
+  "gpt-5.6-terra": true,
+  "gpt-5.6-luna": true,
+};
+const GPT_5_6_ULTRA_ALIAS_MODELS: Record<string, true> = {
+  "gpt-5.6-sol": true,
+  "gpt-5.6-terra": true,
+};
 
-export function splitCodexReasoningSuffix(model: unknown): {
+/** Identify a retired OmniRoute Codex effort alias for migration errors only. */
+export function resolveRetiredCodexEffortModelId(model: unknown): {
   baseModel: string;
   effort: CodexEffortLevel | null;
 } {
@@ -27,7 +35,7 @@ export function splitCodexReasoningSuffix(model: unknown): {
       : effort === "ultra"
         ? GPT_5_6_ULTRA_ALIAS_MODELS
         : GPT_5_6_MAX_ALIAS_MODELS;
-    if (supportedModels.has(baseModel)) {
+    if (supportedModels[baseModel]) {
       return { baseModel, effort: effort as CodexEffortLevel };
     }
   }

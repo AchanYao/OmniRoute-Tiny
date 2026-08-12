@@ -8,7 +8,6 @@ import {
   getCodexModelScope,
   getCodexRateLimitKey,
   getCodexResetTime,
-  getCodexUpstreamModel,
   isCodexResponsesWebSocketRequired,
   normalizeCodexTools,
   parseCodexQuotaHeaders,
@@ -84,9 +83,6 @@ test("Codex helper functions isolate rate-limit scopes and parse quota headers",
   assert.equal(getCodexModelScope("codex-bengalfox"), "spark");
   assert.equal(getCodexModelScope("gpt-5.3-codex"), "codex");
   assert.equal(getCodexModelScope("gpt-5.5-xhigh"), "codex");
-  assert.equal(getCodexUpstreamModel("gpt-5.5-xhigh"), "gpt-5.5");
-  assert.equal(getCodexUpstreamModel("gpt-5.5-medium"), "gpt-5.5");
-  assert.equal(getCodexUpstreamModel("gpt-5.1-codex-max"), "gpt-5.1-codex-max");
   // With mock WS transport + codexTransport=websocket, gpt-5.5 models require WS
   __setCodexWebSocketTransportForTesting(async (): Promise<MockCodexWebSocket> => ({
     send() {},

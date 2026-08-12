@@ -18,7 +18,6 @@ import path from "node:path";
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-7694-effort-sync-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
 process.env.API_KEY_SECRET = process.env.API_KEY_SECRET || "catalog-test-secret-7694";
-process.env.MODEL_EFFORT_VARIANTS_ENABLED = "true";
 
 const core = await import("../../src/lib/db/core.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");
@@ -27,7 +26,6 @@ const v1ModelsCatalog = await import("../../src/app/api/v1/models/catalog.ts");
 const { getModelInfo } = await import("../../src/sse/services/model.ts");
 const { normalizeDiscoveredModels, detectSupportedThinkingEfforts } =
   await import("../../src/lib/providerModels/modelDiscovery.ts");
-const { splitSyncedEffortSuffix } = await import("../../open-sse/services/model.ts");
 const { applyDefaultReasoningEffort } =
   await import("../../open-sse/services/defaultReasoningEffort.ts");
 
@@ -164,10 +162,10 @@ test("#7694 catalog: a synced model with no supportedThinkingEfforts gets no cap
 });
 
 // ---------------------------------------------------------------------------
-// Step 4: catalog generates `-{effort}` alias ids per declared tier.
+// Step 4: catalog keeps effort tiers as metadata without generating model ids.
 // ---------------------------------------------------------------------------
 
-test("#7694 catalog: GET /api/v1/models advertises a <model>-<tier> alias id per declared effort tier", async () => {
+test("#7694 catalog: GET /api/v1/models does not advertise synthetic effort aliases", async () => {
   const connection = await seedProviderConnection("huggingface");
 
   await modelsDb.replaceSyncedAvailableModelsForConnection("huggingface", connection.id, [
@@ -187,28 +185,13 @@ test("#7694 catalog: GET /api/v1/models advertises a <model>-<tier> alias id per
 
   const highVariant = body.data.find((m) => m.id === `${baseEntry!.id}-high`);
   const lowVariant = body.data.find((m) => m.id === `${baseEntry!.id}-low`);
-  assert.ok(highVariant, `expected a "${baseEntry!.id}-high" alias entry`);
-  assert.ok(lowVariant, `expected a "${baseEntry!.id}-low" alias entry`);
+  assert.equal(highVariant, undefined);
+  assert.equal(lowVariant, undefined);
 });
 
 // ---------------------------------------------------------------------------
-// Step 5: request-time `<prefix>/<model>-{effort}` alias resolution.
+// Step 5: request-time suffixes remain literal model ids.
 // ---------------------------------------------------------------------------
-
-test("splitSyncedEffortSuffix: strips a known trailing effort token for a candidate's own declared tiers", () => {
-  const result = splitSyncedEffortSuffix("my-model-high", ["low", "medium", "high"]);
-  assert.deepEqual(result, { baseModel: "my-model", effort: "high" });
-});
-
-test("splitSyncedEffortSuffix: leaves an unsupported effort token untouched (not a known tier for this model)", () => {
-  const result = splitSyncedEffortSuffix("my-model-ultrahigh", ["low", "medium", "high"]);
-  assert.deepEqual(result, { baseModel: "my-model-ultrahigh", effort: null });
-});
-
-test("splitSyncedEffortSuffix: no known efforts list -> untouched", () => {
-  const result = splitSyncedEffortSuffix("my-model-high", undefined);
-  assert.deepEqual(result, { baseModel: "my-model-high", effort: null });
-});
 
 const EFFORT_CONN_ID = "openai-compatible-chat-7694-effort-probe";
 const EFFORT_PREFIX = "pfx7694";
@@ -233,17 +216,15 @@ async function seedEffortSuffixNode() {
   ]);
 }
 
-test("#7694 RED->GREEN: <prefix>/<model>-high resolves to the base model id and derives 'high' as the effort", async () => {
+test("#7694: <prefix>/<model>-high remains a literal model id", async () => {
   await seedEffortSuffixNode();
 
   const info = (await getModelInfo(`${EFFORT_PREFIX}/${EFFORT_BASE_MODEL}-high`)) as {
     provider?: string;
     model?: string;
-    resolvedThinkingEffort?: string;
   };
   assert.equal(info.provider, EFFORT_CONN_ID);
-  assert.equal(info.model, EFFORT_BASE_MODEL, "suffix must be stripped back to the base model id");
-  assert.equal(info.resolvedThinkingEffort, "high");
+  assert.equal(info.model, `${EFFORT_BASE_MODEL}-high`);
 });
 
 test("#7694: an unsupported effort suffix is NOT stripped (treated as a literal/unknown model id — collision-risk guard holds)", async () => {
@@ -252,7 +233,6 @@ test("#7694: an unsupported effort suffix is NOT stripped (treated as a literal/
   const info = (await getModelInfo(`${EFFORT_PREFIX}/${EFFORT_BASE_MODEL}-ultrahigh`)) as {
     provider?: string;
     model?: string;
-    resolvedThinkingEffort?: string;
   };
   assert.equal(info.provider, EFFORT_CONN_ID);
   assert.equal(
@@ -260,7 +240,6 @@ test("#7694: an unsupported effort suffix is NOT stripped (treated as a literal/
     `${EFFORT_BASE_MODEL}-ultrahigh`,
     "unknown suffix must pass through literally, not be silently stripped"
   );
-  assert.equal(info.resolvedThinkingEffort, undefined);
 });
 
 test("#7694: the base model id (no suffix) still resolves normally and carries its full tier list", async () => {
@@ -270,31 +249,15 @@ test("#7694: the base model id (no suffix) still resolves normally and carries i
     provider?: string;
     model?: string;
     supportedThinkingEfforts?: string[];
-    resolvedThinkingEffort?: string;
   };
   assert.equal(info.provider, EFFORT_CONN_ID);
   assert.equal(info.model, EFFORT_BASE_MODEL);
   assert.deepEqual(info.supportedThinkingEfforts, ["low", "medium", "high"]);
-  assert.equal(info.resolvedThinkingEffort, undefined);
 });
 
 // ---------------------------------------------------------------------------
-// applyDefaultReasoningEffort: the suffix-resolved effort (#7694) takes priority over
-// the static per-model ModelSpec default (#6879), and an explicit client value still
-// always wins over both.
+// applyDefaultReasoningEffort retains the per-model default behavior from #6879.
 // ---------------------------------------------------------------------------
-
-test("applyDefaultReasoningEffort: a suffix-resolved effort (#7694) is injected as reasoning_effort", () => {
-  const body = { model: "some-model", messages: [] };
-  const result = applyDefaultReasoningEffort(body, "some-model", "high");
-  assert.equal(result.reasoning_effort, "high");
-});
-
-test("applyDefaultReasoningEffort: an explicit client reasoning_effort still wins over the suffix-resolved effort", () => {
-  const body = { model: "some-model", messages: [], reasoning_effort: "low" };
-  const result = applyDefaultReasoningEffort(body, "some-model", "high");
-  assert.equal(result.reasoning_effort, "low");
-});
 
 test("applyDefaultReasoningEffort: no suffix effort and no ModelSpec default -> no injection (regression, same reference)", () => {
   const body = { model: "some-model-untouched", messages: [] };

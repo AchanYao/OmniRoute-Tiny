@@ -60,10 +60,10 @@ test.after(async () => {
 
 test("reasoning intent distinguishes missing, discrete effort, toggle, and budget-only signals", () => {
   assert.deepEqual(policy.extractReasoningIntent("codex/gpt-5.6-sol-high", {}), {
-    model: "codex/gpt-5.6-sol",
-    effort: "high",
-    sourceEffort: "high",
-    hasReasoningSignal: true,
+    model: "codex/gpt-5.6-sol-high",
+    effort: null,
+    sourceEffort: "missing",
+    hasReasoningSignal: false,
     hasThinkingBudget: false,
   });
 
