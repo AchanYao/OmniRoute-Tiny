@@ -75,7 +75,8 @@ test("workflow publishes only releases and keeps immutable versions", () => {
 });
 
 test("workflow resolves repository-owned image names", () => {
-  assert.match(WORKFLOW, /DOCKERHUB_IMAGE:\s*achanyao\/omniroute-tiny/);
+  assert.match(WORKFLOW, /DOCKERHUB_IMAGE:\s*\$\{\{ vars\.DOCKERHUB_IMAGE \}\}/);
+  assert.match(WORKFLOW, /Set the repository variable DOCKERHUB_IMAGE to achanyao\/omniroute-tiny/);
   assert.match(
     WORKFLOW,
     /GHCR_IMAGE_NAME:\s*ghcr\.io\/\$\{\{ github\.repository_owner \}\}\/omniroute-tiny/

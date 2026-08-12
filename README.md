@@ -54,16 +54,25 @@ npm run build:gateway
 npm run check:gateway-artifact -- .build/next/standalone
 ```
 
-构建基础 Docker 镜像：
+本地构建带 Dashboard 的完整镜像：
 
 ```bash
 docker build \
-  --build-arg OMNIROUTE_BUILD_PROFILE=gateway \
-  --target runner-base \
-  -t omniroute-tiny:local .
+  --target runner-web \
+  -t achanyao/omniroute-tiny:nightly .
 ```
 
-`runner-base` 不包含浏览器和 CLI 工具，适合纯 API 网关。数据仍应挂载到 `/app/data`。
+CI 只发布这一套带 Web UI 的主镜像；Docker Hub 仓库由 GitHub Repository Variable
+`DOCKERHUB_IMAGE=achanyao/omniroute-tiny` 配置，GHCR 对应
+`ghcr.io/achanyao/omniroute-tiny`。Tag 规则：
+
+- 稳定 Release `vX.Y.Z` → `:X.Y.Z`，且最高稳定版本同步更新 `:latest`；
+- 可复现验证构建 → `:X.Y.Z-alpha.N`，不更新 `:latest`；
+- 可覆盖的临时验证构建 → `:nightly`，不更新 `:latest`；
+- 所有 CI 发布 Tag 均为 `linux/amd64` + `linux/arm64` multi-arch manifest；
+- 不再发布无 Web UI 的基础镜像，也不再使用 `-web` / `latest-web` 后缀。
+
+数据仍应挂载到 `/app/data`。部署和回滚时优先使用明确的版本或 alpha Tag；`nightly` 仅用于验证。
 
 ## 当前兼容策略
 

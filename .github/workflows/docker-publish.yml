@@ -24,7 +24,7 @@ env:
   # One canonical image: the Web UI build. Stable releases publish :X.Y.Z and
   # promote :latest; validation builds use :X.Y.Z-alpha.N or :nightly and never
   # move :latest. Every published tag is an amd64+arm64 manifest.
-  DOCKERHUB_IMAGE: achanyao/omniroute-tiny
+  DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
   GHCR_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/omniroute-tiny
 
 jobs:
@@ -56,6 +56,11 @@ jobs:
           GHCR_IMAGE: ${{ env.GHCR_IMAGE_NAME }}
         run: |
           set -euo pipefail
+
+          if [ -z "$DOCKERHUB_IMAGE" ]; then
+            echo "::error::Set the repository variable DOCKERHUB_IMAGE to achanyao/omniroute-tiny."
+            exit 1
+          fi
 
           # 1) Resolve version/channel from the trigger. Only the current default
           # release branch publishes the mutable `next` channel; main keeps `main`.
