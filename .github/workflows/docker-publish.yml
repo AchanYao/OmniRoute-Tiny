@@ -20,6 +20,13 @@ on:
 permissions:
   contents: read
 
+env:
+  # Canonical image repositories. Release vX.Y.Z publishes :X.Y.Z and, when it
+  # is the highest stable semver, :latest. The web image uses :X.Y.Z-web and
+  # :latest-web. Both tags are multi-arch manifests for amd64 and arm64.
+  IMAGE_NAME: achanyao/omniroute-tiny
+  GHCR_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/omniroute-tiny
+
 jobs:
   prepare:
     name: Resolve Docker release metadata
@@ -46,15 +53,10 @@ jobs:
           INPUT_VERSION: ${{ inputs.version }}
           PROMOTE_INPUT: ${{ inputs.promote_latest }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
-          GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/omniroute
+          DOCKERHUB_IMAGE: ${{ env.IMAGE_NAME }}
+          GHCR_IMAGE: ${{ env.GHCR_IMAGE_NAME }}
         run: |
           set -euo pipefail
-
-          if [ -z "$DOCKERHUB_IMAGE" ]; then
-            echo "::error::Repository variable DOCKERHUB_IMAGE must name this repository's Docker Hub image (for example, owner/omniroute)."
-            exit 1
-          fi
 
           # 1) Resolve version/channel from the trigger. Only the current default
           # release branch publishes the mutable `next` channel; main keeps `main`.
@@ -116,9 +118,6 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
             arch: arm64
-    env:
-      IMAGE_NAME: ${{ vars.DOCKERHUB_IMAGE }}
-      GHCR_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/omniroute
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -215,8 +214,6 @@ jobs:
       packages: write
       security-events: write
     env:
-      IMAGE_NAME: ${{ vars.DOCKERHUB_IMAGE }}
-      GHCR_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/omniroute
       VERSION: ${{ needs.prepare.outputs.version }}
       PROMOTE_LATEST: ${{ needs.prepare.outputs.promote_latest }}
     steps:

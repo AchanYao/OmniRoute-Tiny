@@ -75,12 +75,22 @@ test("workflow publishes only releases and keeps immutable versions", () => {
 });
 
 test("workflow resolves repository-owned image names", () => {
-  assert.match(WORKFLOW, /IMAGE_NAME:\s*\$\{\{ vars\.DOCKERHUB_IMAGE \}\}/);
+  assert.match(WORKFLOW, /IMAGE_NAME:\s*achanyao\/omniroute-tiny/);
   assert.match(
     WORKFLOW,
-    /GHCR_IMAGE_NAME:\s*ghcr\.io\/\$\{\{ github\.repository_owner \}\}\/omniroute/
+    /GHCR_IMAGE_NAME:\s*ghcr\.io\/\$\{\{ github\.repository_owner \}\}\/omniroute-tiny/
   );
   assert.doesNotMatch(WORKFLOW, /diegosouzapw\/omniroute/);
+  assert.doesNotMatch(WORKFLOW, /vars\.DOCKERHUB_IMAGE/);
+});
+
+test("version and latest tags have matching web variants", () => {
+  assert.match(WORKFLOW, /tags=\(-t "\$\{image\}:\$\{VERSION\}\$\{suffix\}"\)/);
+  assert.match(WORKFLOW, /tags\+=\(-t "\$\{image\}:latest\$\{suffix\}"\)/);
+  assert.match(WORKFLOW, /create_manifest "\$\{IMAGE_NAME\}" ""/);
+  assert.match(WORKFLOW, /create_manifest "\$\{IMAGE_NAME\}" "-web"/);
+  assert.match(WORKFLOW, /create_manifest "\$\{GHCR_IMAGE_NAME\}" ""/);
+  assert.match(WORKFLOW, /create_manifest "\$\{GHCR_IMAGE_NAME\}" "-web"/);
 });
 
 test("next images retain the blocking vulnerability gate", () => {
