@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version tag to build (e.g. 3.8.4)"
+        description: "Image tag (release: 3.8.50; validation: 3.8.50-alpha.1 or nightly)"
         required: true
         type: string
       promote_latest:
@@ -21,10 +21,10 @@ permissions:
   contents: read
 
 env:
-  # Canonical image repositories. Release vX.Y.Z publishes :X.Y.Z and, when it
-  # is the highest stable semver, :latest. The web image uses :X.Y.Z-web and
-  # :latest-web. Both tags are multi-arch manifests for amd64 and arm64.
-  IMAGE_NAME: achanyao/omniroute-tiny
+  # One canonical image: the Web UI build. Stable releases publish :X.Y.Z and
+  # promote :latest; validation builds use :X.Y.Z-alpha.N or :nightly and never
+  # move :latest. Every published tag is an amd64+arm64 manifest.
+  DOCKERHUB_IMAGE: achanyao/omniroute-tiny
   GHCR_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/omniroute-tiny
 
 jobs:
@@ -40,7 +40,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
-          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/v{0}', inputs.version) || '' }}
           # Need full tag history for semver comparison when deciding :latest.
           fetch-depth: 0
 
@@ -53,7 +52,7 @@ jobs:
           INPUT_VERSION: ${{ inputs.version }}
           PROMOTE_INPUT: ${{ inputs.promote_latest }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          DOCKERHUB_IMAGE: ${{ env.IMAGE_NAME }}
+          DOCKERHUB_IMAGE: ${{ env.DOCKERHUB_IMAGE }}
           GHCR_IMAGE: ${{ env.GHCR_IMAGE_NAME }}
         run: |
           set -euo pipefail
@@ -69,8 +68,8 @@ jobs:
           PROMOTE="false"
           if [ "$VERSION" = "main" ] || [ "$VERSION" = "next" ]; then
             PROMOTE="false"
-          elif printf '%s' "$VERSION" | grep -qE -- '-(rc|alpha|beta|pre|next)'; then
-            echo "Pre-release identifier detected — skipping :latest."
+          elif printf '%s' "$VERSION" | grep -qiE -- '(^nightly$|-(alpha|beta|rc|nightly)([.-]|$))'; then
+            echo "Pre-release or validation tag detected — skipping :latest."
             PROMOTE="false"
           elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             PROMOTE="${PROMOTE_INPUT:-false}"
@@ -87,10 +86,10 @@ jobs:
           fi
           echo "promote_latest=$PROMOTE" >> "$GITHUB_OUTPUT"
 
-          # 3) Skip immutable version tags that already exist. Floating `main`
-          # and `next` channels are intentionally rebuilt on every matching push.
+          # 3) Skip immutable release/alpha tags that already exist. `nightly` is
+          # a floating validation channel and is intentionally rebuilt on demand.
           SKIP="false"
-          if [ "$VERSION" != "main" ] && [ "$VERSION" != "next" ]; then
+          if [ "$VERSION" != "main" ] && [ "$VERSION" != "next" ] && [ "$VERSION" != "nightly" ]; then
             if docker manifest inspect "${DOCKERHUB_IMAGE}:${VERSION}" >/dev/null 2>&1; then
               echo "Image ${DOCKERHUB_IMAGE}:${VERSION} already exists on Docker Hub — skipping rebuild."
               SKIP="true"
@@ -123,7 +122,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
-          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/v{0}', inputs.version) || '' }}
           fetch-depth: 0
 
       - name: Set up Docker Buildx
@@ -142,25 +140,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push platform image by digest
+      - name: Build and push Web platform image by digest
         id: build
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          target: runner-base
-          platforms: ${{ matrix.platform }}
-          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
-          tags: |
-            ${{ env.IMAGE_NAME }}
-            ${{ env.GHCR_IMAGE_NAME }}
-          cache-from: type=gha,scope=docker-${{ matrix.arch }}
-          cache-to: type=gha,scope=docker-${{ matrix.arch }},mode=max
-          no-cache: false
-        env:
-          DOCKER_BUILDKIT_INLINE_CACHE: 1
-
-      - name: Build and push WEB platform image by digest
-        id: build-web
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -168,10 +149,10 @@ jobs:
           platforms: ${{ matrix.platform }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
           tags: |
-            ${{ env.IMAGE_NAME }}
+            ${{ env.DOCKERHUB_IMAGE }}
             ${{ env.GHCR_IMAGE_NAME }}
-          cache-from: type=gha,scope=docker-web-${{ matrix.arch }}
-          cache-to: type=gha,scope=docker-web-${{ matrix.arch }},mode=max
+          cache-from: type=gha,scope=docker-${{ matrix.arch }}
+          cache-to: type=gha,scope=docker-${{ matrix.arch }},mode=max
           no-cache: false
         env:
           DOCKER_BUILDKIT_INLINE_CACHE: 1
@@ -179,26 +160,16 @@ jobs:
       - name: Export digests
         env:
           DIGEST_BASE: ${{ steps.build.outputs.digest }}
-          DIGEST_WEB: ${{ steps.build-web.outputs.digest }}
         run: |
           set -euo pipefail
-          mkdir -p /tmp/digests/base /tmp/digests/web
-          touch "/tmp/digests/base/${DIGEST_BASE#sha256:}"
-          touch "/tmp/digests/web/${DIGEST_WEB#sha256:}"
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/${DIGEST_BASE#sha256:}"
 
-      - name: Upload base digests
+      - name: Upload digests
         uses: actions/upload-artifact@v7
         with:
-          name: digests-base-${{ matrix.arch }}
-          path: /tmp/digests/base/*
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Upload web digests
-        uses: actions/upload-artifact@v7
-        with:
-          name: digests-web-${{ matrix.arch }}
-          path: /tmp/digests/web/*
+          name: digests-${{ matrix.arch }}
+          path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
 
@@ -221,7 +192,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
-          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/v{0}', inputs.version) || '' }}
           fetch-depth: 0
 
       - name: Set up Docker Buildx
@@ -240,18 +210,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download base digests
+      - name: Download digests
         uses: actions/download-artifact@v8
         with:
-          pattern: digests-base-*
-          path: /tmp/digests/base
-          merge-multiple: true
-
-      - name: Download web digests
-        uses: actions/download-artifact@v8
-        with:
-          pattern: digests-web-*
-          path: /tmp/digests/web
+          pattern: digests-*
+          path: /tmp/digests
           merge-multiple: true
 
       - name: Create Docker Hub manifest
@@ -259,10 +222,10 @@ jobs:
           set -euo pipefail
 
           create_manifest() {
-            local image="$1" suffix="$2" dir="$3"
-            local tags=(-t "${image}:${VERSION}${suffix}")
+            local image="$1" dir="$2"
+            local tags=(-t "${image}:${VERSION}")
             if [ "$PROMOTE_LATEST" = "true" ]; then
-              tags+=(-t "${image}:latest${suffix}")
+              tags+=(-t "${image}:latest")
             fi
             local refs=()
             while IFS= read -r digest_file; do
@@ -275,18 +238,17 @@ jobs:
             docker buildx imagetools create "${tags[@]}" "${refs[@]}"
           }
 
-          create_manifest "${IMAGE_NAME}" "" /tmp/digests/base
-          create_manifest "${IMAGE_NAME}" "-web" /tmp/digests/web
+          create_manifest "${DOCKERHUB_IMAGE}" /tmp/digests
 
       - name: Create GHCR manifest
         run: |
           set -euo pipefail
 
           create_manifest() {
-            local image="$1" suffix="$2" dir="$3"
-            local tags=(-t "${image}:${VERSION}${suffix}")
+            local image="$1" dir="$2"
+            local tags=(-t "${image}:${VERSION}")
             if [ "$PROMOTE_LATEST" = "true" ]; then
-              tags+=(-t "${image}:latest${suffix}")
+              tags+=(-t "${image}:latest")
             fi
             local refs=()
             while IFS= read -r digest_file; do
@@ -299,13 +261,12 @@ jobs:
             docker buildx imagetools create "${tags[@]}" "${refs[@]}"
           }
 
-          create_manifest "${GHCR_IMAGE_NAME}" "" /tmp/digests/base
-          create_manifest "${GHCR_IMAGE_NAME}" "-web" /tmp/digests/web
+          create_manifest "${GHCR_IMAGE_NAME}" /tmp/digests
 
       - name: Inspect image
         if: needs.prepare.outputs.version != 'main'
         run: |
-          docker buildx imagetools inspect "${IMAGE_NAME}:${VERSION}"
+          docker buildx imagetools inspect "${DOCKERHUB_IMAGE}:${VERSION}"
 
       - name: Generate CycloneDX SBOM (image, advisory)
         if: needs.prepare.outputs.version != 'main'
@@ -376,6 +337,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ env.IMAGE_NAME }}
+          repository: ${{ env.DOCKERHUB_IMAGE }}
           short-description: "OmniRoute Tiny — independent unified AI proxy."
           readme-filepath: ./README.md

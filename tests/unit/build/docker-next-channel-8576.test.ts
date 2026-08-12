@@ -75,22 +75,31 @@ test("workflow publishes only releases and keeps immutable versions", () => {
 });
 
 test("workflow resolves repository-owned image names", () => {
-  assert.match(WORKFLOW, /IMAGE_NAME:\s*achanyao\/omniroute-tiny/);
+  assert.match(WORKFLOW, /DOCKERHUB_IMAGE:\s*achanyao\/omniroute-tiny/);
   assert.match(
     WORKFLOW,
     /GHCR_IMAGE_NAME:\s*ghcr\.io\/\$\{\{ github\.repository_owner \}\}\/omniroute-tiny/
   );
   assert.doesNotMatch(WORKFLOW, /diegosouzapw\/omniroute/);
-  assert.doesNotMatch(WORKFLOW, /vars\.DOCKERHUB_IMAGE/);
 });
 
-test("version and latest tags have matching web variants", () => {
-  assert.match(WORKFLOW, /tags=\(-t "\$\{image\}:\$\{VERSION\}\$\{suffix\}"\)/);
-  assert.match(WORKFLOW, /tags\+=\(-t "\$\{image\}:latest\$\{suffix\}"\)/);
-  assert.match(WORKFLOW, /create_manifest "\$\{IMAGE_NAME\}" ""/);
-  assert.match(WORKFLOW, /create_manifest "\$\{IMAGE_NAME\}" "-web"/);
-  assert.match(WORKFLOW, /create_manifest "\$\{GHCR_IMAGE_NAME\}" ""/);
-  assert.match(WORKFLOW, /create_manifest "\$\{GHCR_IMAGE_NAME\}" "-web"/);
+test("the Web image is the only image and owns version plus latest tags", () => {
+  assert.match(WORKFLOW, /target:\s*runner-web/);
+  assert.doesNotMatch(WORKFLOW, /target:\s*runner-base/);
+  assert.doesNotMatch(WORKFLOW, /latest-web|VERSION\}-web|"-web"/);
+  assert.match(WORKFLOW, /tags=\(-t "\$\{image\}:\$\{VERSION\}"\)/);
+  assert.match(WORKFLOW, /tags\+=\(-t "\$\{image\}:latest"\)/);
+  assert.match(WORKFLOW, /create_manifest "\$\{DOCKERHUB_IMAGE\}"/);
+  assert.match(WORKFLOW, /create_manifest "\$\{GHCR_IMAGE_NAME\}"/);
+});
+
+test("alpha and nightly validation tags never promote latest", () => {
+  assert.match(WORKFLOW, /alpha\|beta\|rc\|nightly/);
+  assert.match(WORKFLOW, /Pre-release or validation tag detected/);
+  assert.match(
+    WORKFLOW,
+    /\[ "\$VERSION" != "main" \] && \[ "\$VERSION" != "next" \] && \[ "\$VERSION" != "nightly" \]/
+  );
 });
 
 test("next images retain the blocking vulnerability gate", () => {
