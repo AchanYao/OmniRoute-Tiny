@@ -227,7 +227,7 @@ jobs:
           path: release-assets/
 
   release:
-    name: Create Release
+    name: Attach assets to Release Please release
     needs: [validate, build]
     # Fail-partial, not fail-closed. `build` is a 4-leg matrix with `fail-fast: false`,
     # so the legs that succeed still upload their artifacts — but a default `needs:`
@@ -241,7 +241,7 @@ jobs:
     if: ${{ !cancelled() && needs.validate.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
-      contents: write # softprops/action-gh-release creates the GitHub Release
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -299,13 +299,16 @@ jobs:
       - name: List release files
         run: ls -la release-assets/
 
-      - name: Create Release
+      - name: Verify Release Please release exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null
+
+      - name: Attach assets to existing release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.validate.outputs.version }}
-          draft: false
-          prerelease: false
-          generate_release_notes: true
           fail_on_unmatched_files: false
           files: |
             release-assets/*.dmg
@@ -343,7 +346,9 @@ jobs:
           names=$(gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" \
                     --json assets --jq '.assets[].name')
           echo "Assets on $VERSION:"
-          echo "$names" | sed 's/^/  /'
+          while IFS= read -r name; do
+            echo "  $name"
+          done <<< "$names"
 
           missing=""
           # `[ ... ] && missing=...` as the last command in a branch returns 1 and
@@ -359,21 +364,3 @@ jobs:
             exit 1
           fi
           echo "✓ every platform present on $VERSION"
-
-  publish-npm:
-    name: Publish to npm
-    needs: [validate, release]
-    permissions:
-      # Must be `write`, not `read`: this job calls the reusable npm-publish.yml whose
-      # `publish` job needs `contents: write` (gh release upload — attach the SBOM, #3874).
-      # A reusable workflow's job cannot request more permission than the caller grants,
-      # so a `read` here makes GitHub reject the run at startup (startup_failure).
-      contents: write
-      id-token: write # npm provenance (forwarded to the reusable workflow)
-      packages: write # publish to npm.pkg.github.com
-    uses: ./.github/workflows/npm-publish.yml
-    with:
-      version: ${{ needs.validate.outputs.version }}
-      tag: latest
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

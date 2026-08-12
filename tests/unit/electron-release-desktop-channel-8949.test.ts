@@ -110,29 +110,11 @@ test("a release with no binaries fails a job instead of passing unnoticed", () =
   assert.match(verifyBlock, /exit 1/, "a missing platform must fail the job, not just warn");
 });
 
-test("the asset check is a separate job, so it cannot block the npm channel", () => {
+test("the workflow attaches to the Release Please release and never publishes npm", () => {
   const wf = readWorkflow();
-
-  // publish-npm gates on `release`. If the assert lived inside `release`, a desktop-only
-  // gap would also stop the npm publish — the primary distribution channel.
-  const publishBlock = extractJobBlock(wf, "publish-npm");
-  assert.match(
-    publishBlock,
-    /needs:\s*\[validate, release\]/,
-    "publish-npm is expected to gate on release; if that changes, revisit this reasoning"
-  );
-  assert.doesNotMatch(
-    publishBlock,
-    /verify-desktop-assets/,
-    "publish-npm must NOT depend on the desktop asset check — npm must publish even when " +
-      "a desktop platform is missing"
-  );
-
   const releaseBlock = extractJobBlock(wf, "release");
-  assert.doesNotMatch(
-    releaseBlock,
-    /exit 1/,
-    "the release job must not fail on missing assets — that would cascade into publish-npm; " +
-      "the dedicated verify-desktop-assets job carries that failure instead"
-  );
+  assert.match(releaseBlock, /gh release view/, "the release must already exist before upload");
+  assert.match(releaseBlock, /Attach assets to existing release/);
+  assert.doesNotMatch(wf, /publish-npm:/);
+  assert.doesNotMatch(wf, /npm-publish\.yml/);
 });

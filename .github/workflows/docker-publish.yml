@@ -1,17 +1,6 @@
-name: Publish to Docker Hub
+name: Publish Docker images
 
 on:
-  push:
-    branches:
-      - main
-      - "release/v*"
-    tags:
-      - "v*"
-    paths-ignore:
-      - ".github/workflows/**"
-  # Use 'released' instead of 'published' so editing/re-publishing old releases
-  # does NOT re-trigger this workflow. 'released' fires only on the initial
-  # release publication (and pre-release → release transition).
   release:
     types: [released]
   workflow_dispatch:
@@ -39,8 +28,6 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       promote_latest: ${{ steps.version.outputs.promote_latest }}
       skip: ${{ steps.version.outputs.skip }}
-    env:
-      IMAGE_NAME: diegosouzapw/omniroute
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -59,8 +46,15 @@ jobs:
           INPUT_VERSION: ${{ inputs.version }}
           PROMOTE_INPUT: ${{ inputs.promote_latest }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
+          GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/omniroute
         run: |
           set -euo pipefail
+
+          if [ -z "$DOCKERHUB_IMAGE" ]; then
+            echo "::error::Repository variable DOCKERHUB_IMAGE must name this repository's Docker Hub image (for example, owner/omniroute)."
+            exit 1
+          fi
 
           # 1) Resolve version/channel from the trigger. Only the current default
           # release branch publishes the mutable `next` channel; main keeps `main`.
@@ -95,14 +89,14 @@ jobs:
           # and `next` channels are intentionally rebuilt on every matching push.
           SKIP="false"
           if [ "$VERSION" != "main" ] && [ "$VERSION" != "next" ]; then
-            if docker manifest inspect "diegosouzapw/omniroute:${VERSION}" >/dev/null 2>&1; then
-              echo "Image diegosouzapw/omniroute:${VERSION} already exists on Docker Hub — skipping rebuild."
+            if docker manifest inspect "${DOCKERHUB_IMAGE}:${VERSION}" >/dev/null 2>&1; then
+              echo "Image ${DOCKERHUB_IMAGE}:${VERSION} already exists on Docker Hub — skipping rebuild."
               SKIP="true"
             fi
           fi
           echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
 
-          echo "Publishing diegosouzapw/omniroute:$VERSION (promote_latest=$PROMOTE, skip=$SKIP)"
+          echo "Publishing ${DOCKERHUB_IMAGE}:$VERSION and ${GHCR_IMAGE}:$VERSION (promote_latest=$PROMOTE, skip=$SKIP)"
 
   build:
     name: Build Docker (${{ matrix.platform }})
@@ -123,8 +117,8 @@ jobs:
             runner: ubuntu-24.04-arm
             arch: arm64
     env:
-      IMAGE_NAME: diegosouzapw/omniroute
-      GHCR_IMAGE_NAME: ghcr.io/diegosouzapw/omniroute
+      IMAGE_NAME: ${{ vars.DOCKERHUB_IMAGE }}
+      GHCR_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/omniroute
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -221,8 +215,8 @@ jobs:
       packages: write
       security-events: write
     env:
-      IMAGE_NAME: diegosouzapw/omniroute
-      GHCR_IMAGE_NAME: ghcr.io/diegosouzapw/omniroute
+      IMAGE_NAME: ${{ vars.DOCKERHUB_IMAGE }}
+      GHCR_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/omniroute
       VERSION: ${{ needs.prepare.outputs.version }}
       PROMOTE_LATEST: ${{ needs.prepare.outputs.promote_latest }}
     steps:
@@ -385,6 +379,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: diegosouzapw/omniroute
-          short-description: "OmniRoute — Unified AI proxy. Route any LLM through one endpoint."
+          repository: ${{ env.IMAGE_NAME }}
+          short-description: "OmniRoute Tiny — independent unified AI proxy."
           readme-filepath: ./README.md

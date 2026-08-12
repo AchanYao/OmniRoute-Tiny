@@ -11,34 +11,21 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, "../../..");
-const RESOLVE_VERSION = path.join(
-  ROOT,
-  "scripts/ci/resolve-docker-publish-version.sh",
-);
+const RESOLVE_VERSION = path.join(ROOT, "scripts/ci/resolve-docker-publish-version.sh");
 const SHOULD_PROMOTE = path.join(ROOT, "scripts/ci/should-promote-latest.sh");
-const WORKFLOW = readFileSync(
-  path.join(ROOT, ".github/workflows/docker-publish.yml"),
-  "utf8",
-);
+const WORKFLOW = readFileSync(path.join(ROOT, ".github/workflows/docker-publish.yml"), "utf8");
 
 function resolveVersion(
   eventName: string,
   refType: string,
   refName: string,
   inputVersion = "",
-  defaultBranch = "release/v3.8.50",
+  defaultBranch = "release/v3.8.50"
 ): string {
   return execFileSync(
     "bash",
-    [
-      RESOLVE_VERSION,
-      eventName,
-      refType,
-      refName,
-      inputVersion,
-      defaultBranch,
-    ],
-    { encoding: "utf8" },
+    [RESOLVE_VERSION, eventName, refType, refName, inputVersion, defaultBranch],
+    { encoding: "utf8" }
   ).trim();
 }
 
@@ -50,56 +37,28 @@ function shouldPromote(version: string, tags: string[] = []): string {
 }
 
 test("the current default release branch resolves to next", () => {
-  assert.equal(
-    resolveVersion(
-      "push",
-      "branch",
-      "release/v3.8.50",
-      "",
-      "release/v3.8.50",
-    ),
-    "next",
-  );
-  assert.equal(
-    resolveVersion(
-      "push",
-      "branch",
-      "release/v4.0.0",
-      "",
-      "release/v4.0.0",
-    ),
-    "next",
-  );
+  assert.equal(resolveVersion("push", "branch", "release/v3.8.50", "", "release/v3.8.50"), "next");
+  assert.equal(resolveVersion("push", "branch", "release/v4.0.0", "", "release/v4.0.0"), "next");
 });
 
 test("a stale release branch cannot overwrite next", () => {
   assert.throws(
-    () =>
-      resolveVersion(
-        "push",
-        "branch",
-        "release/v3.8.49",
-        "",
-        "release/v3.8.50",
-      ),
-    /Refusing to publish next from non-default release branch/,
+    () => resolveVersion("push", "branch", "release/v3.8.49", "", "release/v3.8.50"),
+    /Refusing to publish next from non-default release branch/
   );
 });
 
 test("existing main, tag, dispatch, and release behavior is preserved", () => {
   assert.equal(resolveVersion("push", "branch", "main"), "main");
   assert.equal(resolveVersion("push", "tag", "v3.8.50"), "3.8.50");
-  assert.equal(
-    resolveVersion("workflow_dispatch", "branch", "main", "v3.8.50"),
-    "3.8.50",
-  );
+  assert.equal(resolveVersion("workflow_dispatch", "branch", "main", "v3.8.50"), "3.8.50");
   assert.equal(resolveVersion("release", "tag", "v3.8.50"), "3.8.50");
 });
 
 test("unsupported push branches fail closed", () => {
   assert.throws(
     () => resolveVersion("push", "branch", "feature/not-a-publish-source"),
-    /Unsupported Docker publish branch/,
+    /Unsupported Docker publish branch/
   );
 });
 
@@ -109,19 +68,23 @@ test("next and other non-semver channels can never promote latest", () => {
   assert.equal(shouldPromote("3.8.51-rc.1", ["v3.8.50"]), "false");
 });
 
-test("workflow triggers release branches and keeps next mutable", () => {
-  assert.match(WORKFLOW, /- ["']?release\/v\*["']?/);
-  assert.match(WORKFLOW, /DEFAULT_BRANCH:.*repository\.default_branch/);
+test("workflow publishes only releases and keeps immutable versions", () => {
+  assert.match(WORKFLOW, /release:\s*\n\s+types:\s*\[released\]/);
+  assert.doesNotMatch(WORKFLOW, /branches:\s*\n\s+- main/);
+  assert.match(WORKFLOW, /\[ "\$VERSION" != "main" \] && \[ "\$VERSION" != "next" \]/);
+});
+
+test("workflow resolves repository-owned image names", () => {
+  assert.match(WORKFLOW, /IMAGE_NAME:\s*\$\{\{ vars\.DOCKERHUB_IMAGE \}\}/);
   assert.match(
     WORKFLOW,
-    /\[ "\$VERSION" != "main" \] && \[ "\$VERSION" != "next" \]/,
+    /GHCR_IMAGE_NAME:\s*ghcr\.io\/\$\{\{ github\.repository_owner \}\}\/omniroute/
   );
+  assert.doesNotMatch(WORKFLOW, /diegosouzapw\/omniroute/);
 });
 
 test("next images retain the blocking vulnerability gate", () => {
-  const gate = WORKFLOW.match(
-    /- name: Trivy CRITICAL gate \(blocking\)[\s\S]*?exit-code: "1"/,
-  );
+  const gate = WORKFLOW.match(/- name: Trivy CRITICAL gate \(blocking\)[\s\S]*?exit-code: "1"/);
   assert.ok(gate, "blocking Trivy gate must remain present");
   assert.match(gate[0], /version != 'main'/);
   assert.doesNotMatch(gate[0], /version != 'next'/);
