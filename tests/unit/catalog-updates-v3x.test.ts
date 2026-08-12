@@ -190,21 +190,6 @@ test("Every OpenAI registry model resolves a non-zero pricing row (alias: openai
   }
 });
 
-test("Every Codex registry model resolves a non-zero pricing row", async () => {
-  const { getPricingForModel } = await import("../../src/shared/constants/pricing.ts");
-  const models = getModelsByProviderId("codex");
-  assert.ok(models.length > 0, "codex must expose models");
-
-  for (const model of models) {
-    const pricing = getPricingForModel("codex", model.id) as {
-      input?: number;
-      output?: number;
-    } | null;
-    assert.ok(pricing, `codex pricing must include model "${model.id}"`);
-    assert.equal(
-      typeof pricing?.input === "number" && typeof pricing?.output === "number",
-      true,
-      `codex pricing for "${model.id}" must have numeric input/output`
-    );
-  }
+test("Codex registry inventory stays empty for upstream discovery", () => {
+  assert.deepEqual(getModelsByProviderId("codex"), []);
 });

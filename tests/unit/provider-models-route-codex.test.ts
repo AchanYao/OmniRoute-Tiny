@@ -82,7 +82,7 @@ test.after(async () => {
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
-test("provider models route merges live Codex models with the local catalog then filters denylist", async () => {
+test("provider models route persists only live Codex models and filters denylist", async () => {
   const connection = await seedCodexConnection({
     accessToken: "codex-access-token",
     providerSpecificData: { chatgptAccountId: "account-123" },
@@ -174,30 +174,20 @@ test("provider models route merges live Codex models with the local catalog then
     },
   ]);
   assert.ok(modelIds.has("gpt-5.6-sol"));
-  assert.ok(modelIds.has("gpt-5.6-sol-ultra"));
-  assert.ok(modelIds.has("gpt-5.6-sol-max"));
-  // Live payload wins on overlapping fields; local catalog supplies local-only
-  // variants. EXCEPTION: capacity limits (inputTokenLimit/outputTokenLimit)
-  // merge conservatively — the smaller of live vs. pinned wins, never the
-  // larger, so a stale/inflated live number can never make OmniRoute promise
-  // more context than the account can actually serve (#7012). Here the pinned
-  // GPT-5.6 Codex contract (922000/128000, see GPT_5_6_CODEX_CAPABILITIES —
-  // raised from 272000 in #9432) is smaller than the live payload's
-  // 999999/999999, so the pinned value wins.
   assert.equal(liveModel?.name, "GPT 5.6 Sol Live");
-  assert.equal(liveModel?.inputTokenLimit, 922000);
-  assert.equal(liveModel?.outputTokenLimit, 128000);
+  assert.equal(liveModel?.inputTokenLimit, 999999);
+  assert.equal(liveModel?.outputTokenLimit, 999999);
   assert.equal(liveModel?.apiFormat, "responses");
   assert.deepEqual(liveModel?.supportedEndpoints, ["responses"]);
   assert.equal(liveModel?.supportsThinking, true);
+  assert.deepEqual(liveModel?.supportedThinkingEfforts, ["low", "high"]);
   assert.equal(liveModel?.supportsVision, true);
-  assert.ok(modelIds.has("gpt-5.5-low"));
   assert.equal(
     [...modelIds].some((id) => String(id).startsWith("gpt-5.4")),
     false
   );
   assert.ok(syncedIds.has("gpt-5.6-sol"));
-  assert.ok(syncedIds.has("gpt-5.5-low"));
+  assert.equal(syncedIds.has("gpt-5.5-low"), false);
   assert.equal(
     [...syncedIds].some((id) => String(id).startsWith("gpt-5.4")),
     false
@@ -207,7 +197,7 @@ test("provider models route merges live Codex models with the local catalog then
   assert.equal(syncedIds.has("stale-codex-model"), false);
 });
 
-test("provider models route: live token limit wins when it is SMALLER than the pinned local catalog value", async () => {
+test("provider models route uses upstream token limits without local caps", async () => {
   const connection = await seedCodexConnection({
     accessToken: "codex-access-token",
     providerSpecificData: { chatgptAccountId: "account-123" },
@@ -218,10 +208,6 @@ test("provider models route: live token limit wins when it is SMALLER than the p
     if (requestUrl.includes("raw.githubusercontent.com/openai/codex")) {
       return Response.json({ models: [] });
     }
-    // Live reports a SMALLER budget than the pinned GPT-5.6 Codex contract
-    // (272000/128000, GPT_5_6_CODEX_CAPABILITIES) — e.g. a temporary
-    // account-level cap. The conservative merge must take the smaller live
-    // value here, not the larger pinned one (#7012).
     return Response.json({
       models: [
         {
@@ -288,7 +274,7 @@ test("provider models route uses the GitHub Codex catalog when live discovery fa
   assert.ok(seenUrls.some((url) => url.includes("backend-api/codex/models")));
   assert.ok(seenUrls.some((url) => url.includes("raw.githubusercontent.com/openai/codex")));
   assert.ok(modelIds.has("gpt-5.6-sol"));
-  assert.ok(modelIds.has("gpt-5.5-low"));
+  assert.equal(modelIds.has("gpt-5.5-low"), false);
   assert.equal(
     [...modelIds].some((id) => String(id).startsWith("gpt-5.4")),
     false
@@ -326,14 +312,14 @@ test("provider models route returns cached Codex models when refresh discovery f
   assert.equal(body.discoveredCandidateCount, undefined);
   const modelIds = new Set((body.models || []).map((model) => model.id));
   assert.ok(modelIds.has("gpt-5.6-sol"));
-  assert.ok(modelIds.has("gpt-5.6-sol-ultra"));
+  assert.equal(modelIds.has("gpt-5.6-sol-ultra"), false);
   assert.equal(
     [...modelIds].some((id) => String(id).startsWith("gpt-5.4")),
     false
   );
   const syncedModels = await modelsDb.getSyncedAvailableModelsForConnection("codex", connection.id);
   const syncedIds = new Set(syncedModels.map((model) => model.id));
-  assert.ok(syncedIds.has("gpt-5.6-sol-ultra"));
+  assert.equal(syncedIds.has("gpt-5.6-sol-ultra"), false);
   assert.equal(syncedIds.has("gpt-5.4"), false);
 });
 
@@ -384,7 +370,7 @@ test("provider models route auto-includes remote-only Codex models after merge",
   assert.equal(syncedIds.has("gpt-5.4"), false);
 });
 
-test("provider models route falls back to local Codex catalog when live and GitHub fail", async () => {
+test("provider models route publishes no Codex models before successful discovery", async () => {
   const connection = await seedCodexConnection({ accessToken: "codex-access-token" });
 
   globalThis.fetch = async () => new Response("upstream unavailable", { status: 503 });
@@ -394,18 +380,13 @@ test("provider models route falls back to local Codex catalog when live and GitH
 
   assert.equal(response.status, 200);
   assert.equal(body.provider, "codex");
-  assert.equal(body.source, "local_catalog");
+  assert.equal(body.source, "api");
   assert.equal(body.intentional, true);
-  assert.equal(body.warning, "Codex live and GitHub catalogs unavailable — using local catalog");
-  assert.ok(body.models?.some((model) => model.id === "gpt-5.6-sol"));
-  assert.ok(body.models?.some((model) => model.id === "gpt-5.5"));
-  assert.equal(
-    body.models?.some((model) => model.id.startsWith("gpt-5.4")),
-    false
-  );
+  assert.equal(body.warning, "Codex live and GitHub catalogs unavailable — no cached catalog");
+  assert.deepEqual(body.models, []);
 });
 
-test("provider models route returns curated GPT-5.6 variants when auto-fetch is disabled", async () => {
+test("provider models route returns no Codex models when auto-fetch is disabled without cache", async () => {
   const connection = await seedCodexConnection({
     apiKey: null,
     accessToken: "codex-access",
@@ -418,13 +399,7 @@ test("provider models route returns curated GPT-5.6 variants when auto-fetch is 
 
   assert.equal(response.status, 200);
   assert.equal(body.provider, "codex");
-  assert.equal(body.source, "local_catalog");
-  assert.ok(modelIds.has("gpt-5.6-sol-ultra"));
-  assert.ok(modelIds.has("gpt-5.6-sol-max"));
-  assert.ok(modelIds.has("gpt-5.6-terra-ultra"));
-  assert.ok(modelIds.has("gpt-5.6-luna-max"));
-  assert.equal(
-    [...modelIds].some((id) => String(id).startsWith("gpt-5.4")),
-    false
-  );
+  assert.equal(body.source, "api");
+  assert.equal(body.warning, "Auto-fetch disabled — no cached Codex catalog");
+  assert.deepEqual([...modelIds], []);
 });

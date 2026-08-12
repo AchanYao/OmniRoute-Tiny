@@ -27,6 +27,7 @@ export type CodexDiscoveryModel = {
   outputTokenLimit?: number;
   description?: string;
   supportsThinking?: boolean;
+  supportedThinkingEfforts?: string[];
   supportsVision?: boolean;
 };
 
@@ -135,9 +136,18 @@ function getCodexModelName(record: JsonRecord, id: string): string {
   );
 }
 
-function recordSupportsThinking(record: JsonRecord): boolean {
-  return (
-    Array.isArray(record.supported_reasoning_levels) && record.supported_reasoning_levels.length > 0
+function getSupportedThinkingEfforts(record: JsonRecord): string[] {
+  if (!Array.isArray(record.supported_reasoning_levels)) return [];
+  return Array.from(
+    new Set(
+      record.supported_reasoning_levels
+        .map((level) =>
+          typeof level === "string"
+            ? toNonEmptyString(level)
+            : toNonEmptyString(asRecord(level).effort)
+        )
+        .filter((effort): effort is string => Boolean(effort))
+    )
   );
 }
 
@@ -187,11 +197,15 @@ function buildCodexDiscoveryModel(record: JsonRecord): CodexDiscoveryModel | nul
     limits.max_output_tokens
   );
   const description = toNonEmptyString(record.description);
+  const supportedThinkingEfforts = getSupportedThinkingEfforts(record);
 
   if (typeof inputTokenLimit === "number") model.inputTokenLimit = inputTokenLimit;
   if (typeof outputTokenLimit === "number") model.outputTokenLimit = outputTokenLimit;
   if (description) model.description = description;
-  if (recordSupportsThinking(record)) model.supportsThinking = true;
+  if (supportedThinkingEfforts.length > 0) {
+    model.supportsThinking = true;
+    model.supportedThinkingEfforts = supportedThinkingEfforts;
+  }
   if (recordSupportsVision(record)) model.supportsVision = true;
 
   return model;
@@ -391,16 +405,12 @@ export function applyCodexDiscoveryFilters(
   });
 }
 
-/** Convenience: merge live/local then apply default (+ optional) filters. */
+/** Apply the Codex policy layer to an upstream-discovered catalog. */
 export function buildCodexDiscoveryCatalog(
   remoteModels: CodexDiscoveryModel[],
-  localCatalogModels: CodexLocalCatalogModel[],
   extraFilters: readonly CodexDiscoveryModelFilter[] = []
 ): CodexDiscoveryModel[] {
-  return applyCodexDiscoveryFilters(
-    mergeCodexLiveModelsWithLocalCatalog(remoteModels, localCatalogModels),
-    extraFilters
-  );
+  return applyCodexDiscoveryFilters(remoteModels, extraFilters);
 }
 
 export type CuratedCodexCatalogResult = {
