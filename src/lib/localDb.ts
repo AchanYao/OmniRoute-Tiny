@@ -43,7 +43,6 @@ export {
   getModelAliases,
   setModelAlias,
   deleteModelAlias,
-  deleteModelAliasesForProvider,
 
   // MITM Alias
   getMitmAlias,

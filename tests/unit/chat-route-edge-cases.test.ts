@@ -22,6 +22,8 @@ const { getBackgroundDegradationConfig } =
   await import("../../open-sse/services/backgroundTaskDetector.ts");
 const { setCustomAliases } = await import("../../open-sse/services/modelDeprecation.ts");
 const { setModelAlias } = await import("../../src/lib/db/models.ts");
+const { deleteModelAlias } = await import("../../src/lib/db/models.ts");
+const chatCompletionsRoute = await import("../../src/app/api/v1/chat/completions/route.ts");
 
 test.beforeEach(async () => {
   BaseExecutor.RETRY_CONFIG.delayMs = 0;
@@ -65,6 +67,55 @@ test("handleChat resolves model alias before routing", async () => {
 
   assert.equal(response.status, 200, "Should succeed with 200 OK");
   assert.equal(seenModels[0], "gpt-4.1", "Model alias should be resolved to gpt-4.1");
+});
+
+test("manual aliases override same-name combos and deleting them restores combo routing", async () => {
+  await seedConnection("openai", { apiKey: "sk-openai-alias-precedence" });
+  await seedConnection("claude", { apiKey: "sk-claude-alias-precedence" });
+  await combosDb.createCombo({
+    name: "shared-route",
+    strategy: "priority",
+    models: ["openai/gpt-4.1"],
+  });
+  await setModelAlias("shared-route", "claude/claude-haiku-4-5");
+
+  const seenUrls = [];
+  globalThis.fetch = async (url, init = {}) => {
+    seenUrls.push(String(url));
+    if (String(url).includes("anthropic.com")) {
+      return buildClaudeResponse("Manual alias response");
+    }
+    return buildOpenAIResponse("Combo response");
+  };
+
+  const requestBody = {
+    model: "shared-route",
+    stream: false,
+    messages: [{ role: "user", content: "Check route precedence" }],
+  };
+  const aliasedResponse = await chatCompletionsRoute.POST(
+    new Request("http://localhost/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(requestBody),
+    })
+  );
+
+  assert.equal(aliasedResponse.status, 200);
+  assert.match(seenUrls[0], /anthropic\.com/);
+
+  await deleteModelAlias("shared-route");
+  seenUrls.length = 0;
+  const comboResponse = await chatCompletionsRoute.POST(
+    new Request("http://localhost/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(requestBody),
+    })
+  );
+
+  assert.equal(comboResponse.status, 200);
+  assert.match(seenUrls[0], /openai\.com/);
 });
 
 test("handleChat strips client context-window tags before combo routing and dispatch", async () => {

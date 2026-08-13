@@ -40,12 +40,7 @@ export {
   type ModelCompatOverride,
   type ModelCompatPatch,
 } from "./models/compat";
-export {
-  getModelAliases,
-  setModelAlias,
-  deleteModelAlias,
-  deleteModelAliasesForProvider,
-} from "./models/aliases";
+export { getModelAliases, setModelAlias, deleteModelAlias } from "./models/aliases";
 export { getMitmAlias, setMitmAliasAll } from "./models/mitmAlias";
 export type { SyncedAvailableModel } from "./models/synced";
 

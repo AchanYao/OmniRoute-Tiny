@@ -31,6 +31,10 @@ function buildGetRequest(url = "http://localhost/api/provider-models") {
   return new Request(url, { method: "GET" });
 }
 
+function buildDeleteRequest(url) {
+  return new Request(url, { method: "DELETE" });
+}
+
 type ProviderModelsResponse = {
   models?: Record<string, Array<{ id: string; isHidden?: boolean }>> | Array<{ id: string }>;
   modelCompatOverrides?: Array<{ id: string; isHidden?: boolean }>;
@@ -191,6 +195,51 @@ test("provider-models PATCH supports bulk visibility updates", async () => {
   const overrides = modelsDb.getModelCompatOverrides("claude");
   assert.equal(overrides.find((model) => model.id === "claude-opus-4-6")?.isHidden, false);
   assert.equal(overrides.find((model) => model.id === "claude-sonnet-4-6")?.isHidden, false);
+});
+
+test("provider-models visibility changes preserve manual model aliases", async () => {
+  await modelsDb.setModelAlias("manual-claude", "claude/claude-sonnet-4-6");
+
+  const hidden = await providerModelsRoute.PATCH(
+    buildPatchRequest(
+      "http://localhost/api/provider-models?provider=claude&modelId=claude-sonnet-4-6",
+      { isHidden: true }
+    )
+  );
+  const visible = await providerModelsRoute.PATCH(
+    buildPatchRequest(
+      "http://localhost/api/provider-models?provider=claude&modelId=claude-sonnet-4-6",
+      { isHidden: false }
+    )
+  );
+
+  assert.equal(hidden.status, 200);
+  assert.equal(visible.status, 200);
+  assert.equal((await modelsDb.getModelAliases())["manual-claude"], "claude/claude-sonnet-4-6");
+});
+
+test("provider-models deletion preserves manual model aliases", async () => {
+  await modelsDb.addCustomModel("openai", "gpt-test", "GPT Test", "manual");
+  await modelsDb.setModelAlias("manual-gpt", "openai/gpt-test");
+
+  const removed = await providerModelsRoute.DELETE(
+    buildDeleteRequest("http://localhost/api/provider-models?provider=openai&model=gpt-test")
+  );
+
+  assert.equal(removed.status, 200);
+  assert.equal((await modelsDb.getModelAliases())["manual-gpt"], "openai/gpt-test");
+});
+
+test("provider-models provider clear preserves manual model aliases", async () => {
+  await modelsDb.addCustomModel("openai", "gpt-test", "GPT Test", "manual");
+  await modelsDb.setModelAlias("manual-gpt", "openai/gpt-test");
+
+  const cleared = await providerModelsRoute.DELETE(
+    buildDeleteRequest("http://localhost/api/provider-models?provider=openai&all=true")
+  );
+
+  assert.equal(cleared.status, 200);
+  assert.equal((await modelsDb.getModelAliases())["manual-gpt"], "openai/gpt-test");
 });
 
 test("provider-models PATCH validates required fields", async () => {

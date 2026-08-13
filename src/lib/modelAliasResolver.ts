@@ -5,22 +5,26 @@
  * in the database and rewrites it to the target model ID (e.g. `"ds/deepseek-v4-flash"`)
  * before the request reaches the chat handler.
  *
- * Aliases are stored in the `modelAliases` key-value namespace and seeded by
- * `src/lib/modelAliasSeed.ts`.
+ * Aliases are stored in the `modelAliases` key-value namespace and managed
+ * explicitly by users through the model alias API.
  */
 import { getModelAliases } from "@/lib/db/models/aliases";
+import { getModelAliasCacheVersion } from "@/lib/modelAliasCacheVersion";
 
 let cachedAliases: Record<string, unknown> | null = null;
 let lastFetch = 0;
+let cachedVersion = -1;
 const CACHE_TTL_MS = 60_000; // 1 minute
 
 async function loadAliases(): Promise<Record<string, unknown>> {
   const now = Date.now();
-  if (cachedAliases && now - lastFetch < CACHE_TTL_MS) {
+  const currentVersion = getModelAliasCacheVersion();
+  if (cachedAliases && cachedVersion === currentVersion && now - lastFetch < CACHE_TTL_MS) {
     return cachedAliases;
   }
   cachedAliases = await getModelAliases();
   lastFetch = now;
+  cachedVersion = currentVersion;
   return cachedAliases;
 }
 
@@ -71,4 +75,5 @@ export async function resolveModelAliasOnBody(
 export function invalidateAliasCache(): void {
   cachedAliases = null;
   lastFetch = 0;
+  cachedVersion = -1;
 }

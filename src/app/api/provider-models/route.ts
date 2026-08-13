@@ -18,11 +18,6 @@ import {
   removeModelContextOverride,
 } from "@/lib/db/modelContextOverrides";
 import {
-  deleteManagedAvailableModelAliases,
-  deleteManagedAvailableModelAliasesForProvider,
-  syncManagedAvailableModelAliases,
-} from "@/lib/providerModels/managedAvailableModels";
-import {
   AI_PROVIDERS,
   isOpenAICompatibleProvider,
   isAnthropicCompatibleProvider,
@@ -397,20 +392,9 @@ export async function PATCH(request) {
       }
     }
 
-    const aliasChanges =
-      body.isHidden === true
-        ? { removed: await deleteManagedAvailableModelAliases(provider, modelIds), assigned: [] }
-        : {
-            removed: [],
-            assigned: (
-              await syncManagedAvailableModelAliases(provider, modelIds, { pruneMissing: false })
-            ).assignedAliases,
-          };
-
     return Response.json({
       ok: true,
       updated: modelIds.length,
-      aliasChanges,
       models: await getCustomModels(provider),
       modelCompatOverrides: getModelCompatOverrides(provider),
     });
@@ -458,11 +442,9 @@ export async function DELETE(request) {
       await replaceCustomModels(provider, [], { allowEmpty: true });
       const syncedAvailableModelListsRemoved =
         await deleteSyncedAvailableModelsForProvider(provider);
-      const removedAliases = await deleteManagedAvailableModelAliasesForProvider(provider);
       return Response.json({
         cleared: true,
         syncedAvailableModelListsRemoved,
-        aliasChanges: { removed: removedAliases, assigned: [] },
       });
     }
 
@@ -490,8 +472,7 @@ export async function DELETE(request) {
       mergeModelCompatOverride(provider, modelId, { isDeleted: true, isHidden: true });
     }
     const removed = removedCustom || removedSynced;
-    const removedAliases = await deleteManagedAvailableModelAliases(provider, [modelId]);
-    return Response.json({ removed, aliasChanges: { removed: removedAliases, assigned: [] } });
+    return Response.json({ removed });
   } catch (error) {
     console.error("Error removing provider model:", error);
     return Response.json(

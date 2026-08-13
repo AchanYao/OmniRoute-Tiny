@@ -3,6 +3,7 @@
 import { getDbInstance } from "../core";
 import { backupDbFile } from "../backup";
 import { getKeyValue } from "./shared";
+import { bumpModelAliasCacheVersion } from "../../modelAliasCacheVersion";
 
 export async function getModelAliases() {
   const db = getDbInstance();
@@ -23,31 +24,17 @@ export async function setModelAlias(alias: string, model: unknown) {
   db.prepare(
     "INSERT OR REPLACE INTO key_value (namespace, key, value) VALUES ('modelAliases', ?, ?)"
   ).run(alias, JSON.stringify(model));
+  bumpModelAliasCacheVersion();
   backupDbFile("pre-write");
 }
 
 export async function deleteModelAlias(alias: string) {
   const db = getDbInstance();
   db.prepare("DELETE FROM key_value WHERE namespace = 'modelAliases' AND key = ?").run(alias);
+  bumpModelAliasCacheVersion();
   backupDbFile("pre-write");
 }
 
-/**
- * Cascade-delete every model-alias row that resolves to the given provider.
- *
- * Managed/imported aliases are stored as `key = <alias>`, `value = "<providerId>/<model>"`
- * (e.g. `setModelAlias("x-fast", "providerX/fast-model")`). When a custom provider is
- * removed, its connections and node are deleted but these alias rows are left behind,
- * which then block re-importing the same provider ("already exists" / no new models) — see
- * #1409. This removes every alias whose stored value begins with `<providerId>/`, so a
- * fresh import is unblocked.
- *
- * Only string values starting with the exact `"<providerId>/"` prefix match, so unrelated
- * providers and user-facing settings aliases (whose value is the bare alias, not a
- * `<providerId>/<model>` string) are left untouched.
- *
- * @returns the list of alias keys that were removed.
- */
 // ──────── Provider-scoped aliases (#9068) ────────
 // These survive rediscovery: an alias in this namespace is never touched by
 // model sync, and always resolves the same way regardless of upstream ID changes.
@@ -95,23 +82,13 @@ export function removeProviderAlias(providerId: string, alias: string): void {
   delete current[alias];
   const db = getDbInstance();
   if (Object.keys(current).length === 0) {
-    db.prepare("DELETE FROM key_value WHERE namespace = 'providerAliases' AND key = ?").run(providerId);
+    db.prepare("DELETE FROM key_value WHERE namespace = 'providerAliases' AND key = ?").run(
+      providerId
+    );
   } else {
     db.prepare(
       "INSERT OR REPLACE INTO key_value (namespace, key, value) VALUES ('providerAliases', ?, ?)"
     ).run(providerId, JSON.stringify(current));
   }
   backupDbFile("pre-write");
-}
-
-export async function deleteModelAliasesForProvider(providerId: string): Promise<string[]> {
-  const prefix = `${providerId}/`;
-  const aliases = await getModelAliases();
-  const removed: string[] = [];
-  for (const [alias, value] of Object.entries(aliases)) {
-    if (typeof value !== "string" || !value.startsWith(prefix)) continue;
-    await deleteModelAlias(alias);
-    removed.push(alias);
-  }
-  return removed;
 }

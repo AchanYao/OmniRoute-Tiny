@@ -510,7 +510,7 @@ test("model sync route import mode merges discovered models without deleting man
   assert.equal(body.mode, "merge");
   assert.equal(body.importedCount, 1);
   assert.equal(body.updatedCount, 0);
-  assert.equal(body.syncedAliases, 1);
+  assert.equal("syncedAliases" in body, false);
   assert.deepEqual(body.modelChanges, { added: 1, removed: 0, updated: 0, total: 1 });
   assert.deepEqual(body.customModelChanges, { added: 0, removed: 1, updated: 0, total: 1 });
   assert.deepEqual(
@@ -529,7 +529,7 @@ test("model sync route import mode merges discovered models without deleting man
     [{ id: "router-v4", source: "imported" }]
   );
   assert.equal(aliases["manual-only"], "openrouter/manual-only");
-  assert.equal(aliases["router-v4"], "openrouter/router-v4");
+  assert.equal(aliases["router-v4"], undefined);
 });
 
 test("model sync route import mode ignores supported endpoint ordering changes", async () => {
@@ -753,7 +753,7 @@ test("model sync route records added, removed, and updated model diffs with fall
   assert.equal(logs[0].account, "sync@example.com");
 });
 
-test("model sync route forwards cookies, filters built-ins, and syncs aliases for internal requests", async () => {
+test("model sync route forwards cookies and filters built-ins without changing aliases", async () => {
   await resetStorage();
   await enableAuth();
 
@@ -807,14 +807,14 @@ test("model sync route forwards cookies, filters built-ins, and syncs aliases fo
   assert.equal(body.provider, "openrouter");
   assert.equal(body.syncedModels, 3);
   assert.equal(body.availableModelsCount, 3);
-  assert.equal(body.syncedAliases, 3);
+  assert.equal("syncedAliases" in body, false);
   assert.equal(body.logged, true);
   assert.deepEqual(body.modelChanges, { added: 3, removed: 0, updated: 0, total: 3 });
   assert.deepEqual(body.models, []);
-  assert.equal(aliases["stale-model"], undefined);
-  assert.equal(aliases["auto"], "openrouter/auto");
-  assert.equal(aliases["openrouter-router-v2"], "openrouter/router-v2");
-  assert.equal(aliases["router-v3"], "openrouter/router-v3");
+  assert.equal(aliases["stale-model"], "openrouter/stale-model");
+  assert.equal(aliases["auto"], undefined);
+  assert.equal(aliases["openrouter-router-v2"], undefined);
+  assert.equal(aliases["router-v3"], undefined);
   assert.equal(logs.length, 1);
   assert.equal(logs[0].status, 200);
   assert.equal(logs[0].account, "External Sync");
@@ -872,7 +872,7 @@ test("model sync route reports synced managed models separately from preserved m
   );
 });
 
-test("model sync route uses provider-node prefixes when syncing compatible-provider aliases", async () => {
+test("model sync route preserves aliases for compatible providers", async () => {
   await resetStorage();
 
   await providersDb.createProviderNode({
@@ -921,8 +921,9 @@ test("model sync route uses provider-node prefixes when syncing compatible-provi
 
   assert.equal(response.status, 200);
   assert.equal(body.provider, "anthropic-compatible-demo");
-  assert.equal(body.syncedAliases, 1);
-  assert.equal(aliases["cm-sonnet-4-6"], "anthropic-compatible-demo/sonnet-4-6");
+  assert.equal("syncedAliases" in body, false);
+  assert.equal(aliases["sonnet-4-6"], "some-other-provider/sonnet-4-6");
+  assert.equal(aliases["cm-sonnet-4-6"], undefined);
 });
 
 test("model sync route falls back to in-process discovery when internal self-fetch throws", async () => {

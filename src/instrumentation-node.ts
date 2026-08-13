@@ -368,11 +368,9 @@ export async function registerNodejs(): Promise<void> {
     const [
       { migrateCodexConnectionDefaultsFromLegacySettings },
       { startSessionAccountAffinityCleanup },
-      { seedDefaultModelAliases },
     ] = await Promise.all([
       import("@/lib/providers/codexConnectionDefaults"),
       import("@/lib/db/sessionAccountAffinity"),
-      import("@/lib/modelAliasSeed"),
     ]);
     let settings = await getSettings();
     const passwordState = await ensurePersistentManagementPasswordHash({
@@ -420,10 +418,6 @@ export async function registerNodejs(): Promise<void> {
       console.log("[STARTUP] Task-Aware Routing config restored from settings");
     }
 
-    const seededModelAliases = await seedDefaultModelAliases();
-    console.log(
-      `[STARTUP] Model alias seed: applied=${seededModelAliases.applied.length}, skipped=${seededModelAliases.skipped.length}, removed=${seededModelAliases.removed.length}, failed=${seededModelAliases.failed.length}`
-    );
     startSessionAccountAffinityCleanup();
 
     const migration = await migrateCodexConnectionDefaultsFromLegacySettings();

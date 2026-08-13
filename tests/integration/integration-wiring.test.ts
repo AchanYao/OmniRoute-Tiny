@@ -80,9 +80,9 @@ describe("Pipeline Wiring — server-init.ts", () => {
 describe("Pipeline Wiring — instrumentation-node.ts", () => {
   const src = readProjectFile("src/instrumentation-node.ts");
 
-  it("should seed default model aliases during startup restore", () => {
+  it("should not seed database model aliases during startup restore", () => {
     assert.ok(src, "src/instrumentation-node.ts should exist");
-    assert.match(src, /seedDefaultModelAliases/);
+    assert.doesNotMatch(src, /seedDefaultModelAliases|modelAliasSeed/);
   });
 
   it("should initialize Arena ELO sync on the live startup path (on by default, opt-out)", () => {

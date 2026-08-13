@@ -15,9 +15,7 @@ import { dirname, resolve } from "node:path";
 // CLI tool card (Codex, Claude, Cline, Kilo, Droid, OpenClaw, Antigravity)
 // fetches `/api/models/alias` and passes the result through, but
 // HermesAgentToolCard never does, so OpenRouter's managed-available-model
-// aliases (synced automatically after the connection is tested — see
-// syncManagedAvailableModelAliases in src/lib/providerModels/managedAvailableModels.ts)
-// are invisible to it.
+// aliases stored in the global modelAliases namespace are invisible to it.
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CARD_PATH = resolve(

@@ -500,7 +500,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       importedModels,
       discoveredModels,
       syncedAvailableModels,
-      syncedAliases,
       importedChanges,
     } = await importManagedModels({
       providerId: logProvider,
@@ -592,7 +591,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         responseBody: {
           syncedModels: syncedModelsCount,
           availableModelsCount,
-          syncedAliases,
           provider: logProvider,
           channel: channelLabel,
           modelChanges,
@@ -612,7 +610,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       freeFilterEmpty,
       syncedModels: syncedModelsCount,
       availableModelsCount,
-      syncedAliases,
       modelChanges,
       customModelChanges,
       importedCount,

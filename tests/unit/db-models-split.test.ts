@@ -87,7 +87,6 @@ test("host db/models.ts preserves its full public API after the split", async ()
     "getModelAliases",
     "setModelAlias",
     "deleteModelAlias",
-    "deleteModelAliasesForProvider",
     "getMitmAlias",
     "setMitmAliasAll",
   ]) {

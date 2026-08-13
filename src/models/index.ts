@@ -18,7 +18,6 @@ export {
   getModelAliases,
   setModelAlias,
   deleteModelAlias,
-  deleteModelAliasesForProvider,
   getMitmAlias,
   setMitmAliasAll,
   getApiKeys,

@@ -27,7 +27,7 @@ test.after(() => {
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
-test("sync mode builds aliases from provider-level synced available models", async () => {
+test("sync mode does not create aliases from provider-level synced available models", async () => {
   await modelsDb.replaceSyncedAvailableModelsForConnection("openrouter", "conn-a", [
     { id: "shared/model-a", name: "Model A", source: "imported" },
   ]);
@@ -41,11 +41,10 @@ test("sync mode builds aliases from provider-level synced available models", asy
 
   const aliases = await localDb.getModelAliases();
 
-  assert.equal(aliases["model-a"], "openrouter/shared/model-a");
-  assert.equal(aliases["model-b"], "openrouter/shared/model-b");
+  assert.deepEqual(aliases, {});
 });
 
-test("merge mode builds aliases from discovered models without pruning missing provider aliases", async () => {
+test("merge mode preserves manual aliases without creating discovered-model aliases", async () => {
   await modelsDb.replaceSyncedAvailableModelsForConnection("openrouter", "conn-a", [
     { id: "shared/model-a", name: "Model A", source: "imported" },
   ]);
@@ -62,7 +61,7 @@ test("merge mode builds aliases from discovered models without pruning missing p
 
   assert.equal(aliases.existing, "openrouter/shared/existing");
   assert.equal(aliases["model-a"], undefined);
-  assert.equal(aliases["model-b"], "openrouter/shared/model-b");
+  assert.equal(aliases["model-b"], undefined);
 });
 
 test("provider-level synced model deletion removes only that provider", async () => {
