@@ -6,7 +6,7 @@
 # Saída: exit 0 + seta a repo-var USE_VPS_RUNNER=true  quando >=1 runner omni-release online
 #        exit 1 + seta USE_VPS_RUNNER=false            em qualquer falha/timeout (fallback)
 #
-# Pré-requisitos no host que roda o /generate-release:
+# Pré-requisitos no host de manutenção do release runner:
 #   - chave SSH autorizada em root@$PVE_HOST (Proxmox) e root@$VPS_HOST (a VM)
 #   - gh autenticado com admin no repo (para ler runners + setar a variable)
 set -uo pipefail

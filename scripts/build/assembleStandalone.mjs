@@ -86,6 +86,7 @@ const NATIVE_ASSET_ENTRIES = [
     src: ["node_modules", "better-sqlite3", "build"],
     dest: ["node_modules", "better-sqlite3", "build"],
   },
+
   {
     // TPROXY IP_TRANSPARENT addon (Fase 3 / Epic A). Built by build-tproxy-native
     // before assembly; Linux-only + opt-in, so the source is absent on non-Linux

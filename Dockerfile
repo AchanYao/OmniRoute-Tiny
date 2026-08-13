@@ -36,6 +36,7 @@ RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt,sharing=locked \
   && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
+COPY .npmrc ./
 # Workspace package manifests MUST be present before `npm ci` so npm materializes
 # the workspace and installs its *workspace-only* deps (e.g. safe-regex,
 # @toon-format/toon — declared in open-sse/package.json, not hoisted to root).
@@ -100,9 +101,9 @@ ENV OMNIROUTE_USE_TURBOPACK=1
 ARG OMNIROUTE_BASE_PATH=""
 ENV OMNIROUTE_BASE_PATH=$OMNIROUTE_BASE_PATH
 
-# Keep Full as the default while allowing local/release builds to select the
-# compile-time Gateway Edition with --build-arg OMNIROUTE_BUILD_PROFILE=gateway.
-ARG OMNIROUTE_BUILD_PROFILE=full
+# Docker images default to the compile-time Gateway Edition. Full images remain
+# available explicitly with --build-arg OMNIROUTE_BUILD_PROFILE=full.
+ARG OMNIROUTE_BUILD_PROFILE=gateway
 ENV OMNIROUTE_BUILD_PROFILE=${OMNIROUTE_BUILD_PROFILE}
 
 # Docker containers cannot run the MITM/Agent-Bridge stack (no host DNS/cert

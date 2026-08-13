@@ -62,7 +62,6 @@ STATIC_GATES=(
   "node scripts/check/check-file-size.mjs"
   "node scripts/check/check-complexity.mjs"
   "node scripts/check/check-cognitive-complexity.mjs"
-  "node scripts/check/check-changelog-integrity.mjs"
 )
 # Full mode: the box-speed runner (same coverage as the two CI shards combined —
 # main + dashboard + serial groups — at local concurrency instead of runner-sized).

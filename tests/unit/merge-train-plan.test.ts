@@ -11,7 +11,10 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const pExecFile = promisify(execFile);
-const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "../../scripts/release/merge-train.sh");
+const SCRIPT = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../scripts/release/merge-train.sh"
+);
 
 async function run(args: string[]) {
   try {
@@ -36,7 +39,6 @@ test("--plan prints the full step plan without touching anything and exits 0", a
     "check-file-size.mjs",
     "check-complexity.mjs",
     "check-cognitive-complexity.mjs",
-    "check-changelog-integrity.mjs",
     "npm run test:unit",
     "test:vitest",
   ]) {
@@ -59,7 +61,6 @@ test("--plan --fast swaps the full unit suite for changed-tests, keeps static ga
     "check-file-size.mjs",
     "check-complexity.mjs",
     "check-cognitive-complexity.mjs",
-    "check-changelog-integrity.mjs",
     "test:vitest",
   ]) {
     assert.ok(stdout.includes(gate), `fast plan must still include ${gate}`);
@@ -79,8 +80,15 @@ test("fast mode's UNIT_SUBDIRS allowlist mirrors package.json test:unit exactly"
   const pkg = JSON.parse(await readFile(new URL("../../package.json", import.meta.url), "utf8"));
   const pkgList = pkg.scripts["test:unit"].match(/tests\/unit\/\{([^}]+)\}/)?.[1];
   assert.ok(pkgList, "package.json test:unit must carry the {subdir} allowlist glob");
-  assert.equal(scriptList, pkgList, "merge-train.sh UNIT_SUBDIRS must equal test:unit's subdir set");
-  assert.ok(!scriptList.split(",").includes("autoCombo"), "autoCombo belongs to vitest, not node:test");
+  assert.equal(
+    scriptList,
+    pkgList,
+    "merge-train.sh UNIT_SUBDIRS must equal test:unit's subdir set"
+  );
+  assert.ok(
+    !scriptList.split(",").includes("autoCombo"),
+    "autoCombo belongs to vitest, not node:test"
+  );
 });
 
 test("rejects an unknown flag", async () => {

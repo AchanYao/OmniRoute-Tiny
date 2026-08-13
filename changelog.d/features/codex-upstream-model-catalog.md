@@ -1,1 +1,0 @@
-- Source the Codex model inventory entirely from authenticated or official upstream discovery, persist discovered metadata and reasoning tiers, and publish no Codex models before the first successful sync.

@@ -101,4 +101,4 @@ Design and phased rollout live in the internal planning spec
   (injected timeout → assert fallback + circuit breaker open/close via
   `/api/monitoring/health`); gated Schemathesis contract testing against
   `docs/openapi.yaml` (low `--max-examples`, fixed seeds, non-LLM endpoints only); and
-  wiring `npm run homolog` + its `summary.md` into the `/generate-release` STOP #2 phase.
+  running `npm run homolog` and reviewing its `summary.md` before merging the Release Please PR.

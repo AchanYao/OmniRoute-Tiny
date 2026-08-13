@@ -84,7 +84,8 @@ test("xAI OAuth maps refreshable tokens and safe id_token display metadata", () 
 test("xAI OAuth is a distinct OAuth registry entry backed by the xAI executor", () => {
   assert.equal(xai_oauthProvider.authType, "oauth");
   assert.equal(xai_oauthProvider.baseUrl, "https://api.x.ai/v1/chat/completions");
-  assert.ok(xai_oauthProvider.models?.some((model) => model.id === "grok-4.5"));
+  assert.equal(xai_oauthProvider.modelsUrl, "https://api.x.ai/v1/models");
+  assert.deepEqual(xai_oauthProvider.models, []);
   assert.equal(hasSpecializedExecutor("xai-oauth"), true);
   assert.ok(getExecutor("xai-oauth") instanceof XaiExecutor);
 

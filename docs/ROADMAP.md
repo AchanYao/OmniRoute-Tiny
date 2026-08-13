@@ -4,8 +4,6 @@ version: 3.8.50
 lastUpdated: 2026-08-06
 ---
 
-# OmniRoute Roadmap
-
 > Version-gated, not date-gated: each milestone ships when its quality gates pass.
 > Current line: **v3.8.x** (this branch). Last updated: 2026-07-23.
 
@@ -29,26 +27,61 @@ modular **4.0**.
 Non-breaking structural work that de-risks the modular split. Every version closes with a
 mandatory quality-gate battery before new merges open.
 
-| Version | Focus |
-| --- | --- |
-| 3.8.50 | CI safety net on release branches · dead-code cleanup · community-reported catalog/topology bug fixes · contributor "golden path" guide |
-| 3.8.51 | Executor registry (in-place) · end-to-end provider-journey contract test becomes a CI gate · official scoped-test dev loop · CI lane consolidation (shared install/setup across gate jobs, #8084) |
-| 3.8.52 | `combo.ts` decomposition · routing-strategy registry · unified model-catalog contract for `/v1/models` · one CI policy for PRs to `release/**` and `main` (#8084) |
-| 3.8.53 | `chatCore.ts` decomposition · headless mode (`OMNIROUTE_HEADLESS=1`) · local candidate build/promote loop |
-| 3.8.54 | Release infrastructure (dormant): channels, labels, PR templates, merge queue · full-regression authority moves to the merge queue once TIA shadow evidence clears (#8084) · public feature-freeze announcement |
+| Version | Focus                                                                                                                                                                                                           |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3.8.50  | CI safety net on release branches · dead-code cleanup · community-reported catalog/topology bug fixes · contributor "golden path" guide                                                                         |
+| 3.8.51  | Executor registry (in-place) · end-to-end provider-journey contract test becomes a CI gate · official scoped-test dev loop · CI lane consolidation (shared install/setup across gate jobs, #8084)               |
+| 3.8.52  | `combo.ts` decomposition · routing-strategy registry · unified model-catalog contract for `/v1/models` · one CI policy for PRs to `release/**` and `main` (#8084)                                               |
+| 3.8.53  | `chatCore.ts` decomposition · headless mode (`OMNIROUTE_HEADLESS=1`) · local candidate build/promote loop                                                                                                       |
+| 3.8.54  | Release infrastructure (dormant): channels, labels, PR templates, merge queue · full-regression authority moves to the merge queue once TIA shadow evidence clears (#8084) · public feature-freeze announcement |
 
 ## Phase 2 — Validation (3.8.55 → 3.8.59)
 
 **External feature PRs pause here** (they get the `v4-feature` label and are re-targeted to
 the v4 channel when it opens). Fixes, docs, i18n, and provider updates keep flowing.
 
-| Version | Focus |
-| --- | --- |
-| 3.8.55 | Characterization tests for every extraction candidate · coupling re-measurement |
-| 3.8.56 | Extended canary · performance baselines (heap, TTFB, build) |
-| 3.8.57 | Security & compliance sweep · publish provenance (OIDC) rehearsal |
-| 3.8.58 | Full dry-run of the 3.9.0 cut (branches, channels, forward-port) — includes the PR preview-artifact + build-once promotion rehearsal (#8084) |
-| 3.8.59 | Final freeze · full-suite audit · GO/NO-GO |
+| Version | Focus                                                                                                                                        |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3.8.55  | Characterization tests for every extraction candidate · coupling re-measurement                                                              |
+| 3.8.56  | Extended canary · performance baselines (heap, TTFB, build)                                                                                  |
+| 3.8.57  | Security & compliance sweep · publish provenance (OIDC) rehearsal                                                                            |
+| 3.8.58  | Full dry-run of the 3.9.0 cut (branches, channels, forward-port) — includes the PR preview-artifact + build-once promotion rehearsal (#8084) |
+| 3.8.59  | Final freeze · full-suite audit · GO/NO-GO                                                                                                   |
+
+## Ongoing provider model-catalog migration
+
+Provider model availability is moving out of source-controlled registry arrays and into
+authenticated upstream discovery. This is an incremental maintenance rule, not a release-blocking
+flag-day migration: migrate a provider when it is otherwise being changed and has a trustworthy
+discovery source.
+
+For a migrated provider:
+
+1. Discover models per connection from an authenticated provider endpoint or equivalent official
+   source.
+2. Persist the last successful result in `syncedAvailableModels`, scoped by provider and connection.
+3. Publish the union for active connections through `/v1/models`.
+4. Preserve the last successful catalog when later discovery fails; never replace it with a
+   degraded local fallback or accidental empty response.
+5. Publish no models before the first successful discovery unless the provider has an explicitly
+   documented static-only fallback.
+6. Treat `passthroughModels` only as permission to route an explicit unknown model ID, not as a
+   source of catalog entries.
+
+Static registry data may remain for transport, authentication, endpoint selection, provider-wide
+unsupported parameters, and narrowly scoped capability overrides. It may enrich discovered models,
+but must not assert availability. Providers without a reliable discovery source remain static until
+one exists.
+
+When migrating a provider, verify authenticated discovery and normalization, persistence across
+temporary failures and restarts, active-connection union/removal semantics, capability preservation,
+and explicit prefixed and bare-ID routing independently from catalog publication.
+
+| Provider                | Discovery source                                                   | Status   | Notes                                             |
+| ----------------------- | ------------------------------------------------------------------ | -------- | ------------------------------------------------- |
+| `codex`                 | Authenticated Codex API, official GitHub fallback, persisted cache | Migrated | Reference implementation                          |
+| `grok-cli` (Grok Build) | Authenticated Grok Build models endpoint                           | Migrated | Responses-only models normalized during discovery |
+| `xai-oauth`             | Authenticated `https://api.x.ai/v1/models`                         | Migrated | Connection-scoped OAuth discovery                 |
 
 ## Phase 3 — v3.9.0 LTS
 
@@ -86,11 +119,11 @@ The monolith is intentionally disassembled on `develop`:
 
 ## For contributors
 
-| You are sending... | Target today | From 3.8.55 | After 3.9.0 |
-| --- | --- | --- | --- |
-| Bug fix / security | active `release/v3.8.x` | same | `stable/v3` |
-| Provider update | active `release/v3.8.x` | same | `stable/v3` |
-| Docs / i18n | active `release/v3.8.x` | same | `stable/v3` |
-| New feature | active `release/v3.8.x` | held with `v4-feature` label | `develop` (v4) |
+| You are sending... | Target today            | From 3.8.55                  | After 3.9.0    |
+| ------------------ | ----------------------- | ---------------------------- | -------------- |
+| Bug fix / security | active `release/v3.8.x` | same                         | `stable/v3`    |
+| Provider update    | active `release/v3.8.x` | same                         | `stable/v3`    |
+| Docs / i18n        | active `release/v3.8.x` | same                         | `stable/v3`    |
+| New feature        | active `release/v3.8.x` | held with `v4-feature` label | `develop` (v4) |
 
 See `CONTRIBUTING.md` for the golden path per change type.

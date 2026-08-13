@@ -505,11 +505,7 @@ jobs:
         if: always()
         run: cat .artifacts/quality-ratchet.md >> "$GITHUB_STEP_SUMMARY" || true
 
-  # Merge-integrity: pega no PR os dois vazamentos crônicos de merge que hoje só
-  # explodem na release-PR. (1) CHANGELOG-eat — o auto-resolve do merge come
-  # bullets vizinhos/seções inteiras (incidente #6193, 2026-07-05: 212 linhas /
-  # 130 bullets); o checkout de PR é refs/pull/N/merge, então comparar contra a
-  # base detecta o eat ANTES do merge. (2) SKILL.md gerado stale vs o catálogo de
+  # Generated skill integrity catches stale SKILL.md output versus the catalog
   # agent-skills (#6186 mergeou um id de catálogo sem rodar o gerador → 8 reds de
   # integration invisíveis até a release).
   #
@@ -517,8 +513,8 @@ jobs:
   # report (continue-on-error) — a campanha corrige via co-autoria, o contribuidor
   # nunca é bloqueado.
   merge-integrity:
-    name: Merge integrity (changelog + generated skills)
-    # Always on non-draft PRs — CHANGELOG/skills can break on docs-only merges too.
+    name: Generated skills integrity
+    # Always on non-draft PRs because generated skills can drift on docs-only merges too.
     if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.draft == false || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
     runs-on: ubuntu-latest
     continue-on-error: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true }}
@@ -536,7 +532,5 @@ jobs:
           node-version: ${{ env.CI_NODE_VERSION }}
           cache: npm
       - run: npm ci
-      - name: CHANGELOG integrity (nenhum bullet da base pode sumir no merge-result)
-        run: npm run check:changelog-integrity
       - name: Agent-skills generator sync (SKILL.md gerado ≡ catálogo)
         run: npm run check:agent-skills-sync

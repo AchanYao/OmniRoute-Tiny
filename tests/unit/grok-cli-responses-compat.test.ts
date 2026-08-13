@@ -1,45 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { grok_cliProvider } from "../../open-sse/config/providers/registry/grok-cli/index.ts";
 import {
   GROK_BUILD_DEFAULT_CONTEXT_WINDOW,
   getGrokBuildClientVersion,
   getGrokBuildUserAgent,
   GROK_BUILD_MODELS_URL,
 } from "../../open-sse/config/grokBuild.ts";
-import { getModelTargetFormat } from "../../open-sse/config/providerModels.ts";
 import { PROVIDER_MODELS_CONFIG } from "../../src/app/api/providers/[id]/models/discovery/providerModelsConfig.ts";
 import { BaseExecutor } from "../../open-sse/executors/base.ts";
 import { GrokCliExecutor } from "../../open-sse/executors/grok-cli.ts";
-
-test("grok-cli exposes the authenticated grok-build model catalog", () => {
-  assert.deepEqual(
-    grok_cliProvider.models.map(({ id, name, contextLength, targetFormat }) => ({
-      id,
-      name,
-      contextLength,
-      targetFormat,
-    })),
-    [
-      {
-        id: "grok-4.5",
-        name: "Grok 4.5",
-        contextLength: 500000,
-        targetFormat: "openai-responses",
-      },
-      {
-        id: "grok-composer-2.5-fast",
-        name: "Composer 2.5",
-        contextLength: 200000,
-        targetFormat: "openai-responses",
-      },
-    ]
-  );
-  assert.equal(getModelTargetFormat("gc", "grok-4.5"), "openai-responses");
-  assert.equal(getModelTargetFormat("gc", "grok-composer-2.5-fast"), "openai-responses");
-  assert.equal(grok_cliProvider.modelsUrl, GROK_BUILD_MODELS_URL);
-});
 
 test("grok-cli routes both models to the Responses endpoint", () => {
   const executor = new GrokCliExecutor();
