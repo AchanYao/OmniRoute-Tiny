@@ -1,6 +1,15 @@
 type CatalogModel = Record<string, any>;
 
 const LIMIT_FIELDS = ["context_length", "max_input_tokens", "max_output_tokens"] as const;
+const BOOLEAN_CAPABILITY_KEYS = [
+  "reasoning",
+  "thinking",
+  "supportsThinking",
+  "vision",
+  "tool_calling",
+] as const;
+const MODALITY_FIELDS = ["input_modalities", "output_modalities"] as const;
+const PREFERRED_EFFORT_ORDER = ["xhigh", "high", "medium", "low", "minimal"] as const;
 
 function isChatModel(model: CatalogModel): boolean {
   return !model.type || model.type === "chat";
@@ -40,11 +49,91 @@ function minKnownNumber(models: CatalogModel[], field: (typeof LIMIT_FIELDS)[num
   return values.length > 0 ? Math.min(...values) : undefined;
 }
 
+function richestNonEmptyString(models: CatalogModel[], field: "name" | "description") {
+  let richest: string | undefined;
+  for (const model of models) {
+    const value = model[field];
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+    if (!richest || trimmed.length > richest.length) richest = trimmed;
+  }
+  return richest;
+}
+
+function unionStringValues(values: unknown[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    if (!Array.isArray(value)) continue;
+    for (const entry of value) {
+      if (typeof entry !== "string" || entry.length === 0 || seen.has(entry)) continue;
+      seen.add(entry);
+      result.push(entry);
+    }
+  }
+  return result;
+}
+
+function orderEffortTiers(efforts: string[]): string[] {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const preferred of PREFERRED_EFFORT_ORDER) {
+    if (!efforts.includes(preferred) || seen.has(preferred)) continue;
+    seen.add(preferred);
+    ordered.push(preferred);
+  }
+  for (const effort of efforts) {
+    if (seen.has(effort)) continue;
+    seen.add(effort);
+    ordered.push(effort);
+  }
+  return ordered;
+}
+
+function mergeAggregateCapabilities(models: CatalogModel[]): Record<string, unknown> | undefined {
+  const capabilities: Record<string, unknown> = {};
+  for (const key of BOOLEAN_CAPABILITY_KEYS) {
+    if (models.some((model) => model.capabilities?.[key] === true)) {
+      capabilities[key] = true;
+    }
+  }
+  const effortTiers = orderEffortTiers(
+    unionStringValues([
+      ...models.map((model) => model.capabilities?.effort_tiers),
+      ...models.map((model) => model.supportedThinkingEfforts),
+    ])
+  );
+  if (effortTiers.length > 0) {
+    capabilities.effort_tiers = effortTiers;
+    // Synced catalog members often carry only effort_tiers (buildSyncedCapabilities)
+    // and aggregate entries skip enrichCatalogModelEntry. Infer the thinking flags
+    // Playground/OMP clients gate on so unioned tiers stay usable.
+    capabilities.supportsThinking = true;
+    capabilities.thinking = true;
+    capabilities.reasoning = true;
+  }
+  return Object.keys(capabilities).length > 0 ? capabilities : undefined;
+}
+
 function commonFields(models: CatalogModel[]): CatalogModel {
   const first = models[0] || {};
   const common: CatalogModel = {};
   for (const [key, value] of Object.entries(first)) {
-    if (["id", "root", "owned_by", "parent", "permission", ...LIMIT_FIELDS].includes(key)) {
+    if (
+      [
+        "id",
+        "root",
+        "owned_by",
+        "parent",
+        "permission",
+        "name",
+        "description",
+        "capabilities",
+        ...LIMIT_FIELDS,
+        ...MODALITY_FIELDS,
+      ].includes(key)
+    ) {
       continue;
     }
     if (models.every((model) => JSON.stringify(model[key]) === JSON.stringify(value))) {
@@ -75,6 +164,19 @@ function buildAggregateModel(
       )
     ),
   };
+
+  const name = richestNonEmptyString(models, "name");
+  const description = richestNonEmptyString(models, "description");
+  if (name) aggregate.name = name;
+  if (description) aggregate.description = description;
+
+  for (const field of MODALITY_FIELDS) {
+    const values = unionStringValues(models.map((model) => model[field]));
+    if (values.length > 0) aggregate[field] = values;
+  }
+
+  const capabilities = mergeAggregateCapabilities(models);
+  if (capabilities) aggregate.capabilities = capabilities;
 
   for (const field of LIMIT_FIELDS) {
     const value = minKnownNumber(models, field);

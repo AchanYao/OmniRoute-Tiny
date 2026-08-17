@@ -220,28 +220,83 @@ function getGrokBuildModelItems(data: unknown): unknown[] {
   return Array.isArray(envelope.models) ? envelope.models : [];
 }
 
-function hasGrokBuildReasoning(model: GrokBuildModelRecord, metadata: GrokBuildModelRecord) {
+const GROK_BUILD_PREFERRED_EFFORTS = ["xhigh", "high", "medium", "low", "minimal"] as const;
+
+function grokBuildEffortId(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const effort = value.trim();
+    return effort.length > 0 ? effort : undefined;
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const record = value as GrokBuildModelRecord;
+  return grokBuildString(record.id, record.value, record.effort);
+}
+
+function getGrokBuildThinkingEfforts(
+  model: GrokBuildModelRecord,
+  metadata: GrokBuildModelRecord
+): string[] {
+  const seen = new Set<string>();
+  const efforts: string[] = [];
+  for (const list of [
+    model.reasoningEfforts,
+    model.reasoning_efforts,
+    metadata.reasoningEfforts,
+    metadata.reasoning_efforts,
+  ]) {
+    if (!Array.isArray(list)) continue;
+    for (const entry of list) {
+      const effort = grokBuildEffortId(entry);
+      if (!effort || seen.has(effort)) continue;
+      seen.add(effort);
+      efforts.push(effort);
+    }
+  }
+  const ordered: string[] = [];
+  for (const preferred of GROK_BUILD_PREFERRED_EFFORTS) {
+    if (!seen.has(preferred)) continue;
+    ordered.push(preferred);
+    seen.delete(preferred);
+  }
+  for (const effort of efforts) {
+    if (!seen.has(effort)) continue;
+    ordered.push(effort);
+    seen.delete(effort);
+  }
+  return ordered;
+}
+
+function getGrokBuildDefaultThinkingEffort(
+  model: GrokBuildModelRecord,
+  metadata: GrokBuildModelRecord
+): string | undefined {
+  return grokBuildString(
+    model.defaultThinkingEffort,
+    model.default_thinking_effort,
+    model.reasoningEffort,
+    model.reasoning_effort,
+    metadata.defaultThinkingEffort,
+    metadata.default_thinking_effort,
+    metadata.reasoningEffort,
+    metadata.reasoning_effort
+  );
+}
+
+function hasGrokBuildReasoning(
+  model: GrokBuildModelRecord,
+  metadata: GrokBuildModelRecord,
+  efforts: readonly string[]
+) {
   const flags = [
     model.supportsReasoningEffort,
     model.supports_reasoning_effort,
     metadata.supportsReasoningEffort,
     metadata.supports_reasoning_effort,
   ];
-  const effortLists = [
-    model.reasoningEfforts,
-    model.reasoning_efforts,
-    metadata.reasoningEfforts,
-    metadata.reasoning_efforts,
-  ];
   return (
     flags.some((value) => value === true) ||
-    grokBuildString(
-      model.reasoningEffort,
-      model.reasoning_effort,
-      metadata.reasoningEffort,
-      metadata.reasoning_effort
-    ) !== undefined ||
-    effortLists.some((value) => Array.isArray(value) && value.length > 0)
+    getGrokBuildDefaultThinkingEffort(model, metadata) !== undefined ||
+    efforts.length > 0
   );
 }
 
@@ -285,6 +340,8 @@ function normalizeGrokBuildModel(value: unknown): GrokBuildModelRecord | null {
     model.max_completion_tokens
   );
   const description = grokBuildString(model.description);
+  const supportedThinkingEfforts = getGrokBuildThinkingEfforts(model, metadata);
+  const defaultThinkingEffort = getGrokBuildDefaultThinkingEffort(model, metadata);
 
   return {
     id,
@@ -293,7 +350,11 @@ function normalizeGrokBuildModel(value: unknown): GrokBuildModelRecord | null {
     ...(description ? { description } : {}),
     inputTokenLimit,
     ...(outputTokenLimit ? { outputTokenLimit } : {}),
-    ...(hasGrokBuildReasoning(model, metadata) ? { supportsThinking: true } : {}),
+    ...(hasGrokBuildReasoning(model, metadata, supportedThinkingEfforts)
+      ? { supportsThinking: true }
+      : {}),
+    ...(supportedThinkingEfforts.length > 0 ? { supportedThinkingEfforts } : {}),
+    ...(defaultThinkingEffort ? { defaultThinkingEffort } : {}),
     apiFormat: "responses",
     supportedEndpoints: ["responses"],
   };

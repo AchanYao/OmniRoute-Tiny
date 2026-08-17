@@ -8,6 +8,8 @@ import {
   GROK_BUILD_MODELS_URL,
 } from "../../open-sse/config/grokBuild.ts";
 import { PROVIDER_MODELS_CONFIG } from "../../src/app/api/providers/[id]/models/discovery/providerModelsConfig.ts";
+import { buildSyncedCapabilities } from "../../src/app/api/v1/models/syncedCapabilities.ts";
+import { normalizeDiscoveredModels } from "../../src/lib/providerModels/modelDiscovery.ts";
 import { BaseExecutor } from "../../open-sse/executors/base.ts";
 import { GrokCliExecutor } from "../../open-sse/executors/grok-cli.ts";
 
@@ -151,4 +153,72 @@ test("grok-cli live model discovery uses the authenticated session contract", ()
       supportedEndpoints: ["responses"],
     },
   ]);
+});
+
+test("grok-cli discovery maps grok-4.6 reasoning_efforts onto supportedThinkingEfforts", () => {
+  const config = PROVIDER_MODELS_CONFIG["grok-cli"];
+  const [model] = config.parseResponse({
+    data: [
+      {
+        id: "grok-4.6",
+        name: "Grok 4.6",
+        api_backend: "responses",
+        context_window: 500000,
+        supports_reasoning_effort: true,
+        reasoning_effort: "high",
+        reasoning_efforts: [
+          { id: "low", value: "low" },
+          { id: "xhigh", value: "xhigh" },
+          { id: "medium", value: "medium" },
+          { id: "high", value: "high" },
+          { id: "low", value: "low" },
+        ],
+      },
+    ],
+  });
+
+  assert.equal(model?.id, "grok-4.6");
+  assert.equal(model?.supportsThinking, true);
+  assert.equal(model?.defaultThinkingEffort, "high");
+  assert.deepEqual(model?.supportedThinkingEfforts, ["xhigh", "high", "medium", "low"]);
+});
+
+test("grok-cli discovery keeps unknown reasoning efforts after the preferred order", () => {
+  const config = PROVIDER_MODELS_CONFIG["grok-cli"];
+  const [model] = config.parseResponse({
+    data: [
+      {
+        id: "grok-4.6",
+        apiBackend: "responses",
+        reasoningEfforts: ["custom", "minimal", "high"],
+      },
+    ],
+  });
+
+  assert.equal(model?.supportsThinking, true);
+  assert.deepEqual(model?.supportedThinkingEfforts, ["high", "minimal", "custom"]);
+});
+
+test("grok-cli discovery efforts survive persist and become catalog effort_tiers", () => {
+  const config = PROVIDER_MODELS_CONFIG["grok-cli"];
+  const discovered = config.parseResponse({
+    data: [
+      {
+        id: "grok-4.6",
+        name: "Grok 4.6",
+        api_backend: "responses",
+        context_window: 500000,
+        supports_reasoning_effort: true,
+        reasoning_effort: "high",
+        reasoning_efforts: [{ id: "low" }, { value: "medium" }, { id: "high" }, { value: "xhigh" }],
+      },
+    ],
+  });
+  const [synced] = normalizeDiscoveredModels(discovered);
+  assert.equal(synced?.supportsThinking, true);
+  assert.equal(synced?.defaultThinkingEffort, "high");
+  assert.deepEqual(synced?.supportedThinkingEfforts, ["xhigh", "high", "medium", "low"]);
+  assert.deepEqual(buildSyncedCapabilities(synced), {
+    effort_tiers: ["xhigh", "high", "medium", "low"],
+  });
 });
