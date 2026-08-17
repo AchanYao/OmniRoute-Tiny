@@ -1,7 +1,7 @@
 ---
 title: "OmniRoute Roadmap"
 version: 3.8.50
-lastUpdated: 2026-08-06
+lastUpdated: 2026-08-14
 ---
 
 > Version-gated, not date-gated: each milestone ships when its quality gates pass.
@@ -82,6 +82,21 @@ and explicit prefixed and bare-ID routing independently from catalog publication
 | `codex`                 | Authenticated Codex API, official GitHub fallback, persisted cache | Migrated | Reference implementation                          |
 | `grok-cli` (Grok Build) | Authenticated Grok Build models endpoint                           | Migrated | Responses-only models normalized during discovery |
 | `xai-oauth`             | Authenticated `https://api.x.ai/v1/models`                         | Migrated | Connection-scoped OAuth discovery                 |
+
+## Gateway settings backlog
+
+### Standalone model capability overrides page
+
+- Add a dedicated model capability overrides route that is retained in Gateway Edition instead
+  of restoring the excluded `/dashboard/settings/ai` page.
+- Reuse the existing `ModelCapabilityOverridesTab` behavior and
+  `/api/model-capability-overrides`; do not duplicate override storage or resolution logic.
+- Include registry, manually added, and upstream `/models`-synced models in the selectable
+  catalog so Gateway operators can configure every advertised model.
+- Add the page to Gateway navigation and keep memory, skills, and the other intentionally excluded
+  AI settings out of the Gateway build.
+- Verify both full and Gateway build profiles: the route renders, an override can be saved and
+  removed, and a synced model remains selectable after restart.
 
 ## Phase 3 — v3.9.0 LTS
 
