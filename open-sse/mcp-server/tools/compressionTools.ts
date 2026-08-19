@@ -552,21 +552,6 @@ export const compressionTools = {
     inputSchema: compressionStatusInput,
     handler: (args: z.infer<typeof compressionStatusInput>) => handleCompressionStatus(args),
   },
-  omniroute_compression_configure: {
-    name: "omniroute_compression_configure",
-    description:
-      "Configure compression settings at runtime. Supports enabling/disabling compression, changing strategy (off/lite/standard/aggressive/ultra/rtk/stacked), adjusting maxTokens threshold, targetRatio, auto-trigger mode, system prompt preservation, and MCP description compression.",
-    scopes: ["write:compression"],
-    inputSchema: compressionConfigureInput,
-    handler: (args: z.infer<typeof compressionConfigureInput>) => handleCompressionConfigure(args),
-  },
-  omniroute_set_compression_engine: {
-    name: "omniroute_set_compression_engine",
-    description: "Set the active compression engine and Caveman/RTK runtime options.",
-    scopes: ["write:compression"],
-    inputSchema: setCompressionEngineInput,
-    handler: (args: z.infer<typeof setCompressionEngineInput>) => handleSetCompressionEngine(args),
-  },
   omniroute_list_compression_combos: {
     name: "omniroute_list_compression_combos",
     description: "List compression combos and their engine pipelines.",
@@ -581,14 +566,6 @@ export const compressionTools = {
     inputSchema: compressionComboStatsInput,
     handler: (args: z.infer<typeof compressionComboStatsInput>) =>
       handleCompressionComboStats(args),
-  },
-  omniroute_ccr_store: {
-    name: "omniroute_ccr_store",
-    description:
-      "Store verbatim content in the caller-isolated in-memory CCR store and return a ccr:// reference plus the compatible CCR marker. Entries expire automatically and are not persisted across restarts.",
-    scopes: ["write:compression"],
-    inputSchema: ccrStoreInput,
-    handler: handleCcrStoreTool,
   },
   omniroute_ccr_retrieve: {
     name: "omniroute_ccr_retrieve",
@@ -615,13 +592,6 @@ export const compressionTools = {
     scopes: ["read:compression"],
     inputSchema: ccrListInput,
     handler: handleCcrListTool,
-  },
-  omniroute_ccr_delete: {
-    name: "omniroute_ccr_delete",
-    description: "Delete a caller-owned block from the in-memory CCR store.",
-    scopes: ["write:compression"],
-    inputSchema: ccrDeleteInput,
-    handler: handleCcrDeleteTool,
   },
   omniroute_ccr_stats: {
     name: "omniroute_ccr_stats",

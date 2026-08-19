@@ -56,7 +56,6 @@ export function AgentSkillsPageClient(): JSX.Element {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [markdownCache, setMarkdownCache] = useState<Map<string, string>>(new Map());
   const [loadingPreview, setLoadingPreview] = useState(false);
-  const [generatingSkills, setGeneratingSkills] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -135,32 +134,6 @@ export function AgentSkillsPageClient(): JSX.Element {
     void loadPreview(selectedId);
   }, [selectedId, loadPreview]);
 
-  // ── Generate missing skills ───────────────────────────────────────────────
-  const handleGenerate = useCallback(async () => {
-    const confirmed = window.confirm(t("regenerateConfirm"));
-    if (!confirmed) return;
-    setGeneratingSkills(true);
-    try {
-      const res = await fetch("/api/agent-skills/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dryRun: false, prune: false }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      // Refresh catalog + coverage after generation
-      const res2 = await fetch("/api/agent-skills");
-      if (res2.ok) {
-        const json = (await res2.json()) as { skills: AgentSkill[]; coverage: SkillCoverage };
-        setCatalog(json.skills ?? []);
-        setCoverage(json.coverage ?? null);
-      }
-    } catch {
-      // Error handled silently — could extend with toast notification
-    } finally {
-      setGeneratingSkills(false);
-    }
-  }, [t]);
-
   // ── Filtering + search ────────────────────────────────────────────────────
   const localizedCatalog = useMemo(
     () =>
@@ -189,15 +162,13 @@ export function AgentSkillsPageClient(): JSX.Element {
   });
 
   const selectedMarkdown = selectedId ? (markdownCache.get(selectedId) ?? null) : null;
-  const coverageTotal = coverage !== null ? coverage.api.have + coverage.cli.have : null;
-  const showGenerateButton = coverageTotal !== null && coverageTotal < 42;
 
   return (
     <div className="flex flex-col gap-4">
       {/* Concept card — full width */}
       <SkillsConceptCard variant="agent" />
 
-      {/* Header: coverage + MCP/A2A bar + generate button */}
+      {/* Header: coverage + MCP/A2A bar */}
       <div className="flex flex-col gap-3 rounded-xl border border-border bg-bg p-4">
         {/* Coverage */}
         <div>
@@ -205,21 +176,6 @@ export function AgentSkillsPageClient(): JSX.Element {
             <span className="text-xs font-semibold text-text-muted uppercase tracking-wide">
               {t("coverageLabel")}
             </span>
-            {showGenerateButton && (
-              <button
-                onClick={() => void handleGenerate()}
-                disabled={generatingSkills}
-                className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-60"
-                data-testid="generate-button"
-              >
-                <span
-                  className={`material-symbols-outlined text-[14px] ${generatingSkills ? "animate-spin" : ""}`}
-                >
-                  {generatingSkills ? "refresh" : "auto_fix_high"}
-                </span>
-                {generatingSkills ? t("regenerateRunning") : t("generateButton")}
-              </button>
-            )}
           </div>
           {coverage ? <CoverageBar coverage={coverage} /> : <CoverageBarSkeleton />}
         </div>

@@ -43,6 +43,8 @@ x-common: &common
     - LIVE_WS_ALLOWED_ORIGINS=${LIVE_WS_ALLOWED_ORIGINS:-http://localhost:20128,http://127.0.0.1:20128}
     - REDIS_URL=${REDIS_URL:-redis://redis:6379}
     - NODE_OPTIONS=--max-old-space-size=2048
+    - QODER_CLI_AUTO_INSTALL=${QODER_CLI_AUTO_INSTALL:-false}
+    - QODER_CLI_INSTALL_DIR=${QODER_CLI_INSTALL_DIR:-/app/data/qoder-cli-runtime}
   volumes:
     - ./data:/app/data
   healthcheck:
@@ -50,7 +52,7 @@ x-common: &common
     interval: 30s
     timeout: 5s
     retries: 3
-    start_period: 15s
+    start_period: 90s
 
 services:
   # ── Redis (Rate Limiter Backend) ──────────────────────────────────

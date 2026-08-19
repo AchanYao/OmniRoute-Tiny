@@ -85,47 +85,6 @@ export const gamificationTools = [
     },
   },
   {
-    name: "gamification_transfer",
-    description: "Transfer tokens between API keys.",
-    scopes: ["write:gamification"],
-    inputSchema: z.object({
-      fromApiKeyId: z.string(),
-      toApiKeyId: z.string(),
-      amount: z.number().positive(),
-      reason: z.string().optional(),
-    }),
-    handler: async (args: {
-      fromApiKeyId: string;
-      toApiKeyId: string;
-      amount: number;
-      reason?: string;
-    }) => {
-      const { transferTokens } = await import("../../../src/lib/gamification/sharing");
-      const result = await transferTokens(
-        args.fromApiKeyId,
-        args.toApiKeyId,
-        args.amount,
-        args.reason
-      );
-      return result;
-    },
-  },
-  {
-    name: "gamification_invite",
-    description: "Create an invite token for server connection.",
-    scopes: ["write:gamification"],
-    inputSchema: z.object({
-      apiKeyId: z.string(),
-      serverUrl: z.string().optional(),
-      maxUses: z.number().positive().default(1),
-    }),
-    handler: async (args: { apiKeyId: string; serverUrl?: string; maxUses: number }) => {
-      const { createInvite } = await import("../../../src/lib/gamification/invites");
-      const result = await createInvite(args.apiKeyId, args.serverUrl, args.maxUses);
-      return result;
-    },
-  },
-  {
     name: "gamification_servers",
     description: "List connected community servers.",
     scopes: ["read:gamification"],

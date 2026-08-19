@@ -8,12 +8,6 @@ export const SkillListSchema = z.object({
   enabled: z.boolean().optional(),
 });
 
-export const SkillEnableSchema = z.object({
-  apiKeyId: z.string(),
-  skillId: z.string(),
-  enabled: z.boolean(),
-});
-
 export const SkillExecuteSchema = z.object({
   apiKeyId: z.string(),
   skillName: z.string(),
@@ -50,22 +44,6 @@ export const skillTools = {
         })),
         count: filtered.length,
       };
-    },
-  },
-
-  omniroute_skills_enable: {
-    name: "omniroute_skills_enable",
-    description: "Enable or disable a specific skill by ID",
-    scopes: ["write:skills"],
-    inputSchema: SkillEnableSchema,
-    handler: async (args: z.infer<typeof SkillEnableSchema>) => {
-      await skillRegistry.loadFromDatabase(args.apiKeyId);
-      const skill = await skillRegistry.setEnabledById(args.skillId, args.apiKeyId, args.enabled);
-      if (!skill) {
-        throw new Error(`Skill not found: ${args.skillId}`);
-      }
-
-      return { success: true, skillId: args.skillId, enabled: args.enabled };
     },
   },
 

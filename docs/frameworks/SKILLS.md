@@ -205,54 +205,28 @@ Schema lives in two migrations:
 
 ## REST API
 
-All endpoints live under `src/app/api/skills/`. Management endpoints (`/api/skills`, `/api/skills/[id]`, `/api/skills/install`) require **management auth** via `requireManagementAuth()`. The marketplace/install flows use the lighter `isAuthenticated()` (session or API key).
+All endpoints live under `src/app/api/skills/`. The Tiny build exposes discovery, read, and execution surfaces only; installation, update, enable/disable, and deletion endpoints are not included.
 
-| Endpoint                          | Method | Purpose                                                                  |
-| --------------------------------- | ------ | ------------------------------------------------------------------------ | --- | ------------------------ | -------- | ------------------ |
-| `/api/skills`                     | GET    | List registered skills. Supports `?q=`, `?mode=on                        | off | auto`, `?source=skillsmp | skillssh | local`, pagination |
-| `/api/skills/[id]`                | PUT    | Update `enabled` or `mode`                                               |
-| `/api/skills/[id]`                | DELETE | Unregister by id                                                         |
-| `/api/skills/install`             | POST   | Install a custom skill (handler code + schema)                           |
-| `/api/skills/marketplace`         | GET    | Search the SkillsMP catalog (returns popular defaults when `q` is empty) |
-| `/api/skills/marketplace/install` | POST   | Install a SkillsMP skill (requires active provider = `skillsmp`)         |
-| `/api/skills/skillssh`            | GET    | Search the skills.sh catalog (`?q=&limit=`, capped at 100)               |
-| `/api/skills/skillssh/install`    | POST   | Install a skills.sh skill (requires active provider = `skillssh`)        |
-| `/api/skills/executions`          | GET    | Paginated execution history (`?apiKeyId=`)                               |
-| `/api/skills/executions`          | POST   | Execute a registered skill ad-hoc                                        |
+| Endpoint                  | Method | Purpose                                                                                                                |
+| ------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `/api/skills`             | GET    | List registered skills. Supports `?q=`, `?mode=on \| off \| auto`, `?source=skillsmp \| skillssh \| local`, pagination |
+| `/api/skills/[id]`        | GET    | Read skill details                                                                                                     |
+| `/api/skills/marketplace` | GET    | Search the SkillsMP catalog (returns popular defaults when `q` is empty)                                               |
+| `/api/skills/skillssh`    | GET    | Search the skills.sh catalog (`?q=&limit=`, capped at 100)                                                             |
+| `/api/skills/executions`  | GET    | Paginated execution history (`?apiKeyId=`)                                                                             |
+| `/api/skills/executions`  | POST   | Execute a registered skill ad-hoc                                                                                      |
 
 The `POST /api/skills/executions` endpoint returns HTTP `503` with `{ error: "Skills execution is disabled..." }` when `settings.skillsEnabled === false` (`executor.ts:42-45`). Operators can flip the master switch from **Settings → AI**.
-
-### Example: install a custom skill
-
-```bash
-curl -X POST http://localhost:20128/api/skills/install \
-  -H "Authorization: Bearer $OMNIROUTE_MGMT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "reverse-text",
-    "version": "1.0.0",
-    "description": "Reverses a string",
-    "schema": {
-      "input":  { "type": "object", "properties": { "text": { "type": "string" } }, "required": ["text"] },
-      "output": { "type": "object", "properties": { "reversed": { "type": "string" } } }
-    },
-    "handlerCode": "echo-handler",
-    "apiKeyId": "your-api-key-id"
-  }'
-```
-
-The `handlerCode` string is a **handler name lookup** — not executable code. The executor maps it via `skillExecutor.registerHandler(name, fn)` (`executor.ts:25`). Marketplace installs store the SKILL.md text in this field as documentation and route execution through model-generated tool calls. Arbitrary user-supplied source is not eval'd.
 
 ---
 
 ## MCP Tools
 
-Four MCP tools wrap the skills surface (`open-sse/mcp-server/tools/skillTools.ts`). They are auto-registered when the MCP server boots.
+Three MCP tools wrap the read and execution surfaces (`open-sse/mcp-server/tools/skillTools.ts`).
 
 | Tool                          | Description                                                  |
 | ----------------------------- | ------------------------------------------------------------ |
 | `omniroute_skills_list`       | List skills, optional filters: `apiKeyId`, `name`, `enabled` |
-| `omniroute_skills_enable`     | Enable/disable a skill by `skillId`                          |
 | `omniroute_skills_execute`    | Execute a skill with an input payload                        |
 | `omniroute_skills_executions` | Recent execution history (default 50, max 100)               |
 
@@ -275,17 +249,6 @@ See [MCP-SERVER.md](./MCP-SERVER.md) for transport setup and scope assignments.
 5. **Register** by adding the entry to `builtinSkills` (or calling `registerBrowserSkill(executor)`-style at boot).
 6. **Wire built-in tool aliases** (optional) in `BUILTIN_TOOL_ALIASES` (`interception.ts:23`) if the upstream model emits a different name.
 7. **Tests** in `src/lib/skills/__tests__/` (Vitest).
-
----
-
-## Adding a Custom (Non-Builtin) Skill
-
-1. Register the handler at process startup:
-   ```ts
-   skillExecutor.registerHandler("my-handler", async (input, ctx) => { ... });
-   ```
-2. Insert the skill via `POST /api/skills/install` (the `handlerCode` field must match the registered handler name).
-3. Toggle `mode` to `on` or `auto` via `PUT /api/skills/[id]`.
 
 ---
 

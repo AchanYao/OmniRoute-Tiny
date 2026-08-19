@@ -111,25 +111,24 @@ test("resilience reset envia provider e body correto", async () => {
   assert.equal(capturedBody.connectionId, "conn-1");
 });
 
-test("resilience profile set chama MCP tool", async () => {
+test("resilience profile set chama endpoint REST", async () => {
   let capturedBody: any = null;
+  let capturedUrl: string = "";
   const origFetch = globalThis.fetch;
-  globalThis.fetch = ((_url: string, opts: any) => {
+  globalThis.fetch = ((url: string, opts: any) => {
+    capturedUrl = url;
     if (opts?.body) capturedBody = JSON.parse(opts.body);
     return Promise.resolve(makeResp({ result: {} }));
   }) as any;
 
-  await (globalThis.fetch as any)("/api/mcp/tools/call", {
-    method: "POST",
-    body: JSON.stringify({
-      name: "omniroute_set_resilience_profile",
-      arguments: { profile: "balanced" },
-    }),
+  await (globalThis.fetch as any)("/api/resilience", {
+    method: "PATCH",
+    body: JSON.stringify({ profile: "balanced" }),
   });
 
   globalThis.fetch = origFetch;
-  assert.equal(capturedBody.name, "omniroute_set_resilience_profile");
-  assert.equal(capturedBody.arguments.profile, "balanced");
+  assert.equal(capturedUrl, "/api/resilience");
+  assert.equal(capturedBody.profile, "balanced");
 });
 
 test("resilience.mjs pode ser importado sem erro", async () => {

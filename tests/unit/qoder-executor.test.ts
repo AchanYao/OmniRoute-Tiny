@@ -365,6 +365,134 @@ test("QoderExecutor: PAT completions never touch the (dead) Cosy HTTP endpoints"
   });
 });
 
+test("QoderExecutor: PAT tools report a missing qodercli as cli_not_found", async () => {
+  const prevBin = process.env.CLI_QODER_BIN;
+  process.env.CLI_QODER_BIN = "/nonexistent/qodercli-tool-request";
+  try {
+    const executor = new QoderExecutor();
+    const { response } = await executor.execute({
+      model: "qwen3-coder-plus",
+      body: {
+        messages: [{ role: "user", content: "Check the weather." }],
+        tools: [
+          {
+            type: "function",
+            function: { name: "lookup_weather", parameters: { type: "object" } },
+          },
+        ],
+      },
+      stream: false,
+      credentials: { apiKey: "pt-tool-token" },
+    });
+    const payload = (await response.json()) as { error?: { code?: string; message?: string } };
+    assert.equal(response.status, 502);
+    assert.equal(payload.error?.code, "cli_not_found");
+    assert.match(payload.error?.message ?? "", /CLI_QODER_BIN/);
+  } finally {
+    if (prevBin === undefined) delete process.env.CLI_QODER_BIN;
+    else process.env.CLI_QODER_BIN = prevBin;
+  }
+});
+
+test("QoderExecutor: PAT tools park in MCP and resume from role:tool", async () => {
+  const prevBin = process.env.CLI_QODER_BIN;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qodercli-tool-stub-"));
+  const stub = path.join(dir, "qodercli.mjs");
+  fs.writeFileSync(
+    stub,
+    `#!/usr/bin/env node
+const args = process.argv.slice(2);
+if (args.includes("--list-models")) {
+  console.log("MODEL\\nAuto\\nQwen3-Coder");
+  process.exit(0);
+}
+let input = "";
+for await (const chunk of process.stdin) input += chunk;
+const configPath = args[args.indexOf("--mcp-config") + 1];
+const { readFile } = await import("node:fs/promises");
+const config = JSON.parse(await readFile(configPath, "utf8"));
+const url = config.mcpServers.omniroute.url;
+const rpc = async (message) => {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(message),
+  });
+  return response.status === 202 ? null : response.json();
+};
+await rpc({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "stub", version: "1" } } });
+await rpc({ jsonrpc: "2.0", method: "notifications/initialized" });
+const listed = await rpc({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
+const called = await rpc({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: listed.result.tools[0].name, arguments: { city: "Singapore" } } });
+console.log(JSON.stringify({ type: "result", subtype: "success", is_error: false, result: "Weather: " + called.result.content[0].text }));
+`,
+    { mode: 0o755 }
+  );
+  process.env.CLI_QODER_BIN = stub;
+  try {
+    const executor = new QoderExecutor();
+    const first = await executor.execute({
+      model: "qwen3.7-plus",
+      body: {
+        messages: [
+          { role: "system", content: "You are Codex." },
+          { role: "user", content: "Weather in Singapore?" },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "lookup_weather",
+              description: "Look up weather",
+              parameters: { type: "object", properties: { city: { type: "string" } } },
+            },
+          },
+        ],
+      },
+      stream: false,
+      credentials: { apiKey: "pt-tool-token" },
+    });
+    const toolPayload = (await first.response.json()) as Record<string, unknown>;
+    assert.equal(first.response.status, 200, JSON.stringify(toolPayload));
+    const toolChoices = toolPayload.choices as Array<Record<string, unknown>>;
+    assert.equal(toolChoices[0].finish_reason, "tool_calls");
+    const toolMessage = toolChoices[0].message as Record<string, unknown>;
+    const call = (toolMessage.tool_calls as Array<Record<string, unknown>>)[0];
+    const callFunction = call.function as Record<string, unknown>;
+    assert.equal(callFunction.name, "lookup_weather");
+    assert.equal(callFunction.arguments, '{"city":"Singapore"}');
+
+    const second = await executor.execute({
+      model: "qwen3.7-plus",
+      body: {
+        messages: [
+          { role: "tool", tool_call_id: "call_from_prior_turn", content: "old result" },
+          { role: "assistant", content: null, tool_calls: [call] },
+          { role: "tool", tool_call_id: call.id, content: '{"temperature":30}' },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: { name: "lookup_weather", parameters: { type: "object" } },
+          },
+        ],
+      },
+      stream: false,
+      credentials: { apiKey: "pt-tool-token" },
+    });
+    const finalPayload = (await second.response.json()) as Record<string, unknown>;
+    assert.equal(second.response.status, 200, JSON.stringify(finalPayload));
+    const finalChoice = (finalPayload.choices as Array<Record<string, unknown>>)[0];
+    assert.equal(finalChoice.finish_reason, "stop");
+    const finalMessage = finalChoice.message as Record<string, unknown>;
+    assert.equal(finalMessage.content, 'Weather: {"temperature":30}');
+  } finally {
+    if (prevBin === undefined) delete process.env.CLI_QODER_BIN;
+    else process.env.CLI_QODER_BIN = prevBin;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("QoderExecutor: stream calls pass through successful SSE responses", async () => {
   const executor = new QoderExecutor();
   const originalFetch = globalThis.fetch;

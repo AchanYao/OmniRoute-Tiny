@@ -162,7 +162,7 @@ EXPOSE 20128
 # Every final image populates these paths after its stable dependency stage.
 USER node
 ENTRYPOINT ["/app/check-permissions.sh"]
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
   CMD ["node", "healthcheck.mjs"]
 CMD ["node", "dev/run-standalone.mjs"]
 
@@ -235,10 +235,12 @@ COPY --from=builder /app/scripts/dev/healthcheck.mjs ./healthcheck.mjs
 # Hand /app over to the baked-in `node` non-root user (UID/GID 1000) so the
 # runtime process never holds root privileges. The chown happens after all
 # COPYs so it covers files originally owned by root in the builder stage.
+USER root
 RUN chown -R node:node /app
 
 # Warns if the mounted data volume has wrong ownership
 COPY --chmod=755 scripts/check-permissions.sh /app/check-permissions.sh
+USER node
 
 # ── Runner Web (web-cookie providers: Gemini Web, Claude Turnstile) ───────────
 #

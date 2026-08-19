@@ -66,6 +66,8 @@ services:
       - API_HOST=${API_HOST:-0.0.0.0}
       - HOSTNAME=0.0.0.0
       - DATA_DIR=/app/data
+      - QODER_CLI_AUTO_INSTALL=${QODER_CLI_AUTO_INSTALL:-false}
+      - QODER_CLI_INSTALL_DIR=${QODER_CLI_INSTALL_DIR:-/app/data/qoder-cli-runtime}
       - OMNIROUTE_BASE_PATH=${OMNIROUTE_BASE_PATH:-}
     ports:
       - "${PROD_DASHBOARD_PORT:-20130}:${DASHBOARD_PORT:-${PORT:-20128}}"
@@ -78,7 +80,7 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 15s
+      start_period: 90s
 
 volumes:
   omniroute-prod-data:

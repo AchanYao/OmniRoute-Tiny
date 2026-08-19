@@ -9,7 +9,6 @@
  * - GET  /api/agent-skills/[id]      — found, 404 not found
  * - GET  /api/agent-skills/[id]/raw  — found, 404 not found, 502 on GitHub failure
  * - GET  /api/agent-skills/coverage  — happy path
- * - POST /api/agent-skills/generate  — 401 no auth, 400 bad body, 503 no generator, 200 with mock
  *
  * Hard Rule #12: every error response goes through buildErrorBody/errorResponse — verified
  * explicitly by asserting no stack trace in messages.
@@ -39,7 +38,6 @@ const listRoute = await import("../../src/app/api/agent-skills/route.ts");
 const idRoute = await import("../../src/app/api/agent-skills/[id]/route.ts");
 const rawRoute = await import("../../src/app/api/agent-skills/[id]/raw/route.ts");
 const coverageRoute = await import("../../src/app/api/agent-skills/coverage/route.ts");
-const generateRoute = await import("../../src/app/api/agent-skills/generate/route.ts");
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -55,7 +53,7 @@ function makeRequest(
   method: string,
   url: string,
   body?: unknown,
-  headers: Record<string, string> = {},
+  headers: Record<string, string> = {}
 ): Request {
   return new Request(url, {
     method,
@@ -120,7 +118,10 @@ test("GET /api/agent-skills?category=api — returns 23 api skills", async () =>
   assert.equal(res.status, 200);
   const body = (await res.json()) as { skills: Array<{ category: string }>; count: number };
   assert.equal(body.count, 23);
-  assert.ok(body.skills.every((s) => s.category === "api"), "All skills should be api category");
+  assert.ok(
+    body.skills.every((s) => s.category === "api"),
+    "All skills should be api category"
+  );
 });
 
 test("GET /api/agent-skills?category=cli — returns 21 cli skills", async () => {
@@ -130,7 +131,10 @@ test("GET /api/agent-skills?category=cli — returns 21 cli skills", async () =>
   assert.equal(res.status, 200);
   const body = (await res.json()) as { skills: Array<{ category: string }>; count: number };
   assert.equal(body.count, 21);
-  assert.ok(body.skills.every((s) => s.category === "cli"), "All skills should be cli category");
+  assert.ok(
+    body.skills.every((s) => s.category === "cli"),
+    "All skills should be cli category"
+  );
 });
 
 test("GET /api/agent-skills?area=providers — returns only providers area skills", async () => {
@@ -154,7 +158,7 @@ test("GET /api/agent-skills?category=invalid — returns 400 with sanitized erro
   // Hard Rule #12: no stack trace exposure
   assert.ok(
     !body.error.message.match(/\bat \/|\bat file:\/\//),
-    `Error message must not contain stack trace: "${body.error.message}"`,
+    `Error message must not contain stack trace: "${body.error.message}"`
   );
 });
 
@@ -192,7 +196,7 @@ test("GET /api/agent-skills/[id] — returns 404 with sanitized error for unknow
   // Hard Rule #12: no stack trace exposure
   assert.ok(
     !body.error.message.match(/\bat \/|\bat file:\/\//),
-    `Error message must not contain stack trace: "${body.error.message}"`,
+    `Error message must not contain stack trace: "${body.error.message}"`
   );
 });
 
@@ -213,7 +217,7 @@ test("GET /api/agent-skills/[id]/raw — returns 404 with sanitized error for un
   // Hard Rule #12: no stack trace exposure
   assert.ok(
     !body.error.message.match(/\bat \/|\bat file:\/\//),
-    `Error message must not contain stack trace: "${body.error.message}"`,
+    `Error message must not contain stack trace: "${body.error.message}"`
   );
 });
 
@@ -230,14 +234,14 @@ test("GET /api/agent-skills/[id]/raw — returns markdown or 502 for valid id (n
   // Either 200 (network available) or 502 (no network) is acceptable
   assert.ok(
     res.status === 200 || res.status === 502 || res.status === 500,
-    `Expected 200, 502, or 500 but got ${res.status}`,
+    `Expected 200, 502, or 500 but got ${res.status}`
   );
 
   if (res.status === 200) {
     const contentType = res.headers.get("content-type") ?? "";
     assert.ok(
       contentType.includes("text/markdown"),
-      `Expected text/markdown content-type, got: ${contentType}`,
+      `Expected text/markdown content-type, got: ${contentType}`
     );
     const cacheControl = res.headers.get("cache-control") ?? "";
     assert.ok(cacheControl.includes("max-age=3600"), "Cache-Control should include max-age=3600");
@@ -247,7 +251,7 @@ test("GET /api/agent-skills/[id]/raw — returns markdown or 502 for valid id (n
     assert.ok(body.error);
     assert.ok(
       !body.error.message.match(/\bat \/|\bat file:\/\//),
-      `Error message must not contain stack trace: "${body.error.message}"`,
+      `Error message must not contain stack trace: "${body.error.message}"`
     );
   }
 });
@@ -276,113 +280,8 @@ test("GET /api/agent-skills/coverage — returns valid SkillCoverage shape", asy
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// POST /api/agent-skills/generate — auth guard
 // ═════════════════════════════════════════════════════════════════════════════
-
-test("POST /api/agent-skills/generate — 401 when auth is required and no token provided", async () => {
-  // Enable auth by setting INITIAL_PASSWORD (triggers requireManagementAuth)
-  process.env.INITIAL_PASSWORD = "test-password-requires-login";
-
-  const req = makeRequest("POST", "http://localhost/api/agent-skills/generate", {
-    dryRun: true,
-  });
-  const res = await generateRoute.POST(req);
-
-  // requireManagementAuth returns 401 or 403 when auth is required and no token
-  assert.ok(
-    res.status === 401 || res.status === 403,
-    `Expected 401 or 403 without auth, got ${res.status}`,
-  );
-
-  const body = (await res.json()) as { error: { message: string } | string };
-  // Hard Rule #12: no stack trace exposure
-  const errorMsg =
-    typeof body.error === "string" ? body.error : (body.error as { message: string }).message;
-  assert.ok(
-    !errorMsg.match(/\bat \/|\bat file:\/\//),
-    `Error message must not contain stack trace: "${errorMsg}"`,
-  );
-});
-
-test("POST /api/agent-skills/generate — 400 when body is invalid (non-boolean dryRun)", async () => {
-  // Disable auth for this test by not setting INITIAL_PASSWORD
-  delete process.env.INITIAL_PASSWORD;
-
-  const req = makeRequest("POST", "http://localhost/api/agent-skills/generate", {
-    dryRun: "yes", // invalid — must be boolean
-  });
-  const res = await generateRoute.POST(req);
-
-  // Should be 400 (body validation fails) or 503 (generator not yet available)
-  // Since F3 is not merged, generator.ts doesn't exist → dynamic import fails → 503 if auth passes
-  // But with invalid body, 400 should come first
-  assert.ok(
-    res.status === 400 || res.status === 503,
-    `Expected 400 (bad body) or 503 (generator unavailable), got ${res.status}`,
-  );
-
-  const body = (await res.json()) as { error: { message: string } };
-  assert.ok(body.error);
-  // Hard Rule #12: no stack trace exposure
-  assert.ok(
-    !body.error.message.match(/\bat \/|\bat file:\/\//),
-    `Error message must not contain stack trace: "${body.error.message}"`,
-  );
-});
-
-test("POST /api/agent-skills/generate — 503 when generator module unavailable (F3 not merged)", async () => {
-  // Disable auth for this test
-  delete process.env.INITIAL_PASSWORD;
-
-  const req = makeRequest("POST", "http://localhost/api/agent-skills/generate", {
-    dryRun: true,
-    prune: false,
-  });
-  const res = await generateRoute.POST(req);
-
-  // If generator.ts doesn't exist (F3 not merged), expect 503.
-  // If it does exist (F3 already merged), it may return 200 with a report.
-  // Both are valid depending on merge state.
-  assert.ok(
-    res.status === 200 || res.status === 503,
-    `Expected 200 (generator available) or 503 (generator unavailable), got ${res.status}`,
-  );
-
-  const body = (await res.json()) as Record<string, unknown>;
-  if (res.status === 503) {
-    const err = body.error as { message: string } | undefined;
-    assert.ok(err?.message, "503 should include error.message");
-    // Hard Rule #12: no stack trace exposure
-    assert.ok(
-      !err.message.match(/\bat \/|\bat file:\/\//),
-      `503 error message must not contain stack trace: "${err.message}"`,
-    );
-  } else {
-    // 200: body should look like a GeneratorReport
-    assert.ok("generated" in body || "report" in body || typeof body === "object");
-  }
-});
-
-test("POST /api/agent-skills/generate — 400 when request body is not JSON", async () => {
-  // Disable auth for this test
-  delete process.env.INITIAL_PASSWORD;
-
-  const req = new Request("http://localhost/api/agent-skills/generate", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: "not valid json {{{",
-  });
-  const res = await generateRoute.POST(req);
-
-  assert.equal(res.status, 400, `Expected 400 for invalid JSON body, got ${res.status}`);
-  const body = (await res.json()) as { error: { message: string } };
-  assert.ok(body.error);
-  // Hard Rule #12: no stack trace exposure
-  assert.ok(
-    !body.error.message.match(/\bat \/|\bat file:\/\//),
-    `Error message must not contain stack trace: "${body.error.message}"`,
-  );
-});
+// Hard Rule #12 sanity — all error bodies sanitized
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Hard Rule #12 sanity — all error bodies sanitized
@@ -394,24 +293,15 @@ test("Hard Rule #12: all error responses contain sanitized messages (no 'at /' p
   // Collect error responses from various bad inputs
   const errorResponses: Response[] = [
     // Invalid category query
-    await listRoute.GET(
-      makeRequest("GET", "http://localhost/api/agent-skills?category=bad-val"),
-    ),
+    await listRoute.GET(makeRequest("GET", "http://localhost/api/agent-skills?category=bad-val")),
     // Unknown skill id
     await idRoute.GET(makeRequest("GET", "http://localhost/api/agent-skills/unknown-id"), {
       params: Promise.resolve({ id: "unknown-id" }),
     }),
     // Unknown raw skill id
-    await rawRoute.GET(
-      makeRequest("GET", "http://localhost/api/agent-skills/unknown-id/raw"),
-      { params: Promise.resolve({ id: "unknown-id" }) },
-    ),
-    // Invalid generate body (non-boolean)
-    await generateRoute.POST(
-      makeRequest("POST", "http://localhost/api/agent-skills/generate", {
-        dryRun: 42,
-      }),
-    ),
+    await rawRoute.GET(makeRequest("GET", "http://localhost/api/agent-skills/unknown-id/raw"), {
+      params: Promise.resolve({ id: "unknown-id" }),
+    }),
   ];
 
   for (const res of errorResponses) {
@@ -419,14 +309,14 @@ test("Hard Rule #12: all error responses contain sanitized messages (no 'at /' p
     const contentType = res.headers.get("content-type") ?? "";
     assert.ok(
       contentType.includes("application/json") || contentType.includes("json"),
-      `Error response must be JSON, got content-type: ${contentType}`,
+      `Error response must be JSON, got content-type: ${contentType}`
     );
 
     const body = (await res.json()) as { error?: { message?: string } };
     const message = body?.error?.message ?? "";
     assert.ok(
       !message.match(/\bat \/|\bat file:\/\//),
-      `Stack trace detected in error response (status ${res.status}): "${message}"`,
+      `Stack trace detected in error response (status ${res.status}): "${message}"`
     );
   }
 });

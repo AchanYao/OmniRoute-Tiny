@@ -134,11 +134,9 @@ describe("CCR MCP contracts and handlers", () => {
 
   it("registers all six tools canonically with least-privilege scopes", () => {
     const expected = {
-      omniroute_ccr_store: ["write:compression"],
       omniroute_ccr_retrieve: ["read:compression"],
       omniroute_ccr_inspect: ["read:compression"],
       omniroute_ccr_list: ["read:compression"],
-      omniroute_ccr_delete: ["write:compression"],
       omniroute_ccr_stats: ["read:compression"],
     } as const;
     for (const [name, scopes] of Object.entries(expected)) {
@@ -150,52 +148,26 @@ describe("CCR MCP contracts and handlers", () => {
 
   it("validates the MCP store limit in UTF-8 bytes instead of JavaScript characters", () => {
     const multibyte = "ü".repeat(ccr.MAX_CCR_BLOCK_BYTES / 2 + 1);
-    assert.equal(schemas.ccrStoreInput.safeParse({ content: multibyte }).success, false);
     const result = ccr.tryStoreBlock(multibyte, "tenant-a", { source: "mcp" });
     assert.equal(result.stored, false);
     if (!result.stored) assert.equal(result.reason, "block_too_large");
   });
 
-  it("propagates store rejection reasons without changing the MCP result shape", async () => {
-    const result = await tools.handleCcrStoreTool(
-      { content: "x".repeat(ccr.MAX_CCR_BLOCK_BYTES + 1), contentType: "text/plain" },
-      writeExtra
-    );
-    assert.deepEqual(result, { stored: false, reason: "block_too_large" });
-  });
-
   it("stores through MCP and exposes metadata without content in inspect/list", async () => {
-    const stored = await tools.handleCcrStoreTool(
-      { content: "sensitive body", contentType: "text/plain", ttlSeconds: 120 },
-      writeExtra
-    );
+    const stored = ccr.tryStoreBlock("sensitive body", "tenant-a", {
+      contentType: "text/plain",
+      ttlSeconds: 120,
+    });
     assert.equal(stored.stored, true);
     if (!stored.stored) return;
 
-    const inspected = await tools.handleCcrInspectTool({ hash: stored.reference.hash }, readExtra);
+    const inspected = await tools.handleCcrInspectTool({ hash: stored.hash }, readExtra);
     assert.equal(inspected.found, true);
     assert.equal(JSON.stringify(inspected).includes("sensitive body"), false);
     const listed = await tools.handleCcrListTool({ limit: 10 }, readExtra);
     assert.equal(listed.total, 1);
     assert.equal(JSON.stringify(listed).includes("sensitive body"), false);
     assert.equal((await tools.handleCcrStatsTool({}, readExtra)).entries, 1);
-    assert.deepEqual(await tools.handleCcrDeleteTool({ hash: stored.reference.hash }, writeExtra), {
-      deleted: true,
-    });
-  });
-
-  it("does not include content in the CCR store audit input", () => {
-    const secret = "never-persist-this-content";
-    const auditInput = tools.buildCcrStoreAuditInput({
-      content: secret,
-      contentType: "text/plain",
-    });
-    assert.equal(JSON.stringify(auditInput).includes(secret), false);
-    assert.deepEqual(auditInput, {
-      bytes: Buffer.byteLength(secret, "utf8"),
-      contentType: "text/plain",
-      ttlSeconds: undefined,
-    });
   });
 
   it("refuses oversized full MCP responses and recommends ranged modes", async () => {

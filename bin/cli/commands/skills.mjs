@@ -18,16 +18,6 @@ function fmtTs(v) {
   }
 }
 
-async function confirm(question) {
-  return new Promise((resolve) => {
-    process.stdout.write(`${question} (yes/no) `);
-    process.stdin.setEncoding("utf8");
-    process.stdin.once("data", (chunk) => {
-      resolve(chunk.toString().trim().toLowerCase().startsWith("y"));
-    });
-  });
-}
-
 const skillSchema = [
   { key: "id", header: "ID", width: 22 },
   { key: "name", header: "Name", width: 28 },
@@ -83,69 +73,6 @@ export async function runSkillsGet(id, opts, cmd) {
   emit(data, globalOpts, skillSchema);
 }
 
-export async function runSkillsInstall(opts, cmd) {
-  const globalOpts = cmd.optsWithGlobals();
-  let body = {};
-  if (opts.fromFile) {
-    body = JSON.parse(readFileSync(opts.fromFile, "utf8"));
-  } else if (opts.fromUrl) {
-    body = { url: opts.fromUrl };
-  } else {
-    process.stderr.write("--from-file or --from-url required\n");
-    process.exit(2);
-  }
-  if (opts.type) body.type = opts.type;
-  if (opts.enable) body.enabled = true;
-  const res = await apiFetch("/api/skills/install", { method: "POST", body });
-  if (!res.ok) {
-    process.stderr.write(`Error: ${res.status}\n`);
-    process.exit(1);
-  }
-  const data = await res.json();
-  emit(data, globalOpts, skillSchema);
-}
-
-export async function runSkillsEnable(id, opts, cmd) {
-  const res = await apiFetch("/api/mcp/tools/call", {
-    method: "POST",
-    body: { name: "omniroute_skills_enable", arguments: { skillId: id, enabled: true } },
-  });
-  if (!res.ok) {
-    process.stderr.write(`Error: ${res.status}\n`);
-    process.exit(1);
-  }
-  process.stdout.write(`Enabled: ${id}\n`);
-}
-
-export async function runSkillsDisable(id, opts, cmd) {
-  if (!opts.yes) {
-    const ok = await confirm(`Disable ${id}?`);
-    if (!ok) return;
-  }
-  const res = await apiFetch("/api/mcp/tools/call", {
-    method: "POST",
-    body: { name: "omniroute_skills_enable", arguments: { skillId: id, enabled: false } },
-  });
-  if (!res.ok) {
-    process.stderr.write(`Error: ${res.status}\n`);
-    process.exit(1);
-  }
-  process.stdout.write(`Disabled: ${id}\n`);
-}
-
-export async function runSkillsDelete(id, opts, cmd) {
-  if (!opts.yes) {
-    const ok = await confirm(`Delete skill ${id}?`);
-    if (!ok) return;
-  }
-  const res = await apiFetch(`/api/skills/${id}`, { method: "DELETE" });
-  if (!res.ok) {
-    process.stderr.write(`Error: ${res.status}\n`);
-    process.exit(1);
-  }
-  process.stdout.write(`Deleted: ${id}\n`);
-}
-
 export async function runSkillsExecute(id, opts, cmd) {
   const globalOpts = cmd.optsWithGlobals();
   const input = opts.input
@@ -191,19 +118,6 @@ export async function runSkillsshList(opts, cmd) {
   emit(data.items ?? data, globalOpts, skillSchema);
 }
 
-export async function runSkillsshInstall(url, opts, cmd) {
-  const res = await apiFetch("/api/skills/skillssh/install", {
-    method: "POST",
-    body: { url },
-  });
-  if (!res.ok) {
-    process.stderr.write(`Error: ${res.status}\n`);
-    process.exit(1);
-  }
-  const data = await res.json();
-  process.stdout.write(`Installed: ${data.skillId ?? url}\n`);
-}
-
 export async function runMarketplaceSearch(query, opts, cmd) {
   const globalOpts = cmd.optsWithGlobals();
   const params = new URLSearchParams({ limit: String(opts.limit ?? 30) });
@@ -234,29 +148,6 @@ export async function runMarketplaceInfo(packageId, opts, cmd) {
     process.stdout.write(data.readme ?? "(no readme)");
     process.stdout.write("\n");
   }
-}
-
-export async function runMarketplaceInstall(packageId, opts, cmd) {
-  if (!opts.yes) {
-    const infoRes = await apiFetch(`/api/skills/marketplace?id=${packageId}`);
-    if (infoRes.ok) {
-      const info = await infoRes.json();
-      process.stdout.write(`Installing: ${info.name ?? packageId} v${info.version ?? "?"}\n`);
-      process.stdout.write(`Permissions: ${(info.permissions ?? []).join(", ") || "(none)"}\n`);
-    }
-    const ok = await confirm("Continue?");
-    if (!ok) process.exit(0);
-  }
-  const res = await apiFetch("/api/skills/marketplace/install", {
-    method: "POST",
-    body: { packageId, version: opts.version ?? "latest", enable: !!opts.enable },
-  });
-  if (!res.ok) {
-    process.stderr.write(`Error: ${res.status}\n`);
-    process.exit(1);
-  }
-  const data = await res.json();
-  process.stdout.write(`Installed: ${data.skillId ?? packageId}\n`);
 }
 
 export async function runMarketplaceCategories(opts, cmd) {
@@ -296,13 +187,6 @@ function registerSkillsMarketplace(skills) {
     .description(t("skills.mp.info.description"))
     .action(runMarketplaceInfo);
 
-  mp.command("install <packageId>")
-    .description(t("skills.mp.install.description"))
-    .option("--version <v>", t("skills.mp.install.version"), "latest")
-    .option("--enable", t("skills.mp.install.enable"))
-    .option("--yes", t("skills.mp.install.yes"))
-    .action(runMarketplaceInstall);
-
   mp.command("categories")
     .description(t("skills.mp.categories.description"))
     .action(runMarketplaceCategories);
@@ -327,29 +211,6 @@ export function registerSkills(program) {
   skills.command("get <id>").description(t("skills.get.description")).action(runSkillsGet);
 
   skills
-    .command("install")
-    .description(t("skills.install.description"))
-    .option("--from-file <path>", t("skills.install.from_file"))
-    .option("--from-url <url>", t("skills.install.from_url"))
-    .option("--type <type>", t("skills.install.type"))
-    .option("--enable", t("skills.install.enable"))
-    .action(runSkillsInstall);
-
-  skills.command("enable <id>").description(t("skills.enable.description")).action(runSkillsEnable);
-
-  skills
-    .command("disable <id>")
-    .description(t("skills.disable.description"))
-    .option("--yes", t("skills.disable.yes"))
-    .action(runSkillsDisable);
-
-  skills
-    .command("delete <id>")
-    .description(t("skills.delete.description"))
-    .option("--yes", t("skills.delete.yes"))
-    .action(runSkillsDelete);
-
-  skills
     .command("execute <id>")
     .description(t("skills.execute.description"))
     .option("--input <json>", t("skills.execute.input"))
@@ -367,7 +228,6 @@ export function registerSkills(program) {
 
   const skillssh = skills.command("skillssh").description(t("skills.skillssh.description"));
   skillssh.command("list").action(runSkillsshList);
-  skillssh.command("install <url>").action(runSkillsshInstall);
 
   registerSkillsMarketplace(skills);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Card } from "@/shared/components";
 import { SkillsConceptCard } from "@/shared/components";
@@ -39,14 +39,6 @@ export function OmniSkillsPageClient(): JSX.Element {
   const [activeTab, setActiveTab] = useState<"skills" | "executions" | "sandbox" | "marketplace">(
     "skills"
   );
-  const [showInstallModal, setShowInstallModal] = useState(false);
-  const [installJson, setInstallJson] = useState("");
-  const [installStatus, setInstallStatus] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
-  const [installing, setInstalling] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [skillsProvider, setSkillsProvider] = useState<SkillsProvider>("skillsmp");
 
   const t = useTranslations("skills");
@@ -106,75 +98,6 @@ export function OmniSkillsPageClient(): JSX.Element {
       .catch(() => setLoading(false));
   }, []);
 
-  const refreshSkills = async () => {
-    setSkillsPage(1);
-    await fetchSkills(1);
-  };
-
-  const setSkillMode = async (skillId: string, mode: "on" | "off" | "auto") => {
-    await fetch(`/api/skills/${skillId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode }),
-    });
-    setSkills(skills.map((s) => (s.id === skillId ? { ...s, mode, enabled: mode !== "off" } : s)));
-  };
-
-  const deleteSkill = async (skillId: string) => {
-    const res = await fetch(`/api/skills/${skillId}`, { method: "DELETE" });
-    if (res.ok) {
-      setSkills(skills.filter((s) => s.id !== skillId));
-      if (selectedSkillId === skillId) setSelectedSkillId(null);
-    }
-  };
-
-  const handleInstall = async () => {
-    setInstalling(true);
-    setInstallStatus(null);
-    try {
-      const manifest = JSON.parse(installJson) as Record<string, unknown>;
-      const res = await fetch("/api/skills/install", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(manifest),
-      });
-      const data = await res.json();
-      if (res.ok && (data as { success?: boolean }).success) {
-        setInstallStatus({
-          type: "success",
-          message: t("installSuccess", { id: (data as { id?: string }).id || "" }),
-        });
-        setInstallJson("");
-        await refreshSkills();
-      } else {
-        setInstallStatus({
-          type: "error",
-          message:
-            (data as { error?: string; message?: string }).error ||
-            (data as { error?: string; message?: string }).message ||
-            t("installError"),
-        });
-      }
-    } catch (err) {
-      setInstallStatus({
-        type: "error",
-        message: err instanceof Error ? err.message : t("invalidJson"),
-      });
-    } finally {
-      setInstalling(false);
-    }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setInstallJson((ev.target?.result as string) || "");
-    };
-    reader.readAsText(file);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -211,24 +134,13 @@ export function OmniSkillsPageClient(): JSX.Element {
           <p className="text-2xl font-bold text-emerald-400 mt-1">{enabledCount}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-text-muted uppercase tracking-wide">
-            {t("totalExecutions")}
-          </p>
+          <p className="text-xs text-text-muted uppercase tracking-wide">{t("totalExecutions")}</p>
           <p className="text-2xl font-bold text-violet-400 mt-1">{execTotal}</p>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-text-muted uppercase tracking-wide">{t("successRate")}</p>
           <p className="text-2xl font-bold text-amber-400 mt-1">{successRate}%</p>
         </Card>
-      </div>
-
-      <div className="flex justify-end">
-        <button
-          onClick={() => setShowInstallModal(true)}
-          className="px-4 py-2 text-sm font-medium rounded-lg bg-violet-500 text-white hover:bg-violet-600 transition-colors"
-        >
-          {t("installSkillButton")}
-        </button>
       </div>
 
       {/* Tab bar */}
@@ -276,8 +188,6 @@ export function OmniSkillsPageClient(): JSX.Element {
             void fetchSkills(p);
           }}
           onSelectSkill={setSelectedSkillId}
-          onSetMode={setSkillMode}
-          onUninstall={deleteSkill}
         />
       )}
 
@@ -302,81 +212,7 @@ export function OmniSkillsPageClient(): JSX.Element {
 
       {activeTab === "sandbox" && <OmniSandboxTab />}
 
-      {activeTab === "marketplace" && (
-        <OmniMarketplaceTab skillsProvider={skillsProvider} onRefreshSkills={refreshSkills} />
-      )}
-
-      {/* Install modal */}
-      {showInstallModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-lg mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">{t("installSkillModalTitle")}</h2>
-              <button
-                onClick={() => {
-                  setShowInstallModal(false);
-                  setInstallStatus(null);
-                  setInstallJson("");
-                }}
-                className="text-text-muted hover:text-text-main"
-              >
-                X
-              </button>
-            </div>
-            <p className="text-sm text-text-muted mb-4">{t("installSkillModalDesc")}</p>
-            <textarea
-              value={installJson}
-              onChange={(e) => setInstallJson(e.target.value)}
-              placeholder={t("installJsonPlaceholder")}
-              className="w-full h-48 p-3 rounded-lg bg-background border border-border text-sm font-mono resize-none focus:outline-none focus:ring-1 focus:ring-violet-500"
-            />
-            <div className="flex items-center gap-3 mt-3">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="px-3 py-1.5 text-sm rounded-lg border border-border text-text-muted hover:text-text-main transition-colors"
-              >
-                {t("uploadJson")}
-              </button>
-              <div className="flex-1" />
-              <button
-                onClick={() => {
-                  setShowInstallModal(false);
-                  setInstallStatus(null);
-                  setInstallJson("");
-                }}
-                className="px-3 py-1.5 text-sm rounded-lg border border-border text-text-muted hover:text-text-main transition-colors"
-              >
-                {t("cancel")}
-              </button>
-              <button
-                onClick={handleInstall}
-                disabled={installing || !installJson.trim()}
-                className="px-4 py-1.5 text-sm font-medium rounded-lg bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-50 transition-colors"
-              >
-                {installing ? t("installing") : t("installSkillButton")}
-              </button>
-            </div>
-            {installStatus && (
-              <div
-                className={`mt-3 p-3 rounded-lg text-sm ${
-                  installStatus.type === "success"
-                    ? "bg-emerald-500/10 text-emerald-400"
-                    : "bg-red-500/10 text-red-400"
-                }`}
-              >
-                {installStatus.message}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {activeTab === "marketplace" && <OmniMarketplaceTab skillsProvider={skillsProvider} />}
     </div>
   );
 }

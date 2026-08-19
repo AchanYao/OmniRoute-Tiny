@@ -192,11 +192,4 @@ export const ccrStatsTool: McpToolDefinition<typeof ccrStatsInput, typeof ccrSta
   sourceEndpoints: [],
 };
 
-export const CCR_MCP_TOOLS = [
-  ccrStoreTool,
-  ccrRetrieveTool,
-  ccrInspectTool,
-  ccrListTool,
-  ccrDeleteTool,
-  ccrStatsTool,
-] as const;
+export const CCR_MCP_TOOLS = [ccrRetrieveTool, ccrInspectTool, ccrListTool, ccrStatsTool] as const;

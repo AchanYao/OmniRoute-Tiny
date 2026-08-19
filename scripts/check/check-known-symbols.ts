@@ -258,47 +258,33 @@ export function findNewMcpTools(frozen: readonly string[], live: Set<string>): s
 
 /**
  * Snapshot of all MCP tool names registered by createMcpServer() as of
- * 2026-06-13. Catraca: tool removed = fail; tool added = informative report.
+ * Tiny profile. Catraca: tool removed = fail; tool added = informative report.
  * To update after an intentional removal/rename: edit this list and document
  * the reason in the commit message.
  *
  * Sources:
- *   - MCP_TOOLS (33 base tools: omniroute_* + compression + agent_skills)
- *   - memoryTools (3): omniroute_memory_*
- *   - skillTools (4): omniroute_skills_*
- *   - gamificationTools (8): gamification_*
- *   - pluginTools (8): plugin_*
- *   - notionTools (6): notion_*
- *   - obsidianTools (22): obsidian_*
+ *   - MCP_TOOLS base tools: omniroute_* + compression + agent_skills
+ *   - read/execute-only memory, skill, gamification, plugin, notion, and obsidian tools
  * agentSkillTools and compressionTools are included in MCP_TOOLS (deduped by RESERVED_MCP_NAMES).
  */
 export const KNOWN_MCP_TOOL_NAMES: readonly string[] = [
-  // MCP_TOOLS base (33)
+  // MCP_TOOLS base
   "omniroute_get_health",
   "omniroute_list_combos",
   "omniroute_get_combo_metrics",
-  "omniroute_switch_combo",
   "omniroute_check_quota",
   "omniroute_route_request",
   "omniroute_cost_report",
   "omniroute_list_models_catalog",
   "omniroute_web_search",
   "omniroute_simulate_route",
-  "omniroute_set_budget_guard",
-  "omniroute_set_routing_strategy",
-  "omniroute_set_resilience_profile",
   "omniroute_test_combo",
   "omniroute_get_provider_metrics",
   "omniroute_best_combo_for_task",
   "omniroute_explain_route",
   "omniroute_get_session_snapshot",
-  "omniroute_db_health_check",
-  "omniroute_sync_pricing",
   "omniroute_cache_stats",
-  "omniroute_cache_flush",
   "omniroute_compression_status",
-  "omniroute_compression_configure",
-  "omniroute_set_compression_engine",
   "omniroute_list_compression_combos",
   "omniroute_compression_combo_stats",
   "omniroute_oneproxy_fetch",
@@ -307,41 +293,29 @@ export const KNOWN_MCP_TOOL_NAMES: readonly string[] = [
   "omniroute_agent_skills_list",
   "omniroute_agent_skills_get",
   "omniroute_agent_skills_coverage",
-  // memoryTools (3)
+  // memoryTools
   "omniroute_memory_search",
-  "omniroute_memory_add",
-  "omniroute_memory_clear",
-  // skillTools (4)
+  // skillTools
   "omniroute_skills_list",
-  "omniroute_skills_enable",
   "omniroute_skills_execute",
   "omniroute_skills_executions",
-  // gamificationTools (8)
+  // gamificationTools
   "gamification_leaderboard",
   "gamification_rank",
   "gamification_profile",
   "gamification_badges",
-  "gamification_transfer",
-  "gamification_invite",
   "gamification_servers",
   "gamification_anomalies",
-  // pluginTools (8)
+  // pluginTools
   "plugin_list",
-  "plugin_install",
-  "plugin_activate",
-  "plugin_deactivate",
-  "plugin_uninstall",
-  "plugin_configure",
   "plugin_executions",
-  "plugin_scan",
-  // notionTools (6)
+  // notionTools
   "notion_search",
   "notion_get_page",
   "notion_list_block_children",
   "notion_query_database",
   "notion_get_database",
-  "notion_append_blocks",
-  // obsidianTools (22)
+  // obsidianTools
   "obsidian_check_status",
   "obsidian_search_simple",
   "obsidian_search_structured",
@@ -353,17 +327,8 @@ export const KNOWN_MCP_TOOL_NAMES: readonly string[] = [
   "obsidian_get_periodic_note",
   "obsidian_get_tags",
   "obsidian_list_commands",
-  "obsidian_write_note",
-  "obsidian_append_note",
-  "obsidian_patch_note",
-  "obsidian_delete_note",
-  "obsidian_move_note",
-  "obsidian_execute_command",
-  "obsidian_open_file",
   "obsidian_sync_status",
-  "obsidian_sync_trigger",
   "obsidian_sync_conflicts",
-  "obsidian_sync_resolve_conflict",
 ];
 
 // ───────────────────────────────────────────────────────────────────────────

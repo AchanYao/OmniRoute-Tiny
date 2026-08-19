@@ -22,6 +22,12 @@ import {
   runQoderCli,
 } from "../services/qoderCli.ts";
 import { sanitizeErrorMessage } from "../utils/error.ts";
+import {
+  buildQoderToolCompletionPayload,
+  buildQoderToolSseStream,
+  parseQoderToolRequest,
+  runQoderToolRequest,
+} from "../services/qoderCliTools.ts";
 
 function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
@@ -335,6 +341,80 @@ export class QoderExecutor extends BaseExecutor {
     transformedBody: unknown;
   }> {
     const url = "qodercli://stdio";
+    const toolRequest = parseQoderToolRequest(body);
+    if (toolRequest.tools.length > 0 || toolRequest.toolResults.length > 0) {
+      const result = await runQoderToolRequest({ token, model, body, signal });
+      if (signal?.aborted) {
+        const abortError = new Error("Aborted");
+        abortError.name = "AbortError";
+        throw abortError;
+      }
+      if (result.type === "tool_calls") {
+        const response = stream
+          ? new Response(buildQoderToolSseStream(model, result.toolCalls), {
+              status: 200,
+              headers: {
+                "Content-Type": "text/event-stream",
+                "Cache-Control": "no-cache",
+                Connection: "keep-alive",
+              },
+            })
+          : new Response(
+              JSON.stringify(
+                buildQoderToolCompletionPayload({ model, toolCalls: result.toolCalls })
+              ),
+              { status: 200, headers: { "Content-Type": "application/json" } }
+            );
+        return { response, url, headers: {}, transformedBody: body };
+      }
+      if (result.isError || result.code !== 0) {
+        const errorText = result.errorMessage || result.stderr || "qodercli returned an error";
+        if (/enoent|not found|no such file|spawn/i.test(errorText)) {
+          return {
+            response: createQoderErrorResponse({
+              status: 502,
+              message:
+                `Qoder CLI (qodercli) was not found on the OmniRoute host (${errorText}). ` +
+                "Install it from https://qoder.com or set CLI_QODER_BIN to its path.",
+              code: "cli_not_found",
+            }),
+            url,
+            headers: {},
+            transformedBody: body,
+          };
+        }
+        return {
+          response: createQoderErrorResponse(parseQoderCliFailure(errorText)),
+          url,
+          headers: {},
+          transformedBody: body,
+        };
+      }
+      if (stream) {
+        return {
+          response: new Response(buildQoderCliSseStream(model, result.text), {
+            status: 200,
+            headers: {
+              "Content-Type": "text/event-stream",
+              "Cache-Control": "no-cache",
+              Connection: "keep-alive",
+            },
+          }),
+          url,
+          headers: {},
+          transformedBody: body,
+        };
+      }
+      return {
+        response: new Response(
+          JSON.stringify(buildQoderCompletionPayload({ model, text: result.text })),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        ),
+        url,
+        headers: {},
+        transformedBody: body,
+      };
+    }
     const prompt = buildQoderPrompt(body);
 
     const run = await runQoderCli({ token, prompt, stream: false, model, signal });

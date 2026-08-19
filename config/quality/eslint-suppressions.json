@@ -104,11 +104,6 @@
       "count": 1
     }
   },
-  "open-sse/mcp-server/__tests__/dbHealthTool.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
-    }
-  },
   "open-sse/mcp-server/__tests__/toolSearch.tool.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 2
@@ -1186,11 +1181,6 @@
       "count": 1
     }
   },
-  "src/lib/providerModels/managedAvailableModels.ts": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
   "src/lib/proxyHealth/scheduler.ts": {
     "no-restricted-imports": {
       "count": 1
@@ -1983,7 +1973,7 @@
   },
   "tests/unit/cli-skills-commands.test.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 22
+      "count": 14
     }
   },
   "tests/unit/cli-stream.test.ts": {
@@ -2254,11 +2244,6 @@
   "tests/unit/db-migration-runner.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 12
-    }
-  },
-  "tests/unit/db-model-aliases-cascade.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
     }
   },
   "tests/unit/db-models-crud.test.ts": {
@@ -3061,12 +3046,12 @@
   },
   "tests/unit/skills-routes.test.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 9
+      "count": 2
     }
   },
   "tests/unit/skills-skillssh.test.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 7
+      "count": 4
     }
   },
   "tests/unit/spend-batch-writer.test.ts": {

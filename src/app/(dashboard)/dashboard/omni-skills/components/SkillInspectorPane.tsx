@@ -26,15 +26,11 @@ type InspectorTab = "schema" | "handler" | "executions" | "sandbox";
 interface SkillInspectorPaneProps {
   selectedSkillId: string | null;
   skill: OmniSkill | null;
-  onSetMode: (skillId: string, mode: "on" | "off" | "auto") => void;
-  onUninstall: (skillId: string) => void;
 }
 
 export function SkillInspectorPane({
   selectedSkillId,
   skill,
-  onSetMode,
-  onUninstall,
 }: SkillInspectorPaneProps): JSX.Element {
   const locale = useLocale();
   const t = useTranslations("skills");
@@ -259,35 +255,6 @@ export function SkillInspectorPane({
             </button>
           </div>
         )}
-      </div>
-
-      {/* Inspector action buttons */}
-      <div className="px-4 py-3 border-t border-border flex items-center gap-1.5">
-        {(["on", "auto", "off"] as const).map((mode) => (
-          <button
-            key={mode}
-            onClick={() => onSetMode(skill.id, mode)}
-            aria-label={t("setModeAria", { mode })}
-            className={`flex-1 text-xs px-2 py-1.5 rounded border transition-colors ${
-              effectiveMode === mode
-                ? mode === "on"
-                  ? "border-emerald-500 text-emerald-400 bg-emerald-500/5"
-                  : mode === "auto"
-                    ? "border-amber-500 text-amber-400 bg-amber-500/5"
-                    : "border-red-500 text-red-400 bg-red-500/5"
-                : "border-border text-text-muted hover:border-border/80"
-            }`}
-          >
-            {mode === "on" ? t("onMode") : mode === "auto" ? t("autoMode") : t("offMode")}
-          </button>
-        ))}
-        <button
-          onClick={() => onUninstall(skill.id)}
-          aria-label={t("uninstallSkill")}
-          className="flex-1 text-xs px-2 py-1.5 rounded border border-border text-red-400 hover:bg-red-500/10 transition-colors"
-        >
-          {t("delete")}
-        </button>
       </div>
     </div>
   );

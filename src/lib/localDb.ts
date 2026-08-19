@@ -228,13 +228,6 @@ export {
 export type { ExportAllRows } from "./db/backup";
 
 export {
-  // Skills DB operations (#3500 slice 5)
-  updateSkill,
-} from "./db/skills";
-
-export type { SkillPatch } from "./db/skills";
-
-export {
   // Read Cache (cached wrappers for hot-read paths)
   getCachedSettings,
   getCachedPricing,

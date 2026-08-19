@@ -1,9 +1,8 @@
 /**
  * Unit tests for the skill-collector CLI-detection REST surface (PR #6294 review):
  *
- * - GET/POST /api/github-skills
+ * - GET      /api/github-skills
  * - GET      /api/skills/collect/detect
- * - POST     /api/skills/collect/install
  *
  * Coverage goals (mandatory per PR #6294 plan-file):
  * - Auth-required assertion: every route returns 401/403 when management auth is
@@ -38,7 +37,6 @@ const apiKeysDb = await import("../../src/lib/db/apiKeys.ts");
 // Import routes AFTER env vars are set
 const githubSkillsRoute = await import("../../src/app/api/github-skills/route.ts");
 const detectRoute = await import("../../src/app/api/skills/collect/detect/route.ts");
-const installRoute = await import("../../src/app/api/skills/collect/install/route.ts");
 
 // ── fetch mock — avoid live GitHub API calls ────────────────────────────────
 
@@ -85,10 +83,8 @@ function makeRequest(
   });
 }
 
-// GET/POST /api/github-skills and GET /api/skills/collect/detect are typed as
-// NextRequest; POST /api/skills/collect/install is typed as plain Request. A
-// standard Request satisfies every property NextRequest handlers actually read
-// (method/url/headers/json()) — the same cast pattern as tests/unit/a2a-enabled-route.test.ts.
+// These handlers are typed as NextRequest. A standard Request satisfies every
+// property they actually read (method/url/headers/json()).
 function asNextRequest(req: Request): NextRequest {
   return req as unknown as NextRequest;
 }
@@ -105,7 +101,7 @@ test.beforeEach(async () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// GET/POST /api/github-skills — auth guard
+// GET /api/github-skills — auth guard
 // ═════════════════════════════════════════════════════════════════════════════
 
 test("GET /api/github-skills — 401/403 when auth is required and no token provided", async () => {
@@ -124,20 +120,6 @@ test("GET /api/github-skills — 401/403 when auth is required and no token prov
   assertNoStackTrace(errorMsg);
 });
 
-test("POST /api/github-skills — 401/403 when auth is required and no token provided", async () => {
-  process.env.INITIAL_PASSWORD = "test-password-requires-login";
-
-  const req = makeRequest("POST", "http://localhost/api/github-skills", {
-    repoName: "user/repo",
-  });
-  const res = await githubSkillsRoute.POST(asNextRequest(req));
-
-  assert.ok(
-    res.status === 401 || res.status === 403,
-    `Expected 401 or 403 without auth, got ${res.status}`
-  );
-});
-
 test("GET /api/github-skills — 200 happy path when auth is not required", async () => {
   const req = makeRequest("GET", "http://localhost/api/github-skills?minStars=1&maxResults=5");
   const res = await githubSkillsRoute.GET(asNextRequest(req));
@@ -146,23 +128,6 @@ test("GET /api/github-skills — 200 happy path when auth is not required", asyn
   const body = (await res.json()) as { skills: unknown[]; total: number };
   assert.ok(Array.isArray(body.skills));
   assert.equal(typeof body.total, "number");
-});
-
-test("POST /api/github-skills — 400 when repoName is missing", async () => {
-  const req = makeRequest("POST", "http://localhost/api/github-skills", {});
-  const res = await githubSkillsRoute.POST(asNextRequest(req));
-  assert.equal(res.status, 400);
-});
-
-test("POST /api/github-skills — 200 plans install for a valid repoName", async () => {
-  const req = makeRequest("POST", "http://localhost/api/github-skills", {
-    repoName: "user/skill-example",
-    targets: ["claude"],
-  });
-  const res = await githubSkillsRoute.POST(asNextRequest(req));
-  assert.equal(res.status, 200);
-  const body = (await res.json()) as { results: { target: string; action: string }[] };
-  assert.equal(body.results[0].action, "planned");
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -200,69 +165,4 @@ test("GET /api/skills/collect/detect — 200 happy path when auth is not require
   assert.ok(Array.isArray(body.installedToolIds));
   assert.ok(Array.isArray(body.matchedSkills));
   assert.equal(typeof body.totalSkills, "number");
-});
-
-// ═════════════════════════════════════════════════════════════════════════════
-// POST /api/skills/collect/install — auth guard + happy path
-// ═════════════════════════════════════════════════════════════════════════════
-
-test("POST /api/skills/collect/install — 401/403 when auth is required and no token provided", async () => {
-  process.env.INITIAL_PASSWORD = "test-password-requires-login";
-
-  const req = makeRequest("POST", "http://localhost/api/skills/collect/install", {
-    repoName: "user/skill-example",
-    targets: ["claude"],
-  });
-  const res = await installRoute.POST(req);
-
-  assert.ok(
-    res.status === 401 || res.status === 403,
-    `Expected 401 or 403 without auth, got ${res.status}`
-  );
-  const body = (await res.json()) as { error: { message: string } | string };
-  const errorMsg =
-    typeof body.error === "string" ? body.error : (body.error as { message: string }).message;
-  assertNoStackTrace(errorMsg);
-});
-
-test("POST /api/skills/collect/install — 400 on invalid body (missing repoName)", async () => {
-  const req = makeRequest("POST", "http://localhost/api/skills/collect/install", {
-    targets: ["claude"],
-  });
-  const res = await installRoute.POST(req);
-  assert.equal(res.status, 400);
-});
-
-test("POST /api/skills/collect/install — 200 plans install for a valid body", async () => {
-  const req = makeRequest("POST", "http://localhost/api/skills/collect/install", {
-    repoName: "user/skill-example",
-    targets: ["claude", "codex"],
-    description: "an example agent skill",
-  });
-  const res = await installRoute.POST(req);
-
-  assert.equal(res.status, 200);
-  const body = (await res.json()) as {
-    ok: boolean;
-    results: { target: string; action: string; destDir?: string }[];
-  };
-  assert.equal(body.ok, true);
-  assert.equal(body.results.length, 2);
-  for (const r of body.results) {
-    assert.equal(r.action, "planned");
-    assert.ok(r.destDir);
-  }
-});
-
-test("POST /api/skills/collect/install — 200 with a per-target error for an unknown tool", async () => {
-  const req = makeRequest("POST", "http://localhost/api/skills/collect/install", {
-    repoName: "user/skill-example",
-    targets: ["totally-unknown-tool"],
-  });
-  const res = await installRoute.POST(req);
-
-  assert.equal(res.status, 200);
-  const body = (await res.json()) as { ok: boolean; results: { ok: boolean; action: string }[] };
-  assert.equal(body.ok, false);
-  assert.equal(body.results[0].action, "error");
 });

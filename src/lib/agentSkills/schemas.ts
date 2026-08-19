@@ -28,9 +28,3 @@ export const ListQuerySchema = z.object({
   category: SkillCategorySchema.optional(),
   area: z.string().optional(),
 });
-
-export const GenerateBodySchema = z.object({
-  dryRun: z.boolean().default(true),
-  prune: z.boolean().default(false),
-  onlyIds: z.array(z.string()).optional(),
-});

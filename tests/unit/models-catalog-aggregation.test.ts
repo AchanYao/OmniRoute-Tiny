@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { aggregateExactSameIdModels } from "../../src/app/api/v1/models/catalogAggregation.ts";
+import { completeCatalogThinkingFlags } from "../../src/app/api/v1/models/catalogResponse.ts";
 
 function model(id: string, ownedBy: string, parent: string | null = null) {
   const root = id.slice(id.indexOf("/") + 1);
@@ -124,4 +125,34 @@ test("aggregate infers thinking flags from effort_tiers-only synced members", ()
   assert.equal(result[0].capabilities.thinking, true);
   assert.equal(result[0].capabilities.reasoning, true);
   assert.deepEqual(result[0].capabilities.effort_tiers, ["xhigh", "high", "medium", "low"]);
+});
+
+test("catalog response completes thinking flags for effort_tiers-only entries", () => {
+  const entry = {
+    ...model("gc/grok-4.6", "grok-cli"),
+    capabilities: {
+      effort_tiers: ["xhigh", "high", "medium", "low"],
+      tool_calling: true,
+      reasoning: true,
+    },
+  };
+
+  const result = completeCatalogThinkingFlags(entry);
+
+  assert.equal(result.capabilities.supportsThinking, true);
+  assert.equal(result.capabilities.thinking, true);
+  assert.deepEqual(result.capabilities.effort_tiers, ["xhigh", "high", "medium", "low"]);
+});
+
+test("catalog response preserves an explicit false thinking capability", () => {
+  const result = completeCatalogThinkingFlags({
+    ...model("provider/fixed-effort-model", "provider"),
+    capabilities: {
+      effort_tiers: ["low", "high"],
+      supportsThinking: false,
+    },
+  });
+
+  assert.equal(result.capabilities.supportsThinking, false);
+  assert.equal(result.capabilities.thinking, false);
 });

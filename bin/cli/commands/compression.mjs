@@ -116,9 +116,7 @@ export async function runCompressionConfigure(opts, cmd) {
     config.caveman = { aggressiveness: opts.cavemanAggressiveness };
   if (opts.rtkBudget !== undefined) config.rtk = { tokenBudget: opts.rtkBudget };
   if (opts.languagePack) config.languagePack = opts.languagePack;
-  const data = await mcpCall("omniroute_compression_configure", config, () =>
-    restCompressionConfigure(config)
-  );
+  const data = await restCompressionConfigure(config);
   emit(data, cmd.optsWithGlobals());
 }
 
@@ -128,9 +126,7 @@ export async function runCompressionEngineSet(name, opts, cmd) {
     process.stderr.write(`Unknown engine: ${name}. Valid: ${VALID_ENGINES.join(", ")}\n`);
     process.exit(2);
   }
-  await mcpCall("omniroute_set_compression_engine", { engine: normalized }, () =>
-    restSetEngine(normalized)
-  );
+  await restSetEngine(normalized);
   process.stdout.write(`Engine: ${normalized}\n`);
 }
 

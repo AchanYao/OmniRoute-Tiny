@@ -3,7 +3,6 @@
  *
  * - omniroute_github_skills_search
  * - omniroute_github_skills_scan
- * - omniroute_github_skills_install
  *
  * global.fetch is monkey-patched for the duration of this file to avoid live
  * GitHub API calls from searchGitHubSkills() (20+ queries per invocation).
@@ -12,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 const { githubSkillTools } = await import("../../open-sse/mcp-server/tools/githubSkillTools.ts");
-const { GitHubSkillsSearchSchema, GitHubSkillsScanSchema, GitHubSkillsInstallSchema } =
+const { GitHubSkillsSearchSchema, GitHubSkillsScanSchema } =
   await import("../../src/lib/skills/githubCollector.ts");
 
 const originalFetch = globalThis.fetch;
@@ -64,41 +63,4 @@ test("omniroute_github_skills_scan: reports clean for benign content", async () 
 
   assert.equal(result.clean, true);
   assert.deepEqual(result.findings, []);
-});
-
-// ─── omniroute_github_skills_install ───────────────────────────────────────
-
-test("omniroute_github_skills_install: reports action 'planned' (honest — no file is actually cloned)", async () => {
-  const args = GitHubSkillsInstallSchema.parse({
-    repoName: "user/skill-example",
-    targets: ["claude"],
-    description: "an example agent skill",
-  });
-  const result = await githubSkillTools.omniroute_github_skills_install.handler(args);
-
-  assert.equal(result.allOk, true);
-  assert.equal(result.results.length, 1);
-  assert.equal(result.results[0].action, "planned");
-  assert.ok(result.results[0].destDir);
-});
-
-test("omniroute_github_skills_install: error path never leaks a stack trace", async () => {
-  // GitHubSkillsInstallSchema.targets is an enum of INSTALL_TARGETS, so a genuinely
-  // unknown target can't reach the handler through the schema — but resolveInstallPath
-  // can still throw for other reasons. Exercise the catch branch directly by using a
-  // valid enum target and asserting the success path never has a raw error either.
-  const args = GitHubSkillsInstallSchema.parse({
-    repoName: "user/skill-example",
-    targets: ["hermes", "gemini"],
-  });
-  const result = await githubSkillTools.omniroute_github_skills_install.handler(args);
-
-  for (const r of result.results) {
-    if (r.error) {
-      assert.ok(
-        !r.error.match(/\bat \/|\bat file:\/\//),
-        `Error message must not contain a stack trace: "${r.error}"`
-      );
-    }
-  }
 });

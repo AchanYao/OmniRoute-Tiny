@@ -114,28 +114,6 @@ test("runSkillsGet busca /api/skills/:id", async () => {
   assert.equal(parsed.id, "sk_pdf");
 });
 
-test("runSkillsEnable envia POST para tools/call", async () => {
-  let capturedUrl = "";
-  let capturedInit: any = null;
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((url: string, init: any) => {
-    capturedUrl = url;
-    capturedInit = init;
-    return Promise.resolve(makeResp({ ok: true }));
-  }) as any;
-
-  const { runSkillsEnable } = await import("../../bin/cli/commands/skills.mjs");
-  const out = await captureStdout(() => runSkillsEnable("sk_pdf", {}, makeCmd() as any));
-
-  globalThis.fetch = origFetch;
-  assert.ok(capturedUrl.includes("/api/mcp/tools/call"));
-  const body = JSON.parse(capturedInit?.body);
-  assert.equal(body.name, "omniroute_skills_enable");
-  assert.equal(body.arguments.skillId, "sk_pdf");
-  assert.equal(body.arguments.enabled, true);
-  assert.ok(out.includes("sk_pdf"));
-});
-
 test("runSkillsExecute envia POST com skillId e input", async () => {
   let capturedBody: any = null;
   const origFetch = globalThis.fetch;
@@ -194,28 +172,4 @@ test("runMarketplaceSearch retorna pacotes com query e filtros", async () => {
   const parsed = JSON.parse(out);
   assert.ok(Array.isArray(parsed));
   assert.equal(parsed[0].id, "pkg_pdf");
-});
-
-test("runMarketplaceInstall --yes envia POST sem confirmação", async () => {
-  let capturedBody: any = null;
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((_url: string, init: any) => {
-    capturedBody = JSON.parse(init?.body ?? "{}");
-    return Promise.resolve(makeResp({ skillId: "sk_pdf_installed" }));
-  }) as any;
-
-  const { runMarketplaceInstall } = await import("../../bin/cli/commands/skills.mjs");
-  const out = await captureStdout(() =>
-    runMarketplaceInstall(
-      "pkg_pdf",
-      { yes: true, version: "latest", enable: true },
-      makeCmd() as any
-    )
-  );
-
-  globalThis.fetch = origFetch;
-  assert.equal(capturedBody.packageId, "pkg_pdf");
-  assert.equal(capturedBody.version, "latest");
-  assert.equal(capturedBody.enable, true);
-  assert.ok(out.includes("sk_pdf_installed"));
 });

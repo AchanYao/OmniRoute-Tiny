@@ -23,24 +23,18 @@ interface SkillsShSkill {
 
 interface OmniMarketplaceTabProps {
   skillsProvider: SkillsProvider;
-  onRefreshSkills: () => Promise<void>;
 }
 
-export function OmniMarketplaceTab({
-  skillsProvider,
-  onRefreshSkills,
-}: OmniMarketplaceTabProps): JSX.Element {
+export function OmniMarketplaceTab({ skillsProvider }: OmniMarketplaceTabProps): JSX.Element {
   const t = useTranslations("skills");
   const [mpQuery, setMpQuery] = useState("");
   const [mpResults, setMpResults] = useState<MarketplaceSkill[]>([]);
   const [mpLoading, setMpLoading] = useState(false);
   const [mpError, setMpError] = useState("");
-  const [mpInstallingId, setMpInstallingId] = useState<string | null>(null);
   const [shQuery, setShQuery] = useState("");
   const [shResults, setShResults] = useState<SkillsShSkill[]>([]);
   const [shLoading, setShLoading] = useState(false);
   const [shError, setShError] = useState("");
-  const [shInstallingId, setShInstallingId] = useState<string | null>(null);
 
   const searchMarketplace = async () => {
     setMpLoading(true);
@@ -52,40 +46,14 @@ export function OmniMarketplaceTab({
       if (!res.ok) {
         setMpError((data as { error?: string }).error || t("marketplaceError"));
       } else {
-        setMpResults(Array.isArray(data) ? data : (data as { skills?: MarketplaceSkill[] }).skills || []);
+        setMpResults(
+          Array.isArray(data) ? data : (data as { skills?: MarketplaceSkill[] }).skills || []
+        );
       }
     } catch (err) {
       setMpError(err instanceof Error ? err.message : t("marketplaceError"));
     } finally {
       setMpLoading(false);
-    }
-  };
-
-  const installFromMarketplace = async (skill: MarketplaceSkill) => {
-    setMpInstallingId(skill.name);
-    try {
-      const res = await fetch("/api/skills/marketplace/install", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: skill.name,
-          description: skill.description,
-          skillMdContent: skill.skillMdContent || skill.description,
-          version: skill.version || "1.0.0",
-          sourceUrl: skill.sourceUrl,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && (data as { success?: boolean }).success) {
-        await onRefreshSkills();
-        setMpInstallingId(null);
-      } else {
-        setMpError((data as { error?: string }).error || t("installError"));
-        setMpInstallingId(null);
-      }
-    } catch (err) {
-      setMpError(err instanceof Error ? err.message : t("installError"));
-      setMpInstallingId(null);
     }
   };
 
@@ -108,33 +76,6 @@ export function OmniMarketplaceTab({
     }
   };
 
-  const installFromSkillsSh = async (skill: SkillsShSkill) => {
-    setShInstallingId(skill.id);
-    try {
-      const res = await fetch("/api/skills/skillssh/install", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: skill.name,
-          description: `Installed from skills.sh (${skill.source})`,
-          source: skill.source,
-          skillId: skill.skillId,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && (data as { success?: boolean }).success) {
-        await onRefreshSkills();
-        setShInstallingId(null);
-      } else {
-        setShError((data as { error?: string }).error || t("installError"));
-        setShInstallingId(null);
-      }
-    } catch (err) {
-      setShError(err instanceof Error ? err.message : t("installError"));
-      setShInstallingId(null);
-    }
-  };
-
   return (
     <div className="grid gap-4">
       <Card>
@@ -151,7 +92,9 @@ export function OmniMarketplaceTab({
             type="text"
             value={skillsProvider === "skillsmp" ? mpQuery : shQuery}
             onChange={(e) =>
-              skillsProvider === "skillsmp" ? setMpQuery(e.target.value) : setShQuery(e.target.value)
+              skillsProvider === "skillsmp"
+                ? setMpQuery(e.target.value)
+                : setShQuery(e.target.value)
             }
             onKeyDown={(e) =>
               e.key === "Enter" &&
@@ -190,13 +133,6 @@ export function OmniMarketplaceTab({
                   <h4 className="font-semibold">{skill.name}</h4>
                   <p className="text-sm text-text-muted mt-1">{skill.description}</p>
                 </div>
-                <button
-                  onClick={() => installFromMarketplace(skill)}
-                  disabled={mpInstallingId === skill.name}
-                  className="px-4 py-1.5 text-sm font-medium rounded-lg bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-50 transition-colors"
-                >
-                  {mpInstallingId === skill.name ? t("installing") : t("installSkillButton")}
-                </button>
               </div>
             </Card>
           ))}
@@ -214,13 +150,6 @@ export function OmniMarketplaceTab({
                     {skill.source} · {skill.installs.toLocaleString()} {t("installs")}
                   </p>
                 </div>
-                <button
-                  onClick={() => installFromSkillsSh(skill)}
-                  disabled={shInstallingId === skill.id}
-                  className="px-4 py-1.5 text-sm font-medium rounded-lg bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-50 transition-colors"
-                >
-                  {shInstallingId === skill.id ? t("installing") : t("installSkillButton")}
-                </button>
               </div>
             </Card>
           ))}

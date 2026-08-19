@@ -10,21 +10,14 @@ import { readFileSync } from "node:fs";
 // the observability tools cannot silently fall out of the live MCP server again.
 
 const { poolTools } = await import("../../open-sse/mcp-server/tools/poolTools.ts");
-const {
-  handlePoolStatus,
-  handlePoolSessions,
-  handlePoolReset,
-  handlePoolWarm,
-  handleBrowserPoolStatus,
-} = await import("../../open-sse/mcp-server/tools/poolTools.ts");
+const { handlePoolStatus, handlePoolSessions, handleBrowserPoolStatus } =
+  await import("../../open-sse/mcp-server/tools/poolTools.ts");
 const mcpScopesModule = await import("../../src/shared/constants/mcpScopes.ts");
 const { MCP_TOOL_SCOPES, MCP_SCOPE_LIST } = mcpScopesModule;
 
 const POOL_TOOL_NAMES = [
   "omniroute_pool_status",
   "omniroute_pool_sessions",
-  "omniroute_pool_reset",
-  "omniroute_pool_warm",
   "omniroute_pool_health",
   // #3368 PR7 — stealth browser pool observability
   "omniroute_browser_pool_status",
@@ -96,14 +89,12 @@ test("inline poolTools scopes match the canonical MCP_TOOL_SCOPES map", () => {
   }
 });
 
-test("read tools require read:health; lifecycle tools require write:resilience", () => {
+test("read tools require read:health", () => {
   const tools = poolTools as Record<string, { scopes: string[] }>;
   assert.deepEqual(tools.omniroute_pool_status.scopes, ["read:health"]);
   assert.deepEqual(tools.omniroute_pool_sessions.scopes, ["read:health"]);
   assert.deepEqual(tools.omniroute_pool_health.scopes, ["read:health"]);
   assert.deepEqual(tools.omniroute_browser_pool_status.scopes, ["read:health"]);
-  assert.deepEqual(tools.omniroute_pool_reset.scopes, ["write:resilience"]);
-  assert.deepEqual(tools.omniroute_pool_warm.scopes, ["write:resilience"]);
 });
 
 test("MCP scope constants public surface excludes unused helper bundles", () => {
@@ -139,22 +130,6 @@ test("handlePoolSessions errors clearly for an unknown provider", async () => {
     error?: string;
   };
   assert.match(String(result.error), /No pool found/);
-});
-
-test("handlePoolWarm errors clearly for an unknown provider", async () => {
-  const result = (await handlePoolWarm({ provider: "no-such-provider-3368", count: 6 })) as {
-    error?: string;
-  };
-  assert.match(String(result.error), /No pool found/);
-});
-
-test("handlePoolReset reports reset:false for an unknown provider", async () => {
-  const result = (await handlePoolReset({ provider: "no-such-provider-3368" })) as {
-    reset: boolean;
-    provider: string;
-  };
-  assert.equal(result.reset, false);
-  assert.equal(result.provider, "no-such-provider-3368");
 });
 
 // ── #3368 PR7 — browser pool observability ────────────────────────────────

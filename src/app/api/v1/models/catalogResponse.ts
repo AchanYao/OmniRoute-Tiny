@@ -32,6 +32,47 @@ import { isCodexModelCatalogClient } from "./catalogRequest";
 import { aggregateExactSameIdModels } from "./catalogAggregation";
 
 /**
+ * `effort_tiers` is itself an explicit declaration that callers may select a
+ * thinking level. Some synced, non-aggregated entries carry the tiers without
+ * the two boolean aliases clients use as their UI gate. Complete only missing
+ * aliases; an explicit provider `false` remains authoritative.
+ */
+export function completeCatalogThinkingFlags(model: Record<string, any>): Record<string, any> {
+  const capabilities = model.capabilities;
+  if (!capabilities || typeof capabilities !== "object") return model;
+  if (
+    !Array.isArray(capabilities.effort_tiers) ||
+    !capabilities.effort_tiers.some(
+      (effort: unknown) => typeof effort === "string" && effort.length > 0
+    )
+  ) {
+    return model;
+  }
+  if (
+    typeof capabilities.supportsThinking === "boolean" &&
+    typeof capabilities.thinking === "boolean"
+  ) {
+    return model;
+  }
+  const inferredThinking =
+    typeof capabilities.supportsThinking === "boolean"
+      ? capabilities.supportsThinking
+      : typeof capabilities.thinking === "boolean"
+        ? capabilities.thinking
+        : true;
+  return {
+    ...model,
+    capabilities: {
+      ...capabilities,
+      ...(typeof capabilities.supportsThinking === "boolean"
+        ? {}
+        : { supportsThinking: inferredThinking }),
+      ...(typeof capabilities.thinking === "boolean" ? {} : { thinking: inferredThinking }),
+    },
+  };
+}
+
+/**
  * Post-filter chain applied AFTER the API-key filter, so variants and mirrors are
  * only derived from models the caller may actually see.
  *
@@ -167,7 +208,9 @@ export function finalizeCatalogResponse(
   // and equal-id audio twins. Grouped by owned_by (canonical identity), not the
   // routing alias prefix. Applied after enrichment/disambiguation so the final
   // serialized order is what every consumer sees; cached as part of the body.
-  const orderedModels = sortCatalogModelsProviderGrouped(enrichedModels);
+  const orderedModels = sortCatalogModelsProviderGrouped(
+    enrichedModels.map(completeCatalogThinkingFlags)
+  );
   // Codex CLI compatibility: its model-catalog refresh (codex_models_manager) does
   // GET /v1/models?client_version=<v> and decodes a JSON object with a TOP-LEVEL
   // `models` array, so the OpenAI-standard `{object,data}` shape makes it fail with

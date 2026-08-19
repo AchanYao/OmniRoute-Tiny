@@ -11,17 +11,12 @@
  */
 
 import { z } from "zod";
-import { sanitizeErrorMessage } from "../../utils/error.ts";
 import {
   searchGitHubSkills,
   scanText,
-  resolveInstallPath,
   GitHubSkillsSearchSchema,
   GitHubSkillsScanSchema,
-  GitHubSkillsInstallSchema,
-  INSTALL_TARGETS,
   type GitHubSkillRepo,
-  type SkillInstallResult,
 } from "@/lib/skills/githubCollector";
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -69,41 +64,6 @@ async function handleScan(args: z.infer<typeof GitHubSkillsScanSchema>) {
   };
 }
 
-async function handleInstall(args: z.infer<typeof GitHubSkillsInstallSchema>) {
-  const results: SkillInstallResult[] = [];
-  const skillName = args.repoName.split("/").pop() || args.repoName;
-
-  for (const target of args.targets) {
-    try {
-      const dest = resolveInstallPath(target, skillName, args.description);
-      // In a real implementation, this would clone the repo and copy files.
-      // For now, we return the planned install path as a dry-run result — matches
-      // the honest `action: "planned"` the REST route (/api/github-skills POST)
-      // reports for the same operation.
-      results.push({
-        target,
-        ok: true,
-        action: "planned",
-        destDir: dest,
-      });
-    } catch (err) {
-      results.push({
-        target,
-        ok: false,
-        action: "error",
-        error: sanitizeErrorMessage((err as Error).message),
-      });
-    }
-  }
-
-  return {
-    repoName: args.repoName,
-    skillName,
-    results,
-    allOk: results.every((r) => r.ok),
-  };
-}
-
 // ── Tool Definitions ─────────────────────────────────────────────────────────
 
 export const githubSkillTools = {
@@ -127,17 +87,5 @@ export const githubSkillTools = {
     inputSchema: GitHubSkillsScanSchema,
     scopes: ["read:skills"],
     handler: handleScan,
-  },
-
-  omniroute_github_skills_install: {
-    name: "omniroute_github_skills_install",
-    description:
-      "Preview or plan the installation of a discovered GitHub skill into one or more agent directories " +
-      "(Hermes: ~/AppData/Local/hermes/skills/, Claude: ~/.claude/skills/, Gemini: ~/.gemini/skills/, " +
-      "OpenCode: ~/.opencode/skills/). Categorizes the skill based on its name and description. " +
-      "Returns the target paths where the skill would be installed.",
-    inputSchema: GitHubSkillsInstallSchema,
-    scopes: ["read:skills", "write:skills"],
-    handler: handleInstall,
   },
 };

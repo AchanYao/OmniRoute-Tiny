@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const { AgentSkillSchema, SkillCoverageSchema, ListQuerySchema, GenerateBodySchema } =
+const { AgentSkillSchema, SkillCoverageSchema, ListQuerySchema } =
   await import("../../src/lib/agentSkills/schemas.ts");
 
 test("agent skills schemas module exposes runtime validators", async () => {
@@ -9,7 +9,6 @@ test("agent skills schemas module exposes runtime validators", async () => {
 
   for (const key of [
     "AgentSkillSchema",
-    "GenerateBodySchema",
     "ListQuerySchema",
     "SkillCategorySchema",
     "SkillCoverageSchema",
@@ -218,38 +217,4 @@ test("ListQuerySchema — area filter parses successfully", () => {
   if (result.success) {
     assert.equal(result.data.area, "cli-serve");
   }
-});
-
-// ─── GenerateBodySchema ───────────────────────────────────────────────────────
-
-test("GenerateBodySchema — empty object applies defaults", () => {
-  const result = GenerateBodySchema.safeParse({});
-  assert.equal(result.success, true);
-  if (result.success) {
-    assert.equal(result.data.dryRun, true);
-    assert.equal(result.data.prune, false);
-    assert.equal(result.data.onlyIds, undefined);
-  }
-});
-
-test("GenerateBodySchema — explicit dryRun=false parses", () => {
-  const result = GenerateBodySchema.safeParse({ dryRun: false, prune: true });
-  assert.equal(result.success, true);
-  if (result.success) {
-    assert.equal(result.data.dryRun, false);
-    assert.equal(result.data.prune, true);
-  }
-});
-
-test("GenerateBodySchema — onlyIds array parses", () => {
-  const result = GenerateBodySchema.safeParse({ onlyIds: ["omni-providers", "cli-serve"] });
-  assert.equal(result.success, true);
-  if (result.success) {
-    assert.deepEqual(result.data.onlyIds, ["omni-providers", "cli-serve"]);
-  }
-});
-
-test("GenerateBodySchema — non-boolean dryRun fails", () => {
-  const result = GenerateBodySchema.safeParse({ dryRun: "yes" });
-  assert.equal(result.success, false);
 });

@@ -750,28 +750,6 @@ export function createMcpServer(): McpServer {
   );
 
   server.registerTool(
-    "omniroute_switch_combo",
-    {
-      description: "Activates or deactivates a combo for routing",
-      inputSchema: switchComboInput,
-    },
-    withScopeEnforcement("omniroute_switch_combo", (args) =>
-      handleSwitchCombo(switchComboInput.parse(args))
-    )
-  );
-
-  server.registerTool(
-    "omniroute_create_combo",
-    {
-      description: "Registers a new combo (model chain) with name, models, and strategy",
-      inputSchema: createComboInput,
-    },
-    withScopeEnforcement("omniroute_create_combo", (args) =>
-      handleCreateCombo(createComboInput.parse(args))
-    )
-  );
-
-  server.registerTool(
     "omniroute_check_quota",
     {
       description: "Checks remaining API quota for one or all providers",
@@ -823,42 +801,6 @@ export function createMcpServer(): McpServer {
     },
     withScopeEnforcement("omniroute_simulate_route", (args) =>
       handleSimulateRoute(simulateRouteInput.parse(args))
-    )
-  );
-
-  server.registerTool(
-    "omniroute_set_budget_guard",
-    {
-      description:
-        "Sets a session budget limit with configurable action when exceeded (degrade/block/alert)",
-      inputSchema: setBudgetGuardInput,
-    },
-    withScopeEnforcement("omniroute_set_budget_guard", (args) =>
-      handleSetBudgetGuard(setBudgetGuardInput.parse(args))
-    )
-  );
-
-  server.registerTool(
-    "omniroute_set_routing_strategy",
-    {
-      description:
-        "Updates combo routing strategy at runtime (priority/weighted/round-robin/auto/etc.)",
-      inputSchema: setRoutingStrategyInput,
-    },
-    withScopeEnforcement("omniroute_set_routing_strategy", (args) =>
-      handleSetRoutingStrategy(setRoutingStrategyInput.parse(args))
-    )
-  );
-
-  server.registerTool(
-    "omniroute_set_resilience_profile",
-    {
-      description:
-        "Applies a resilience profile controlling circuit breakers, retries, timeouts, and fallback depth",
-      inputSchema: setResilienceProfileInput,
-    },
-    withScopeEnforcement("omniroute_set_resilience_profile", (args) =>
-      handleSetResilienceProfile(setResilienceProfileInput.parse(args))
     )
   );
 
@@ -935,30 +877,6 @@ export function createMcpServer(): McpServer {
   );
 
   server.registerTool(
-    "omniroute_db_health_check",
-    {
-      description:
-        "Diagnoses or repairs OmniRoute database drift, including broken combo references and orphan quota/domain rows",
-      inputSchema: dbHealthCheckInput,
-    },
-    withScopeEnforcement("omniroute_db_health_check", (args) =>
-      handleDbHealthCheck(dbHealthCheckInput.parse(args ?? {}))
-    )
-  );
-
-  server.registerTool(
-    "omniroute_sync_pricing",
-    {
-      description:
-        "Syncs pricing data from external sources (LiteLLM) into OmniRoute without overwriting user-set prices",
-      inputSchema: syncPricingInput,
-    },
-    withScopeEnforcement("omniroute_sync_pricing", (args) =>
-      handleSyncPricing(syncPricingInput.parse(args))
-    )
-  );
-
-  server.registerTool(
     "omniroute_web_search",
     {
       description:
@@ -988,18 +906,6 @@ export function createMcpServer(): McpServer {
       inputSchema: cacheStatsInput,
     },
     withScopeEnforcement("omniroute_cache_stats", () => handleCacheStats())
-  );
-
-  server.registerTool(
-    "omniroute_cache_flush",
-    {
-      description:
-        "Flush cache entries. Provide signature to invalidate a single entry, model to invalidate all entries for a model, or omit both to clear all.",
-      inputSchema: cacheFlushInput,
-    },
-    withScopeEnforcement("omniroute_cache_flush", (args) =>
-      handleCacheFlush(cacheFlushInput.parse(args))
-    )
   );
 
   server.registerTool(

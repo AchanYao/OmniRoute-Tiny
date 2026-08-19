@@ -1,14 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import {
-  MCP_TOOLS,
-  MCP_TOOL_MAP,
-  cacheStatsInput,
-  cacheFlushInput,
-  cacheStatsTool,
-  cacheFlushTool,
-} from "../schemas/tools.ts";
+import { MCP_TOOLS, MCP_TOOL_MAP, cacheStatsInput, cacheStatsTool } from "../schemas/tools.ts";
 import { createMcpServer } from "../server.ts";
 
 vi.mock("../audit.ts", () => ({
@@ -19,20 +12,15 @@ vi.mock("../audit.ts", () => ({
 describe("cache MCP tools", () => {
   it("should be registered in MCP_TOOLS and MCP_TOOL_MAP", () => {
     expect(MCP_TOOLS.find((tool) => tool.name === "omniroute_cache_stats")).toBeDefined();
-    expect(MCP_TOOLS.find((tool) => tool.name === "omniroute_cache_flush")).toBeDefined();
     expect(MCP_TOOL_MAP.omniroute_cache_stats).toBeDefined();
-    expect(MCP_TOOL_MAP.omniroute_cache_flush).toBeDefined();
   });
 
   it("should validate cache tool input schemas", () => {
     expect(cacheStatsInput.safeParse({}).success).toBe(true);
-    expect(cacheFlushInput.safeParse({ model: "openai/gpt-4.1" }).success).toBe(true);
-    expect(cacheFlushInput.safeParse({ signature: "sig_123" }).success).toBe(true);
   });
 
   it("should expose the correct cache scopes", () => {
     expect(cacheStatsTool.scopes).toContain("read:cache");
-    expect(cacheFlushTool.scopes).toContain("write:cache");
   });
 });
 
@@ -56,7 +44,6 @@ describe("cache MCP tools registration", () => {
     const names = tools.map((tool) => tool.name);
 
     expect(names).toContain("omniroute_cache_stats");
-    expect(names).toContain("omniroute_cache_flush");
-    expect(tools.length).toBeGreaterThanOrEqual(29);
+    expect(tools.length).toBeGreaterThanOrEqual(15);
   });
 });

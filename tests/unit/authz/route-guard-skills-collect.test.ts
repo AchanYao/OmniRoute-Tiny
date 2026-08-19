@@ -16,17 +16,14 @@ import { SPAWN_CAPABLE_ROUTE_ROOTS } from "../../../scripts/check/check-route-gu
 
 test("isLocalOnlyPath: /api/skills/collect/ prefix is local-only (Hard Rules #15/#17)", () => {
   assert.equal(isLocalOnlyPath("/api/skills/collect/detect"), true);
-  assert.equal(isLocalOnlyPath("/api/skills/collect/install"), true);
   assert.equal(isLocalOnlyPath("/api/skills/collect/"), true);
 });
 
 test("isLocalOnlyPath: the rest of /api/skills/ stays remote-reachable (no over-broadening)", () => {
   // Only the spawn-capable collect/* subtree is loopback-locked. The rest of the
-  // skills surface (registry install, marketplace, skillssh) already gates on
-  // requireManagementAuth() and must remain reachable remotely.
+  // read and execution surfaces remain reachable remotely and enforce their
+  // own authentication requirements.
   assert.equal(isLocalOnlyPath("/api/skills"), false);
-  assert.equal(isLocalOnlyPath("/api/skills/install"), false);
-  assert.equal(isLocalOnlyPath("/api/skills/marketplace/install"), false);
 });
 
 test("isLocalOnlyBypassableByManageScope: /api/skills/collect/ is NOT bypassable (defence in depth)", () => {

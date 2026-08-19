@@ -120,48 +120,41 @@ omniroute --mcp
 
 ## Tool Reference
 
-### Phase 1: Essential Tools (8)
+### Phase 1: Essential Tools (7)
 
 | #   | Tool                            | Scopes                | Description                                                                |
 | --- | ------------------------------- | --------------------- | -------------------------------------------------------------------------- |
 | 1   | `omniroute_get_health`          | `read:health`         | Gateway health, uptime, memory, circuit breakers, rate limits, cache stats |
 | 2   | `omniroute_list_combos`         | `read:combos`         | List all combos (model chains) with strategies and optional metrics        |
 | 3   | `omniroute_get_combo_metrics`   | `read:combos`         | Performance metrics for a specific combo                                   |
-| 4   | `omniroute_switch_combo`        | `write:combos`        | Activate or deactivate a combo for routing                                 |
 | 5   | `omniroute_check_quota`         | `read:quota`          | Remaining API quota per provider with token health status                  |
 | 6   | `omniroute_route_request`       | `execute:completions` | Send a chat completion through intelligent routing                         |
 | 7   | `omniroute_cost_report`         | `read:usage`          | Cost report by period (session/day/week/month) with per-provider breakdown |
 | 8   | `omniroute_list_models_catalog` | `read:models`         | List all available models across providers with capabilities and pricing   |
 
-### Phase 2: Advanced Tools (8)
+### Phase 2: Advanced Tools (6)
 
-| #   | Tool                               | Scopes                               | Description                                                                                    |
-| --- | ---------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| 9   | `omniroute_simulate_route`         | `read:health`, `read:combos`         | Dry-run routing simulation showing fallback tree and estimated costs                           |
-| 10  | `omniroute_set_budget_guard`       | `write:budget`                       | Set session budget with action on exceed: `degrade`, `block`, or `alert`                       |
-| 11  | `omniroute_set_resilience_profile` | `write:resilience`                   | Apply resilience profile: `aggressive`, `balanced`, or `conservative`                          |
-| 12  | `omniroute_test_combo`             | `execute:completions`, `read:combos` | Test each provider in a combo with a real prompt and a real upstream call, report latency/cost |
-| 13  | `omniroute_get_provider_metrics`   | `read:health`                        | Per-provider metrics with latency percentiles (p50/p95/p99), circuit breaker                   |
-| 14  | `omniroute_best_combo_for_task`    | `read:combos`, `read:health`         | AI-powered combo recommendation by task type with budget/latency constraints                   |
-| 15  | `omniroute_explain_route`          | `read:health`, `read:usage`          | Explain why a request was routed to a provider (scoring factors, fallbacks)                    |
-| 16  | `omniroute_get_session_snapshot`   | `read:usage`                         | Full session snapshot: cost, tokens, top models, errors, budget status                         |
+| #   | Tool                             | Scopes                               | Description                                                                                    |
+| --- | -------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| 9   | `omniroute_simulate_route`       | `read:health`, `read:combos`         | Dry-run routing simulation showing fallback tree and estimated costs                           |
+| 12  | `omniroute_test_combo`           | `execute:completions`, `read:combos` | Test each provider in a combo with a real prompt and a real upstream call, report latency/cost |
+| 13  | `omniroute_get_provider_metrics` | `read:health`                        | Per-provider metrics with latency percentiles (p50/p95/p99), circuit breaker                   |
+| 14  | `omniroute_best_combo_for_task`  | `read:combos`, `read:health`         | AI-powered combo recommendation by task type with budget/latency constraints                   |
+| 15  | `omniroute_explain_route`        | `read:health`, `read:usage`          | Explain why a request was routed to a provider (scoring factors, fallbacks)                    |
+| 16  | `omniroute_get_session_snapshot` | `read:usage`                         | Full session snapshot: cost, tokens, top models, errors, budget status                         |
 
 ### Cache and Compression Tools
 
 | #   | Tool                                | Scopes              | Description                                                                  |
 | --- | ----------------------------------- | ------------------- | ---------------------------------------------------------------------------- |
 | 21  | `omniroute_cache_stats`             | `read:cache`        | Semantic cache, prompt-cache, and idempotency statistics                     |
-| 22  | `omniroute_cache_flush`             | `write:cache`       | Flush cache entries globally or by signature/model                           |
 | 23  | `omniroute_compression_status`      | `read:compression`  | Compression settings, analytics summary, and provider-aware cache statistics |
-| 24  | `omniroute_compression_configure`   | `write:compression` | Configure compression mode and trigger thresholds at runtime                 |
 | 25  | `omniroute_set_compression_engine`  | `write:compression` | Set Caveman, RTK, or stacked compression mode and pipeline                   |
 | 26  | `omniroute_list_compression_combos` | `read:compression`  | List named compression combos and routing assignments                        |
 | 27  | `omniroute_compression_combo_stats` | `read:compression`  | Read analytics grouped by compression combo and engine                       |
-| 28  | `omniroute_ccr_store`               | `write:compression` | Store content in the caller-isolated in-memory CCR store                     |
 | 29  | `omniroute_ccr_retrieve`            | `read:compression`  | Retrieve full or ranged caller-owned CCR content                             |
 | 30  | `omniroute_ccr_inspect`             | `read:compression`  | Inspect CCR metadata without returning content                               |
 | 31  | `omniroute_ccr_list`                | `read:compression`  | List paginated caller-owned CCR metadata                                     |
-| 32  | `omniroute_ccr_delete`              | `write:compression` | Delete a caller-owned CCR block                                              |
 | 33  | `omniroute_ccr_stats`               | `read:compression`  | Report caller usage, bounded-store limits, and lifecycle counters            |
 
 CCR storage is bounded and in-memory only: 2 MiB per block, 16 MiB per principal, 64 MiB global,
@@ -220,15 +213,7 @@ async def main():
             })
             print("Best combo:", best.content[0].text)
 
-            # 4. Set a session budget guard
-            budget = await session.call_tool("omniroute_set_budget_guard", {
-                "maxCost": 1.00,
-                "action": "degrade",
-                "degradeToTier": "cheap",
-            })
-            print("Budget guard:", budget.content[0].text)
-
-            # 5. Route a request through intelligent pipeline
+            # 4. Route a request through intelligent pipeline
             response = await session.call_tool("omniroute_route_request", {
                 "model": "claude-sonnet-4",
                 "messages": [
@@ -238,7 +223,7 @@ async def main():
             })
             print("Response:", response.content[0].text)
 
-            # 6. Get the session snapshot
+            # 5. Get the session snapshot
             snapshot = await session.call_tool("omniroute_get_session_snapshot", {})
             print("Session:", snapshot.content[0].text)
 
@@ -396,41 +381,23 @@ async def auto_healing_loop(session):
         ]
 
         if broken:
-            # Switch to a different resilience profile
-            await session.call_tool("omniroute_set_resilience_profile", {
-                "profile": "conservative"
-            })
-
             # Find best alternative combo
             best = await session.call_tool("omniroute_best_combo_for_task", {
                 "taskType": "coding"
             })
             best_data = json.loads(best.content[0].text)
-            combo_id = best_data["recommendedCombo"]["id"]
-
-            # Activate it
-            await session.call_tool("omniroute_switch_combo", {
-                "comboId": combo_id, "active": True
-            })
-            print(f"⚠️ Auto-healed: switched to {combo_id}")
+            print(f"⚠️ Recommended fallback: {best_data['recommendedCombo']['id']}")
 
         await asyncio.sleep(30)  # Check every 30 seconds
 ```
 
-### 💰 Use Case 2: Budget-Aware Coding Agent
+### 💰 Use Case 2: Cost-Aware Coding Agent
 
 An agent that monitors costs in real-time and degrades to cheaper models when nearing budget.
 
 ```python
-async def budget_aware_coding(session, task: str, max_budget: float):
-    """Complete a coding task within a budget."""
-    # Set budget guard
-    await session.call_tool("omniroute_set_budget_guard", {
-        "maxCost": max_budget,
-        "action": "degrade",
-        "degradeToTier": "cheap",
-    })
-
+async def cost_aware_coding(session, task: str):
+    """Estimate cost before routing a coding task."""
     # Simulate first to estimate cost
     sim = await session.call_tool("omniroute_simulate_route", {
         "model": "claude-sonnet-4",

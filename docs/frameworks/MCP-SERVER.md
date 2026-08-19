@@ -64,14 +64,13 @@ Cursor, Cline, and compatible MCP client setup.
 
 ---
 
-## Essential Tools (8) — Phase 1
+## Essential Tools (7) — Phase 1
 
 | Tool                            | Scopes                | Description                                                   |
 | :------------------------------ | :-------------------- | :------------------------------------------------------------ |
 | `omniroute_get_health`          | `read:health`         | Uptime, memory, circuit breakers, rate limits, cache stats    |
 | `omniroute_list_combos`         | `read:combos`         | All configured combos with strategies (optional metrics)      |
 | `omniroute_get_combo_metrics`   | `read:combos`         | Performance metrics for a specific combo                      |
-| `omniroute_switch_combo`        | `write:combos`        | Activate or deactivate a combo                                |
 | `omniroute_check_quota`         | `read:quota`          | Quota used/total, percent remaining, reset time, token health |
 | `omniroute_route_request`       | `execute:completions` | Send a chat completion through OmniRoute routing              |
 | `omniroute_cost_report`         | `read:usage`          | Cost report by period (session/day/week/month)                |
@@ -83,43 +82,34 @@ Cursor, Cline, and compatible MCP client setup.
 | :--------------------- | :--------------- | :--------------------------------------------------------------------------------------------------------------------------------- |
 | `omniroute_web_search` | `execute:search` | Web search through OmniRoute search gateway (Serper/Brave/Perplexity/Exa/Tavily/Google PSE/Linkup/SearchAPI/SearXNG) with failover |
 
-## Advanced Tools (11) — Phase 2
+## Advanced Tools (6) — Phase 2
 
-| Tool                               | Scopes                               | Description                                                                               |
-| :--------------------------------- | :----------------------------------- | :---------------------------------------------------------------------------------------- |
-| `omniroute_simulate_route`         | `read:health`, `read:combos`         | Dry-run routing simulation with fallback tree                                             |
-| `omniroute_set_budget_guard`       | `write:budget`                       | Session budget with degrade/block/alert action                                            |
-| `omniroute_set_routing_strategy`   | `write:combos`                       | Update combo strategy at runtime (priority/weighted/auto/etc.)                            |
-| `omniroute_set_resilience_profile` | `write:resilience`                   | Apply `aggressive` / `balanced` / `conservative` resilience preset                        |
-| `omniroute_test_combo`             | `execute:completions`, `read:combos` | Live test of every provider in a combo using a real upstream call                         |
-| `omniroute_get_provider_metrics`   | `read:health`                        | Per-provider metrics with p50/p95/p99 latency and circuit breaker state                   |
-| `omniroute_best_combo_for_task`    | `read:combos`, `read:health`         | Recommend combo by task type with budget/latency constraints                              |
-| `omniroute_explain_route`          | `read:health`, `read:usage`          | Explain why a request was routed to a provider (scoring factors + fallbacks)              |
-| `omniroute_get_session_snapshot`   | `read:usage`                         | Full session snapshot: cost, tokens, top models/providers, errors, budget guard           |
-| `omniroute_db_health_check`        | `read:health`, `write:resilience`    | Diagnose (and optionally auto-repair) database drift like broken combo refs / orphan rows |
-| `omniroute_sync_pricing`           | `pricing:write`                      | Sync pricing data from external sources (LiteLLM); supports `dryRun`                      |
+| Tool                             | Scopes                               | Description                                                                     |
+| :------------------------------- | :----------------------------------- | :------------------------------------------------------------------------------ |
+| `omniroute_simulate_route`       | `read:health`, `read:combos`         | Dry-run routing simulation with fallback tree                                   |
+| `omniroute_test_combo`           | `execute:completions`, `read:combos` | Live test of every provider in a combo using a real upstream call               |
+| `omniroute_get_provider_metrics` | `read:health`                        | Per-provider metrics with p50/p95/p99 latency and circuit breaker state         |
+| `omniroute_best_combo_for_task`  | `read:combos`, `read:health`         | Recommend combo by task type with budget/latency constraints                    |
+| `omniroute_explain_route`        | `read:health`, `read:usage`          | Explain why a request was routed to a provider (scoring factors + fallbacks)    |
+| `omniroute_get_session_snapshot` | `read:usage`                         | Full session snapshot: cost, tokens, top models/providers, errors, budget guard |
 
-## Cache Tools (2)
+## Cache Tools (1)
 
-| Tool                    | Scopes        | Description                                         |
-| :---------------------- | :------------ | :-------------------------------------------------- |
-| `omniroute_cache_stats` | `read:cache`  | Semantic cache, prompt-cache, and idempotency stats |
-| `omniroute_cache_flush` | `write:cache` | Flush cache globally or by signature/model          |
+| Tool                    | Scopes       | Description                                         |
+| :---------------------- | :----------- | :-------------------------------------------------- |
+| `omniroute_cache_stats` | `read:cache` | Semantic cache, prompt-cache, and idempotency stats |
 
-## Compression Tools (13)
+## Compression Tools (9)
 
 | Tool                                | Scopes              | Description                                                                                                              |
 | :---------------------------------- | :------------------ | :----------------------------------------------------------------------------------------------------------------------- |
 | `omniroute_compression_status`      | `read:compression`  | Compression settings, analytics summary, and cache-aware stats (includes `analytics.mcpDescriptionCompression` metadata) |
-| `omniroute_compression_configure`   | `write:compression` | Configure compression mode, threshold, target ratio, system-prompt preservation, MCP description compression toggle      |
 | `omniroute_set_compression_engine`  | `write:compression` | Pick the active engine (off/caveman/rtk/stacked) and Caveman/RTK intensity                                               |
 | `omniroute_list_compression_combos` | `read:compression`  | List named compression combos and their engine pipelines                                                                 |
 | `omniroute_compression_combo_stats` | `read:compression`  | Analytics grouped by compression combo and engine                                                                        |
-| `omniroute_ccr_store`               | `write:compression` | Store caller-isolated content in the bounded in-memory CCR store and return a marker plus `ccr://` reference             |
 | `omniroute_ccr_retrieve`            | `read:compression`  | Retrieve CCR content in full or with head, tail, lines, grep, and stats modes                                            |
 | `omniroute_ccr_inspect`             | `read:compression`  | Inspect caller-owned CCR metadata without returning content                                                              |
 | `omniroute_ccr_list`                | `read:compression`  | List paginated metadata for caller-owned CCR blocks                                                                      |
-| `omniroute_ccr_delete`              | `write:compression` | Delete a caller-owned CCR block                                                                                          |
 | `omniroute_ccr_stats`               | `read:compression`  | Report caller-scoped memory usage, lifecycle counters, and store limits                                                  |
 | `omniroute_rtk_discover`            | `read:compression`  | Discover recurring noise in opt-in RTK output samples                                                                    |
 | `omniroute_rtk_learn`               | `read:compression`  | Generate a reviewable RTK filter draft from opt-in samples                                                               |
@@ -164,24 +154,21 @@ the runtime compression model behind these tools.
 | `omniroute_oneproxy_rotate` | `read:proxies` | Get the next available proxy by strategy (`random` / `quality` / `sequential`)          |
 | `omniroute_oneproxy_stats`  | `read:proxies` | Pool stats, sync status, distribution by protocol and country                           |
 
-## Memory Tools (3)
+## Memory Tools (1)
 
 Defined in `open-sse/mcp-server/tools/memoryTools.ts`. Auth/scope is enforced through the standard MCP scope pipeline.
 
-| Tool                      | Scopes         | Description                                                                         |
-| :------------------------ | :------------- | :---------------------------------------------------------------------------------- |
-| `omniroute_memory_search` | `read:memory`  | Search memories by query / type / API key with token-budget enforcement             |
-| `omniroute_memory_add`    | `write:memory` | Add a new memory entry (`factual` / `episodic` / `procedural` / `semantic`)         |
-| `omniroute_memory_clear`  | `write:memory` | Clear memories for an API key, optionally filtered by type or `olderThan` timestamp |
+| Tool                      | Scopes        | Description                                                             |
+| :------------------------ | :------------ | :---------------------------------------------------------------------- |
+| `omniroute_memory_search` | `read:memory` | Search memories by query / type / API key with token-budget enforcement |
 
-## Skill Tools (4)
+## Skill Tools (3)
 
 Defined in `open-sse/mcp-server/tools/skillTools.ts`. Backed by `src/lib/skills/registry` + `src/lib/skills/executor`.
 
 | Tool                          | Scopes           | Description                                                                       |
 | :---------------------------- | :--------------- | :-------------------------------------------------------------------------------- |
 | `omniroute_skills_list`       | `read:skills`    | List registered skills with optional filtering by API key, name, or enabled state |
-| `omniroute_skills_enable`     | `write:skills`   | Enable or disable a specific skill by ID                                          |
 | `omniroute_skills_execute`    | `execute:skills` | Execute a skill with provided input and return the execution record               |
 | `omniroute_skills_executions` | `read:skills`    | List recent skill execution history                                               |
 

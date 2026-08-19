@@ -21,8 +21,6 @@ interface OmniSkillsListProps {
   onPagePrev: () => void;
   onPageNext: () => void;
   onSelectSkill: (id: string) => void;
-  onSetMode: (skillId: string, mode: "on" | "off" | "auto") => void;
-  onUninstall: (skillId: string) => void;
 }
 
 export function OmniSkillsList({
@@ -40,8 +38,6 @@ export function OmniSkillsList({
   onPagePrev,
   onPageNext,
   onSelectSkill,
-  onSetMode,
-  onUninstall,
 }: OmniSkillsListProps): JSX.Element {
   const t = useTranslations("skills");
 
@@ -144,12 +140,7 @@ export function OmniSkillsList({
       {/* Right: inspector pane */}
       <div className="col-span-12 lg:col-span-5">
         <div className="sticky top-4 rounded-xl border border-border bg-surface/30 overflow-hidden min-h-[400px]">
-          <SkillInspectorPane
-            selectedSkillId={selectedSkillId}
-            skill={selectedSkill}
-            onSetMode={onSetMode}
-            onUninstall={onUninstall}
-          />
+          <SkillInspectorPane selectedSkillId={selectedSkillId} skill={selectedSkill} />
         </div>
       </div>
     </div>

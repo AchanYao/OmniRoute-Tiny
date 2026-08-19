@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, Button } from "@/shared/components";
 import { useTranslations } from "next-intl";
 
@@ -70,103 +70,7 @@ type McpAuditResponse = {
   offset: number;
 };
 
-type Combo = {
-  id: string;
-  name: string;
-  isActive?: boolean;
-};
-
 const AUDIT_PAGE_SIZE = 20;
-
-const RESILIENCE_PRESETS = {
-  aggressive: {
-    requestQueue: {
-      requestsPerMinute: 180,
-      minTimeBetweenRequestsMs: 100,
-      concurrentRequests: 16,
-    },
-    connectionCooldown: {
-      oauth: {
-        baseCooldownMs: 30000,
-        useUpstreamRetryHints: false,
-        maxBackoffSteps: 4,
-      },
-      apikey: {
-        baseCooldownMs: 2000,
-        useUpstreamRetryHints: true,
-        maxBackoffSteps: 3,
-      },
-    },
-    providerBreaker: {
-      oauth: {
-        failureThreshold: 2,
-        resetTimeoutMs: 30000,
-      },
-      apikey: {
-        failureThreshold: 3,
-        resetTimeoutMs: 15000,
-      },
-    },
-  },
-  balanced: {
-    requestQueue: {
-      requestsPerMinute: 100,
-      minTimeBetweenRequestsMs: 200,
-      concurrentRequests: 10,
-    },
-    connectionCooldown: {
-      oauth: {
-        baseCooldownMs: 60000,
-        useUpstreamRetryHints: false,
-        maxBackoffSteps: 8,
-      },
-      apikey: {
-        baseCooldownMs: 3000,
-        useUpstreamRetryHints: true,
-        maxBackoffSteps: 5,
-      },
-    },
-    providerBreaker: {
-      oauth: {
-        failureThreshold: 3,
-        resetTimeoutMs: 60000,
-      },
-      apikey: {
-        failureThreshold: 5,
-        resetTimeoutMs: 30000,
-      },
-    },
-  },
-  conservative: {
-    requestQueue: {
-      requestsPerMinute: 60,
-      minTimeBetweenRequestsMs: 350,
-      concurrentRequests: 6,
-    },
-    connectionCooldown: {
-      oauth: {
-        baseCooldownMs: 120000,
-        useUpstreamRetryHints: false,
-        maxBackoffSteps: 10,
-      },
-      apikey: {
-        baseCooldownMs: 30000,
-        useUpstreamRetryHints: false,
-        maxBackoffSteps: 8,
-      },
-    },
-    providerBreaker: {
-      oauth: {
-        failureThreshold: 8,
-        resetTimeoutMs: 120000,
-      },
-      apikey: {
-        failureThreshold: 8,
-        resetTimeoutMs: 60000,
-      },
-    },
-  },
-} as const;
 
 function formatDuration(ms: number | null | undefined) {
   if (typeof ms !== "number" || !Number.isFinite(ms)) return "—";
@@ -184,7 +88,6 @@ export default function McpDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<McpStatusResponse | null>(null);
   const [tools, setTools] = useState<McpTool[]>([]);
-  const [combos, setCombos] = useState<Combo[]>([]);
 
   const [toolFilter, setToolFilter] = useState("");
   const [successFilter, setSuccessFilter] = useState<"all" | "true" | "false">("all");
@@ -198,23 +101,11 @@ export default function McpDashboardPage() {
   });
   const [auditLoading, setAuditLoading] = useState(false);
 
-  const [selectedComboId, setSelectedComboId] = useState("");
-  const [selectedProfile, setSelectedProfile] =
-    useState<keyof typeof RESILIENCE_PRESETS>("balanced");
-  const [actionBusy, setActionBusy] = useState<null | "switch" | "resilience" | "reset">(null);
-  const [actionMessage, setActionMessage] = useState<string>("");
-
-  const selectedCombo = useMemo(
-    () => combos.find((combo) => combo.id === selectedComboId) || null,
-    [combos, selectedComboId]
-  );
-
   const refreshSummary = useCallback(async () => {
     try {
-      const [statusRes, toolsRes, combosRes] = await Promise.all([
+      const [statusRes, toolsRes] = await Promise.all([
         fetch("/api/mcp/status"),
         fetch("/api/mcp/tools"),
-        fetch("/api/combos"),
       ]);
 
       if (statusRes.ok) {
@@ -226,19 +117,10 @@ export default function McpDashboardPage() {
         const json = await toolsRes.json();
         setTools(Array.isArray(json.tools) ? json.tools : []);
       }
-
-      if (combosRes.ok) {
-        const json = await combosRes.json();
-        const nextCombos = Array.isArray(json?.combos) ? json.combos : [];
-        setCombos(nextCombos);
-        if (!selectedComboId && nextCombos.length > 0) {
-          setSelectedComboId(nextCombos[0].id);
-        }
-      }
     } finally {
       setLoading(false);
     }
-  }, [selectedComboId]);
+  }, []);
 
   const refreshAudit = useCallback(async () => {
     setAuditLoading(true);
@@ -274,92 +156,6 @@ export default function McpDashboardPage() {
   useEffect(() => {
     refreshAudit();
   }, [refreshAudit]);
-
-  const handleSwitchCombo = async () => {
-    if (!selectedCombo) return;
-    const nextState = selectedCombo.isActive === false;
-    const confirmLabel = nextState ? t("activate") : t("deactivate");
-    if (
-      !globalThis.confirm(
-        t("confirmSwitchCombo", { action: confirmLabel, combo: selectedCombo.name })
-      )
-    )
-      return;
-
-    setActionBusy("switch");
-    setActionMessage("");
-    try {
-      const response = await fetch(`/api/combos/${selectedCombo.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: nextState }),
-      });
-
-      if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
-        setActionMessage(json?.error || t("switchComboFailed"));
-        return;
-      }
-
-      setActionMessage(t("switchComboSuccess", { combo: selectedCombo.name }));
-      await refreshSummary();
-    } finally {
-      setActionBusy(null);
-    }
-  };
-
-  const handleApplyResilience = async () => {
-    const preset = RESILIENCE_PRESETS[selectedProfile];
-    const profileLabelById: Record<keyof typeof RESILIENCE_PRESETS, string> = {
-      aggressive: t("profileAggressive"),
-      balanced: t("profileBalanced"),
-      conservative: t("profileConservative"),
-    };
-    const profileLabel = profileLabelById[selectedProfile];
-    if (!globalThis.confirm(t("confirmApplyProfile", { profile: profileLabel }))) return;
-
-    setActionBusy("resilience");
-    setActionMessage("");
-    try {
-      const response = await fetch("/api/resilience", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(preset),
-      });
-
-      if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
-        setActionMessage(json?.error || t("applyProfileFailed"));
-        return;
-      }
-
-      setActionMessage(t("applyProfileSuccess", { profile: profileLabel }));
-      await refreshSummary();
-    } finally {
-      setActionBusy(null);
-    }
-  };
-
-  const handleResetCircuitBreakers = async () => {
-    if (!globalThis.confirm(t("confirmResetBreakers"))) return;
-
-    setActionBusy("reset");
-    setActionMessage("");
-    try {
-      const response = await fetch("/api/monitoring/health", { method: "DELETE" });
-      if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
-        setActionMessage(json?.error || t("resetBreakersFailed"));
-        return;
-      }
-
-      const json = await response.json().catch(() => ({}));
-      setActionMessage(json?.message || t("resetBreakersSuccess"));
-      await refreshSummary();
-    } finally {
-      setActionBusy(null);
-    }
-  };
 
   const totalPages = Math.max(1, Math.ceil((auditData.total || 0) / AUDIT_PAGE_SIZE));
   const currentPage = Math.floor((auditData.offset || 0) / AUDIT_PAGE_SIZE) + 1;
@@ -425,7 +221,9 @@ export default function McpDashboardPage() {
               <p>
                 {t("scopesEnforced")}:{" "}
                 <span className="font-semibold">
-                  {(status?.scopesEnforced ?? status?.heartbeat?.scopesEnforced) ? t("yes") : t("no")}
+                  {(status?.scopesEnforced ?? status?.heartbeat?.scopesEnforced)
+                    ? t("yes")
+                    : t("no")}
                 </span>
               </p>
               <p>
@@ -444,71 +242,6 @@ export default function McpDashboardPage() {
             </div>
           </div>
         </div>
-      </Card>
-
-      <Card className="p-5">
-        <h2 className="text-lg font-semibold mb-4">{t("operationalControls")}</h2>
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <div className="rounded-lg border border-border p-3 space-y-3">
-            <p className="text-sm font-semibold">{t("switchCombo")}</p>
-            <select
-              className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm"
-              value={selectedComboId}
-              onChange={(event) => setSelectedComboId(event.target.value)}
-            >
-              {combos.map((combo) => (
-                <option key={combo.id} value={combo.id}>
-                  {combo.name} ({combo.isActive === false ? t("inactive") : t("active")})
-                </option>
-              ))}
-            </select>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={handleSwitchCombo}
-              disabled={!selectedCombo || actionBusy === "switch"}
-            >
-              {selectedCombo?.isActive === false ? t("activateCombo") : t("deactivateCombo")}
-            </Button>
-          </div>
-
-          <div className="rounded-lg border border-border p-3 space-y-3">
-            <p className="text-sm font-semibold">{t("applyResilienceProfile")}</p>
-            <select
-              className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm"
-              value={selectedProfile}
-              onChange={(event) =>
-                setSelectedProfile(event.target.value as keyof typeof RESILIENCE_PRESETS)
-              }
-            >
-              <option value="aggressive">{t("profileAggressive")}</option>
-              <option value="balanced">{t("profileBalanced")}</option>
-              <option value="conservative">{t("profileConservative")}</option>
-            </select>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={handleApplyResilience}
-              disabled={actionBusy === "resilience"}
-            >
-              {t("applyProfile")}
-            </Button>
-          </div>
-
-          <div className="rounded-lg border border-border p-3 space-y-3">
-            <p className="text-sm font-semibold">{t("resetCircuitBreakers")}</p>
-            <p className="text-xs text-text-muted">{t("resetCircuitBreakersHelp")}</p>
-            <Button
-              size="sm"
-              onClick={handleResetCircuitBreakers}
-              className="bg-red-500! hover:bg-red-600! text-white!"
-              disabled={actionBusy === "reset"}
-            >
-              {t("resetAllBreakers")}
-            </Button>
-          </div>
-        </div>
-        {actionMessage && <p className="text-sm text-text-muted mt-3">{actionMessage}</p>}
       </Card>
 
       <Card className="p-5">

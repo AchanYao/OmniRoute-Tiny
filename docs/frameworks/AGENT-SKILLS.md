@@ -43,7 +43,6 @@ src/app/api/agent-skills/
   [id]/route.ts                        — GET /api/agent-skills/{id}
   [id]/raw/route.ts                    — GET /api/agent-skills/{id}/raw (text/markdown)
   coverage/route.ts                    — GET /api/agent-skills/coverage
-  generate/route.ts                    — POST /api/agent-skills/generate (auth required)
 
 open-sse/mcp-server/tools/agentSkillTools.ts  — 3 MCP tools (list, get, coverage)
 src/lib/a2a/skills/listCapabilities.ts        — A2A skill: list-capabilities
@@ -90,13 +89,12 @@ The generator preserves content between `<!-- skill:custom-start -->` and `<!-- 
 
 ## REST API Discovery
 
-| Endpoint                     | Method | Description                                              | Auth       |
-| :--------------------------- | :----- | :------------------------------------------------------- | :--------- |
-| `/api/agent-skills`          | GET    | List catalog (optional `?category=api\|cli&area=<area>`) | none       |
-| `/api/agent-skills/{id}`     | GET    | Get single skill metadata                                | none       |
-| `/api/agent-skills/{id}/raw` | GET    | Fetch SKILL.md as `text/markdown`                        | none       |
-| `/api/agent-skills/coverage` | GET    | Coverage stats (how many SKILL.md files exist)           | none       |
-| `/api/agent-skills/generate` | POST   | Trigger generator (dryRun/prune/onlyIds)                 | management |
+| Endpoint                     | Method | Description                                              | Auth |
+| :--------------------------- | :----- | :------------------------------------------------------- | :--- |
+| `/api/agent-skills`          | GET    | List catalog (optional `?category=api\|cli&area=<area>`) | none |
+| `/api/agent-skills/{id}`     | GET    | Get single skill metadata                                | none |
+| `/api/agent-skills/{id}/raw` | GET    | Fetch SKILL.md as `text/markdown`                        | none |
+| `/api/agent-skills/coverage` | GET    | Coverage stats (how many SKILL.md files exist)           | none |
 
 Example — list all API skills:
 
@@ -247,29 +245,7 @@ curl "${BASE}/omni-providers/SKILL.md"
 
 ## Generator
 
-The generator reads the curated catalog + OpenAPI spec + CLI registry and writes `skills/{id}/SKILL.md` for each entry:
-
-```bash
-# Preview (dry run, no writes)
-curl -X POST http://localhost:20128/api/agent-skills/generate \
-  -H "Authorization: Bearer <admin-key>" \
-  -H "Content-Type: application/json" \
-  -d '{"dryRun":true}'
-
-# Full regeneration
-curl -X POST http://localhost:20128/api/agent-skills/generate \
-  -H "Authorization: Bearer <admin-key>" \
-  -H "Content-Type: application/json" \
-  -d '{"dryRun":false,"prune":false}'
-
-# Regenerate specific IDs
-curl -X POST http://localhost:20128/api/agent-skills/generate \
-  -H "Authorization: Bearer <admin-key>" \
-  -H "Content-Type: application/json" \
-  -d '{"dryRun":false,"onlyIds":["omni-providers","cli-serve"]}'
-```
-
-The generator response is a `GeneratorReport`:
+The repository generator reads the curated catalog + OpenAPI spec + CLI registry and writes `skills/{id}/SKILL.md`. Tiny does not expose runtime regeneration through HTTP. The generator response type is `GeneratorReport`:
 
 ```json
 {
