@@ -32,7 +32,6 @@ import {
   getCursorRegistryHeaders,
   getGitHubCopilotChatHeaders,
   getKiroServiceHeaders,
-  getQoderDefaultHeaders,
   getRuntimePlatform,
   getRuntimeArch,
 } from "../providerHeaderProfiles.ts";
@@ -719,7 +718,6 @@ export {
   getCursorRegistryHeaders,
   getGitHubCopilotChatHeaders,
   getKiroServiceHeaders,
-  getQoderDefaultHeaders,
   getRuntimePlatform,
   getRuntimeArch,
   resolvePublicCred,

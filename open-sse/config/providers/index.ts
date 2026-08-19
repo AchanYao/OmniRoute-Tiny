@@ -35,7 +35,6 @@ import { claudeProvider } from "./registry/claude/index.ts";
 import { claude_webProvider } from "./registry/claude/web/index.ts";
 import { bedrockProvider } from "./registry/bedrock/index.ts";
 import { inner_aiProvider } from "./registry/inner-ai/index.ts";
-import { qoderProvider } from "./registry/qoder/index.ts";
 import { xiaomi_mimoProvider } from "./registry/xiaomi-mimo/index.ts";
 import { xiaomi_mimo_token_planProvider } from "./registry/xiaomi-mimo-token-plan/index.ts";
 import { codestralProvider } from "./registry/codestral/index.ts";
@@ -259,7 +258,6 @@ export const REGISTRY: Record<string, RegistryEntry> = {
   "claude-web": claude_webProvider,
   bedrock: bedrockProvider,
   "inner-ai": inner_aiProvider,
-  qoder: qoderProvider,
   "xiaomi-mimo": xiaomi_mimoProvider,
   "xiaomi-mimo-token-plan": xiaomi_mimo_token_planProvider,
   codestral: codestralProvider,

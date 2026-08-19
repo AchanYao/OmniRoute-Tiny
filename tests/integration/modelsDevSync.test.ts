@@ -56,7 +56,6 @@ describe("modelsDevSync — integration: live fetch → DB → retrieve", () => 
     assert.ok(claudeModels.length > 0, "should have claude pricing entries");
 
     assert.ok(pricing.deepseek, "deepseek pricing should exist");
-    assert.ok(pricing.if, "if (Qoder) pricing should exist (mapped from deepseek)");
 
     // 4. Retrieve capabilities from DB
     const caps = getSyncedCapabilities();

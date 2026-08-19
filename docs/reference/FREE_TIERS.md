@@ -141,7 +141,6 @@ A 50-agent web-research pass (official docs + last-7-days news, adversarially ve
 | `predibase`      | caution   | Predibase is positioned as an enterprise fine-tuning/serving platform; the free trial is explicitly for exploration and… |
 | `publicai`       | caution   | ToS (publicai.co/tc) designates services as "primarily for research and educational use"; no explicit proxy or resale p… |
 | `puter`          | caution   | Puter ToS forbids using services for "commercial purpose" without written consent; a self-hosted personal proxy consumi… |
-| `qoder`          | caution   | ToS page returned no readable content; Qoder is a coding IDE client (not a public API), and third-party proxy wrappers … |
 | `reka`           | caution   | Business Terms prohibit sublicensing or distributing access to third parties; a personal single-user proxy is likely fi… |
 | `sambanova`      | caution   | ToS Section 1.5(c) explicitly prohibits reselling, sublicensing, or making the service available to third parties; a se… |
 | `sensenova`      | caution   | No explicit proxy or resale prohibition found in reviewed ToS, but the free tier is a promotional beta with no SLA, Sen… |
@@ -214,7 +213,6 @@ A 50-agent web-research pass (official docs + last-7-days news, adversarially ve
 | `deepinfra`      | signup credit | —                | ~1M                | caution   | 22     |
 | `fireworks`      | signup credit | —                | ~1M                | avoid     | 10     |
 | `nebius`         | signup credit | —                | ~1M                | caution   | 1      |
-| `qoder`          | signup credit | —                | ~1M                | caution   | 14     |
 | `scaleway`       | signup credit | —                | ~1M                | ok        | 6      |
 | `novita`         | signup credit | —                | ~500K              | caution   | 1      |
 | `agy`            | keyless       | —                | —                  | avoid     | 16     |
@@ -309,7 +307,6 @@ A 50-agent web-research pass (official docs + last-7-days news, adversarially ve
 - **`predibase`** — The shipped freeNote ($25 free trial credits, 30-day validity) still matches current documentation. However, the catalog omits the concurrent 20,000 tokens/day serverless rate limit that applies duri…
 - **`publicai`** — The shipped freeNote ("Free community inference tier") is broadly accurate but understates the specificity: the 20 RPM rate limit is now documented. No major tightening found; the service remains fre…
 - **`puter`** — Partially matches: the "500+ models" count is still accurate. However "users pay via Puter account" understates the reality — free accounts receive an undocumented starting credit that can be exhaust…
-- **`qoder`** — Our catalog ships freeNote "(none)", but Qoder does have a free tier: a Community Edition with unlimited basic-model completions (daily-capped, unspecified limit) plus a one-time 14-day/300-credit Pr…
 - **`qwen-web`** — Session-token access against chat.qwen.ai is not a dependable free-provider path and may be rejected upstream.
 - **`sambanova`** — Our shipped note only described the one-time $5 credit (30-day validity). The current reality includes a permanent recurring free tier with documented rate limits (20 RPM, 20 RPD, 200k TPD) that pers…
 - **`sensenova`** — Our shipped freeNote says "Free SenseTime models" which is vague but directionally correct — free access does exist. However, reality is more nuanced: free access is a time-limited public beta (Token…

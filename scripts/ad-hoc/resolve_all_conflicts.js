@@ -76,19 +76,7 @@ async function main() {
     runCmd("git add open-sse/executors/index.ts");
   }
 
-  // 7. Resolve src/app/api/providers/[id]/models/route.ts (combine imports)
-  const modelsRoute = path.join(projectRoot, "src/app/api/providers/[id]/models/route.ts");
-  if (fs.existsSync(modelsRoute)) {
-    let content = fs.readFileSync(modelsRoute, "utf-8");
-    content = content.replace(
-      /<<<<<<< HEAD\r?\n=======\r?\nimport \{ sanitizeErrorMessage \} from "@omniroute\/open-sse\/utils\/error";\r?\nimport \{ getStaticQoderModels \} from "@omniroute\/open-sse\/services\/qoderCli\.ts";\r?\n>>>>>>> release\/v3\.8\.4/g,
-      'import { sanitizeErrorMessage } from "@omniroute/open-sse/utils/error";\nimport { getStaticQoderModels } from "@omniroute/open-sse/services/qoderCli.ts";'
-    );
-    fs.writeFileSync(modelsRoute, content);
-    runCmd("git add src/app/api/providers/[id]/models/route.ts");
-  }
-
-  // 8. Resolve src/sse/handlers/chat.ts
+  // 7. Resolve src/sse/handlers/chat.ts
   const sseChat = path.join(projectRoot, "src/sse/handlers/chat.ts");
   if (fs.existsSync(sseChat)) {
     let content = fs.readFileSync(sseChat, "utf-8");

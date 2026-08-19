@@ -8,23 +8,6 @@ if [ -n "$OMNIROUTE_MEMORY_MB" ]; then
   export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=${OMNIROUTE_MEMORY_MB}"
 fi
 
-# Qoder is intentionally not baked into the CLI image. When explicitly enabled,
-# install it into a mounted directory so image upgrades keep the downloaded CLI.
-if [ "${QODER_CLI_AUTO_INSTALL:-false}" = "true" ]; then
-  QODER_INSTALL_DIR="${QODER_CLI_INSTALL_DIR:-${DATA_DIR:-/app/data}/qoder-cli-runtime}"
-  QODER_BIN="$QODER_INSTALL_DIR/bin/qodercli"
-  if [ ! -x "$QODER_BIN" ]; then
-    echo "Installing qodercli into $QODER_INSTALL_DIR..."
-    if ! npm install --global --prefix "$QODER_INSTALL_DIR" --no-audit --no-fund @qoder-ai/qodercli; then
-      echo "WARNING: qodercli installation failed; continuing without Qoder CLI support." >&2
-    fi
-  fi
-  if [ -x "$QODER_BIN" ]; then
-    export PATH="$QODER_INSTALL_DIR/bin:$PATH"
-    export CLI_QODER_BIN="$QODER_BIN"
-  fi
-fi
-
 # Hard Rule #13: never interpolate OMNIROUTE_BASE_PATH (or any runtime path)
 # into sed/awk/shell. The Node guard reads process.env itself — invoke with a
 # fixed argv only; do not pass the subpath as a CLI argument or script body.

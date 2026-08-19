@@ -10,7 +10,7 @@ lastUpdated: 2026-08-05
 > Regenerate with: `npm run gen:provider-reference`
 > **Last generated:** 2026-08-05
 
-Total providers: **291**. See category breakdown below.
+Total providers: **290**. See category breakdown below.
 
 ## Categories
 
@@ -54,7 +54,6 @@ Use the dashboard at `/dashboard/providers` to enable, configure, and test each 
 | `kilocode` | `kc` | Kilo Code | OAuth | — | — |
 | `kimi-coding` | `kmc` | Kimi Code CLI | OAuth | [link](https://www.kimi.com/code?aff=omniroute) | Sign in with the same Kimi account used by Kimi Code CLI. OmniRoute uses the CLI OAuth flow and Kimi Coding Plan endpoints. |
 | `kiro` | `kr` | Kiro AI | OAuth | — | Free tier: 50 credits/month (~25K–100K tokens). ⚠️ Kiro ToS prohibits third-party proxy/harness use. |
-| `qoder` | `if` | Qoder | OAuth | — | — |
 | `trae` | `tr` | Trae | OAuth | [link](https://trae.ai) | Trae is an AI-native IDE by ByteDance (SOLO remote agent). Authorize via trae.ai in the popup, or sign in at solo.trae.ai and paste the Cloud-IDE-JWT (sent as 'Authorization: Cloud-IDE-JWT <token>', ~14-day lifetime) as the access token; web_id/biz_user_id/user_unique_id/scope/tenant/region propagate via providerSpecificData. No headless refresh for pasted tokens — re-paste on expiry. |
 | `windsurf` | `ws` | Windsurf (Devin CLI) | OAuth | [link](https://windsurf.com) | In the Windsurf / VS Code IDE, open the command palette and run `Windsurf: Provide Auth Token` (or click the Jupyter "Get Windsurf Authentication Token" button), then copy the shown token and paste it here. Note: opening windsurf.com/show-auth-token directly only renders a "Redirecting" page — the IDE must initiate the flow (it adds a `?state=...` param) for the token to appear. |
 | `xai-oauth` | `xao` | xAI OAuth (Grok) | OAuth | [link](https://x.ai) | Sign in with xAI to use api.x.ai models such as Grok 4.5. This is separate from Grok Build JWT sessions, which use cli-chat-proxy.grok.com and grok-build model aliases. |

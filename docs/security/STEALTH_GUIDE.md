@@ -217,7 +217,6 @@ All MITM endpoints require management auth (`requireCliToolsAuth`). The sudo pas
 | `GITHUB_USER_AGENT`      | `GitHubCopilotChat/0.54.0`                                      |
 | `ANTIGRAVITY_USER_AGENT` | `antigravity/2.0.1 linux/arm64 google-api-nodejs-client/10.3.0` |
 | `KIRO_USER_AGENT`        | `AWS-SDK-JS/3.0.0 kiro-ide/1.0.0`                               |
-| `QODER_USER_AGENT`       | `Qoder-Cli`                                                     |
 | `CURSOR_USER_AGENT`      | `Cursor/3.4`                                                    |
 
 Consumed by `open-sse/executors/base.ts::buildHeaders()` via dynamic lookup. **Bump these when providers release new CLI versions** — stale UA strings start getting rejected as outdated clients.

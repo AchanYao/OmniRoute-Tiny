@@ -227,7 +227,7 @@ export function connectionBelongsToProviderPage(
 
 /**
  * Whether a provider connection should be counted on a provider card rendered in
- * the given section. Dual-auth providers (qoder, opencode, codebuddy-cn, …) are
+ * the given section. Dual-auth providers (opencode, codebuddy-cn, …) are
  * OAuth-categorized but also accept a PAT/API key stored as authType "apikey";
  * their single OAuth card must count BOTH, else a working PAT connection shows as
  * "not connected" on the dashboard.

@@ -159,16 +159,6 @@ const CLI_TOOLS: Record<string, any> = {
     },
   },
   amp: AMP_RUNTIME_ENTRY,
-  qoder: {
-    defaultCommand: "qodercli",
-    envBinKey: "CLI_QODER_BIN",
-    requiresBinary: true,
-    healthcheckTimeoutMs: 12000,
-    paths: {
-      config: ".qoder/settings.json",
-      auth: ".qoder/auth.json",
-    },
-  },
   qwen: {
     defaultCommand: "qwen",
     envBinKey: "CLI_QWEN_BIN",
@@ -574,10 +564,6 @@ export const getKnownToolPaths = (toolId: string): string[] => {
     kilo: [["kilocode.cmd", "kilocode"]],
     continue: [["cn.cmd", "cn"]],
     opencode: [["opencode.cmd", "opencode"]],
-    qoder: [
-      ["qodercli.cmd", "qodercli"],
-      ["qodercli.exe", "qodercli"],
-    ],
     qwen: [["qwen.cmd", "qwen"]],
     devin: [
       ["devin.exe", "devin"],

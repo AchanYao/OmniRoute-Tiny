@@ -181,18 +181,6 @@ describe("dual-auth provider actions (#8882)", () => {
     expectDualAuthActions(rendered.container, rendered);
   });
 
-  it("preserves Qoder PAT-primary and experimental OAuth actions", () => {
-    const { container } = renderEmptyProvider({
-      providerId: "qoder",
-      supportsDualAuth: false,
-      providerSupportsPat: true,
-    });
-    expect(getButton(container, "Add PAT")).toBeDefined();
-    expect(getButton(container, "Experimental OAuth")).toBeDefined();
-    expect(getButton(container, "Connect")).toBeUndefined();
-    expect(getButton(container, "Manual API key")).toBeUndefined();
-  });
-
   it("preserves an ordinary OAuth provider primary action", () => {
     const { container } = renderEmptyProvider({
       providerId: "gemini",

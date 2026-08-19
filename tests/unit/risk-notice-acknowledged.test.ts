@@ -70,7 +70,7 @@ test("different providerId returns correct isolated state", () => {
 
   assert.equal(isRiskAcknowledged("claude"), true);
   assert.equal(isRiskAcknowledged("codex"), true);
-  assert.equal(isRiskAcknowledged("qoder"), false);
+  assert.equal(isRiskAcknowledged("unknown-provider"), false);
 });
 
 test("acknowledgment of one provider does not affect another", () => {

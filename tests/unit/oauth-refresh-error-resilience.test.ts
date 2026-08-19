@@ -22,14 +22,12 @@ const {
   extractOAuthErrorCode,
   refreshClaudeOAuthToken,
   refreshClineToken,
-  refreshQoderToken,
   refreshGitHubToken,
   isUnrecoverableRefreshError,
 } = tokenRefresh as unknown as {
   extractOAuthErrorCode: (raw: unknown) => string | null;
   refreshClaudeOAuthToken: (rt: string, log?: unknown, proxy?: unknown) => Promise<unknown>;
   refreshClineToken: (rt: string, log?: unknown, proxy?: unknown) => Promise<unknown>;
-  refreshQoderToken: (rt: string, log?: unknown, proxy?: unknown) => Promise<unknown>;
   refreshGitHubToken: (rt: string, log?: unknown, proxy?: unknown) => Promise<unknown>;
   isUnrecoverableRefreshError: (r: unknown) => boolean;
 };
@@ -62,7 +60,7 @@ test("extractOAuthErrorCode: bare string code 'invalid_grant'", () => {
   assert.equal(extractOAuthErrorCode("invalid_grant"), "invalid_grant");
 });
 
-test("extractOAuthErrorCode: JSON string body '{\"error\":\"invalid_grant\"}'", () => {
+test('extractOAuthErrorCode: JSON string body \'{"error":"invalid_grant"}\'', () => {
   assert.equal(extractOAuthErrorCode('{"error": "invalid_grant"}'), "invalid_grant");
 });
 
@@ -95,8 +93,14 @@ test("extractOAuthErrorCode: transient errors are NOT misclassified (no false po
 // ── refreshClaudeOAuthToken: every shape → unrecoverable sentinel ────────────
 
 const SENTINEL_SHAPES: Array<{ name: string; body: string; ct?: string }> = [
-  { name: "canonical object", body: '{"error": "invalid_grant", "error_description": "Refresh token not found or invalid"}' },
-  { name: "double-encoded JSON string", body: JSON.stringify('{"error": "invalid_grant", "error_description": "x"}') },
+  {
+    name: "canonical object",
+    body: '{"error": "invalid_grant", "error_description": "Refresh token not found or invalid"}',
+  },
+  {
+    name: "double-encoded JSON string",
+    body: JSON.stringify('{"error": "invalid_grant", "error_description": "x"}'),
+  },
   { name: "bare string code", body: '"invalid_grant"' },
   { name: "nested error.code", body: '{"error": {"code": "invalid_grant", "message": "x"}}' },
   { name: "json served as text/plain", body: '{"error": "invalid_grant"}', ct: "text/plain" },
@@ -105,7 +109,8 @@ const SENTINEL_SHAPES: Array<{ name: string; body: string; ct?: string }> = [
 for (const shape of SENTINEL_SHAPES) {
   test(`refreshClaudeOAuthToken → unrecoverable sentinel for shape: ${shape.name}`, async () => {
     await withMockedFetch(
-      (async () => rawResponse(shape.body, 400, shape.ct ?? "application/json")) as unknown as typeof fetch,
+      (async () =>
+        rawResponse(shape.body, 400, shape.ct ?? "application/json")) as unknown as typeof fetch,
       async () => {
         const result = await refreshClaudeOAuthToken("dead-refresh-token");
         assert.ok(
@@ -123,14 +128,19 @@ test("refreshClaudeOAuthToken: transient 500 server_error stays null (NOT unreco
     (async () => rawResponse('{"error": "server_error"}', 500)) as unknown as typeof fetch,
     async () => {
       const result = await refreshClaudeOAuthToken("token");
-      assert.equal(result, null, "transient errors must remain recoverable (null), not deactivate the account");
+      assert.equal(
+        result,
+        null,
+        "transient errors must remain recoverable (null), not deactivate the account"
+      );
     }
   );
 });
 
 test("refreshClaudeOAuthToken: 502 HTML gateway error stays null", async () => {
   await withMockedFetch(
-    (async () => rawResponse("<html>502 Bad Gateway</html>", 502, "text/html")) as unknown as typeof fetch,
+    (async () =>
+      rawResponse("<html>502 Bad Gateway</html>", 502, "text/html")) as unknown as typeof fetch,
     async () => {
       const result = await refreshClaudeOAuthToken("token");
       assert.equal(result, null);
@@ -139,11 +149,9 @@ test("refreshClaudeOAuthToken: 502 HTML gateway error stays null", async () => {
 });
 
 // ── Previously-frágil refreshers that NEVER emitted a sentinel ──────────────
-// refreshClineToken / refreshQoderToken / refreshGitHubToken returned null on
+// refreshClineToken / refreshGitHubToken returned null on
 // ANY error → invalid_grant looked recoverable → HealthCheck refresh loop.
 
-// Note: refreshQoderToken also got the same fix, but it early-returns null via a
-// config guard (no clientId/secret in the test env) so it can't be exercised here.
 const FRAGILE_REFRESHERS: Array<{
   name: string;
   fn: (rt: string) => Promise<unknown>;
@@ -151,8 +159,6 @@ const FRAGILE_REFRESHERS: Array<{
   { name: "refreshClineToken", fn: (rt) => refreshClineToken(rt) },
   { name: "refreshGitHubToken", fn: (rt) => refreshGitHubToken(rt) },
 ];
-
-void refreshQoderToken; // fixed in source; not unit-testable without OAuth config
 
 for (const r of FRAGILE_REFRESHERS) {
   test(`${r.name}: invalid_grant now yields an unrecoverable sentinel`, async () => {

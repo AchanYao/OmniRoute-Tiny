@@ -14,7 +14,6 @@ import { claude } from "./claude";
 import { codex } from "./codex";
 import { antigravity } from "./antigravity";
 import { agy } from "./agy";
-import { qoder } from "./qoder";
 import { kimiCoding } from "./kimi-coding";
 import { github } from "./github";
 import { gheCopilot } from "./ghe-copilot";
@@ -37,7 +36,6 @@ export const PROVIDERS = {
   codex,
   antigravity,
   agy,
-  qoder,
   "kimi-coding": kimiCoding,
   github,
   "ghe-copilot": gheCopilot,

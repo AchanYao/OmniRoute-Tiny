@@ -1,7 +1,6 @@
 import { AntigravityExecutor } from "./antigravity.ts";
 import { GithubExecutor } from "./github.ts";
 import { GheCopilotExecutor } from "./ghe-copilot.ts";
-import { QoderExecutor } from "./qoder.ts";
 import { KiroExecutor } from "./kiro.ts";
 import { CodexExecutor } from "./codex.ts";
 import { CursorExecutor } from "./cursor.ts";
@@ -77,7 +76,6 @@ const executors = {
   agy: new AntigravityExecutor(),
   github: new GithubExecutor(),
   "ghe-copilot": new GheCopilotExecutor(),
-  qoder: new QoderExecutor(),
   kiro: new KiroExecutor(),
   "amazon-q": new KiroExecutor("amazon-q"),
   bedrock: new BedrockExecutor(),
@@ -239,7 +237,6 @@ export function hasSpecializedExecutor(provider) {
 export { BaseExecutor } from "./base.ts";
 export { AntigravityExecutor } from "./antigravity.ts";
 export { GithubExecutor } from "./github.ts";
-export { QoderExecutor } from "./qoder.ts";
 export { KiroExecutor } from "./kiro.ts";
 export { CodexExecutor } from "./codex.ts";
 export { CursorExecutor } from "./cursor.ts";

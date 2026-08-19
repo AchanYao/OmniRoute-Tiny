@@ -29,7 +29,6 @@ const require = createRequire(import.meta.url);
 // ── OAuth secrets that are optional but warn if missing ─────────────────────
 const OPTIONAL_OAUTH_SECRETS = [
   { keys: ["ANTIGRAVITY_OAUTH_CLIENT_SECRET"], label: "Antigravity OAuth" },
-  { keys: ["QODER_OAUTH_CLIENT_SECRET"], label: "Qoder OAuth" },
 ];
 
 // ── Resolve DATA_DIR (mirrors dataPaths.ts logic) ───────────────────────────

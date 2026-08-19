@@ -15,8 +15,6 @@ export const GITHUB_COPILOT_USER_AGENT_LIBRARY = "electron-fetch";
 export const QWEN_CLI_VERSION = "0.19.3";
 export const QWEN_STAINLESS_LANG = "js";
 
-export const QODER_DEFAULT_USER_AGENT = "Qoder-Cli";
-
 export const KIRO_SDK_USER_AGENT = "AWS-SDK-JS/3.0.0 kiro-ide/1.0.0";
 export const KIRO_AMZ_USER_AGENT = "aws-sdk-js/3.0.0 kiro-ide/1.0.0";
 export const KIRO_STREAMING_TARGET =
@@ -81,7 +79,6 @@ export function normalizeStainlessArch(arch: string = getRuntimeArch()): string 
 }
 
 export function getQwenCliUserAgent(version = QWEN_CLI_VERSION): string {
-  // Qoder's DashScope-compatible backend expects Qwen Code's runtime-derived wire identity.
   // Keep it runtime-derived so packaged deployments use their own platform/architecture.
   return `QwenCode/${version} (${getRuntimePlatform()}; ${getRuntimeArch()})`;
 }
@@ -104,25 +101,6 @@ export function getGitHubCopilotRefreshHeaders(authorization: string): Record<st
     "User-Agent": GITHUB_COPILOT_REFRESH_USER_AGENT,
     "Editor-Version": GITHUB_COPILOT_EDITOR_VERSION,
     "Editor-Plugin-Version": GITHUB_COPILOT_REFRESH_PLUGIN_VERSION,
-  };
-}
-
-export function getQoderDefaultHeaders(): Record<string, string> {
-  return {
-    "User-Agent": QODER_DEFAULT_USER_AGENT,
-  };
-}
-
-export function getQoderDashscopeCompatHeaders(): Record<string, string> {
-  const userAgent = getQwenCliUserAgent();
-  return {
-    "x-dashscope-authtype": "qwen-oauth",
-    "x-dashscope-cachecontrol": "enable",
-    "user-agent": userAgent,
-    "x-dashscope-useragent": userAgent,
-    "x-stainless-arch": normalizeStainlessArch(),
-    "x-stainless-lang": QWEN_STAINLESS_LANG,
-    "x-stainless-os": normalizeStainlessPlatform(),
   };
 }
 

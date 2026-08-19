@@ -221,7 +221,6 @@ test("token refresh wrapper delegates provider-specific refresh helpers and form
         "override-client-secret"
       );
       const codex = await tokenRefresh.refreshCodexToken("refresh-codex");
-      const qoder = await tokenRefresh.refreshQoderToken("refresh-qoder");
       const github = await tokenRefresh.refreshGitHubToken("refresh-github");
       const copilot = await tokenRefresh.refreshCopilotToken("github-access");
       const access = await tokenRefresh.getAccessToken("github", {
@@ -248,7 +247,6 @@ test("token refresh wrapper delegates provider-specific refresh helpers and form
       assert.equal(claude.accessToken, "claude-access");
       assert.equal(google.accessToken, "google-access");
       assert.equal(codex.accessToken, "codex-access");
-      assert.equal(qoder, null);
       assert.equal(github.refreshToken, "github-refresh-next");
       assert.equal(copilot.token, "copilot-access");
       assert.equal(access.accessToken, "github-access");

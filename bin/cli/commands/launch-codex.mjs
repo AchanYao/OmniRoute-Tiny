@@ -50,7 +50,7 @@ const STRIPPED_CODEX_ENV_KEYS = [
 const NO_AUTH_SENTINEL = "omniroute-no-auth";
 
 // On Windows the `codex` binary is an npm `.cmd` shim that `spawn` cannot resolve
-// without a shell (bare "codex" → ENOENT). Mirror the qodercli Windows fix (#6263):
+// without a shell (bare "codex" → ENOENT). Mirror the Windows fix (#6263):
 // spawn `codex.cmd` through a shell on win32, and the bare binary elsewhere.
 //
 // #9454: the native codex installer may ship a real `codex.exe` instead of the

@@ -64,7 +64,6 @@ const budget = [
   // sequences"). The checker strips comments but not strings, and there are zero
   // actual TypeScript `any` types in this file. Budget set to the matched count.
   { file: "open-sse/executors/cursor.ts", maxAny: 3 },
-  { file: "open-sse/executors/qoder.ts", maxAny: 0 },
   { file: "open-sse/utils/comfyuiClient.ts", maxAny: 0 },
   { file: "open-sse/utils/tlsClient.ts", maxAny: 0 },
   { file: "open-sse/utils/proxyFetch.ts", maxAny: 0 },

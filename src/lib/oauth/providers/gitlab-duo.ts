@@ -26,7 +26,7 @@ export const gitlabDuo = {
   flowType: "authorization_code_pkce",
   buildAuthUrl: (config, redirectUri, state, codeChallenge) => {
     // #3861: GitLab Duo needs an operator-registered OAuth client_id. When it is
-    // missing, return null (mirroring the Qoder provider) so the route can surface a
+    // missing, return null so the route can surface a
     // clear "configure it" message instead of letting the throw bubble up as an
     // opaque "Internal server error" 500 at the Add Connection step.
     if (!config.clientId) {

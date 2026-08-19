@@ -72,7 +72,6 @@ describe("CLI_TOOL_IDS", () => {
       "kilo",
       "continue",
       "opencode",
-      "qoder",
       "qwen",
     ];
     for (const id of expected) {
@@ -196,26 +195,6 @@ describe("Healthcheck — checkRunnable", () => {
     } finally {
       if (previousOverride === undefined) delete process.env.CLI_CLAUDE_BIN;
       else process.env.CLI_CLAUDE_BIN = previousOverride;
-    }
-  });
-
-  it("should detect qodercli via env override and mark it runnable", async () => {
-    const prev = process.env.CLI_QODER_BIN;
-    const script =
-      process.platform === "win32"
-        ? createFile(tmpDir, "qoder.cmd", "@echo off\necho qodercli 0.1.37\n")
-        : createFile(tmpDir, "qodercli", "#!/bin/sh\necho qodercli 0.1.37\n");
-
-    process.env.CLI_QODER_BIN = script;
-    try {
-      const result = await getCliRuntimeStatus("qoder");
-      assert.equal(result.installed, true);
-      assert.equal(result.runnable, true);
-      assert.equal(result.commandPath, script);
-      assert.equal(result.reason, null);
-    } finally {
-      if (prev !== undefined) process.env.CLI_QODER_BIN = prev;
-      else delete process.env.CLI_QODER_BIN;
     }
   });
 });

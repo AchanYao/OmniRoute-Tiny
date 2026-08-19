@@ -88,11 +88,6 @@ export default function EmptyConnectionsPlaceholder({
               <Button icon="add" onClick={() => gateConnectionFlow(openPrimaryAddFlow)}>
                 {providerSupportsPat ? "Add PAT" : t("addConnection")}
               </Button>
-              {providerId === "qoder" && (
-                <Button variant="secondary" onClick={() => gateConnectionFlow(onOpenOAuthModal)}>
-                  Experimental OAuth
-                </Button>
-              )}
               {providerId === "codex" && (
                 <Button
                   variant="secondary"

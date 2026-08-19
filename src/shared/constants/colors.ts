@@ -19,7 +19,6 @@ export const PROVIDER_COLORS = {
   codex: { bg: "#10A37F", text: "#fff", label: "Codex" },
   gemini: { bg: "#34A853", text: "#fff", label: "Gemini" },
   qwen: { bg: "#6366F1", text: "#fff", label: "Qwen" },
-  qoder: { bg: "#EC4899", text: "#fff", label: "Qoder" },
   fireworks: { bg: "#F97316", text: "#fff", label: "Fireworks" },
   kimi: { bg: "#06B6D4", text: "#fff", label: "Kimi" },
   // Dark foreground: #31f889 is a bright green, white text on it fails contrast.

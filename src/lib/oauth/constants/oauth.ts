@@ -73,32 +73,6 @@ export const CODEX_CONFIG = {
   },
 };
 
-// Qoder OAuth Configuration (Authorization Code)
-const QODER_OAUTH_AUTHORIZE_URL = process.env.QODER_OAUTH_AUTHORIZE_URL || "";
-const QODER_OAUTH_TOKEN_URL = process.env.QODER_OAUTH_TOKEN_URL || "";
-const QODER_OAUTH_USERINFO_URL = process.env.QODER_OAUTH_USERINFO_URL || "";
-const QODER_OAUTH_CLIENT_ID = process.env.QODER_OAUTH_CLIENT_ID || "";
-const QODER_OAUTH_CLIENT_SECRET = process.env.QODER_OAUTH_CLIENT_SECRET || "";
-const QODER_OAUTH_ENABLED =
-  !!QODER_OAUTH_AUTHORIZE_URL &&
-  !!QODER_OAUTH_TOKEN_URL &&
-  !!QODER_OAUTH_USERINFO_URL &&
-  !!QODER_OAUTH_CLIENT_ID &&
-  !!QODER_OAUTH_CLIENT_SECRET;
-
-export const QODER_CONFIG = {
-  enabled: QODER_OAUTH_ENABLED,
-  clientId: QODER_OAUTH_CLIENT_ID,
-  clientSecret: QODER_OAUTH_CLIENT_SECRET,
-  authorizeUrl: QODER_OAUTH_AUTHORIZE_URL,
-  tokenUrl: QODER_OAUTH_TOKEN_URL,
-  userInfoUrl: QODER_OAUTH_USERINFO_URL,
-  extraParams: {
-    loginMethod: "phone",
-    type: "phone",
-  },
-};
-
 // CodeBuddy CN (Tencent — copilot.tencent.com) OAuth Configuration
 // (Custom Device-Auth Flow: POST stateUrl → open authUrl → GET pollUrl?state=).
 // No client_id/secret — the upstream CLI ships none.
@@ -520,7 +494,6 @@ export const PROVIDERS = {
   CLAUDE: "claude",
   CODEX: "codex",
   GEMINI: "gemini",
-  QODER: "qoder",
   ANTIGRAVITY: "antigravity",
   AGY: "agy",
   KIMI_CODING: "kimi-coding",

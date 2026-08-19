@@ -48,8 +48,6 @@ export async function getUsageForProvider(connection) {
       return await getClaudeUsage(accessToken);
     case "codex":
       return await getCodexUsage(accessToken, providerSpecificData);
-    case "qoder":
-      return await getQoderUsage(accessToken);
     case "kiro":
     case "amazon-q":
       return await getKiroUsage(accessToken);
@@ -402,18 +400,6 @@ async function getCodexUsage(accessToken, providerSpecificData: Record<string, a
     return { message: "Codex connected. Check OpenAI dashboard for usage." };
   } catch (error) {
     return { message: "Unable to fetch Codex usage." };
-  }
-}
-
-/**
- * Qoder Usage
- */
-async function getQoderUsage(accessToken) {
-  try {
-    // Qoder may have usage endpoint
-    return { message: "Qoder connected. Usage tracked per request." };
-  } catch (error) {
-    return { message: "Unable to fetch Qoder usage." };
   }
 }
 

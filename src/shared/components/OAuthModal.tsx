@@ -796,7 +796,7 @@ export default function OAuthModal({
   }, [authData, exchangeTokens, provider]);
 
   // Fix #344: Detect when OAuth popup is closed without completing authorization
-  // Some providers (like Qoder) redirect to their own chat UI instead of sending a callback,
+  // Some providers redirect to their own chat UI instead of sending a callback,
   // leaving the modal stuck at "Waiting for Authorization" forever.
   useEffect(() => {
     if (step !== "waiting" || isDeviceCode || !popupRef.current) return;

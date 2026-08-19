@@ -136,7 +136,7 @@ test("getCliRuntimeStatus reports not_executable for absolute env override files
 
 test("getCliRuntimeStatus reports healthcheck_failed when a binary exists but does not answer version probes", async () => {
   const tempDir = createTempDir("omniroute-cli-healthcheck-");
-  const scriptName = process.platform === "win32" ? "qodercli.cmd" : "qodercli";
+  const scriptName = process.platform === "win32" ? "cline.cmd" : "cline";
   const scriptPath = writeScript(
     tempDir,
     scriptName,
@@ -145,10 +145,10 @@ test("getCliRuntimeStatus reports healthcheck_failed when a binary exists but do
       : "#!/bin/sh\nexit 1\n# padding padding padding\n"
   );
 
-  process.env.CLI_QODER_BIN = scriptPath;
+  process.env.CLI_CLINE_BIN = scriptPath;
   process.env.CLI_MODE = "invalid-mode";
   const cliRuntime = await importFresh("healthcheck-failed");
-  const status = await cliRuntime.getCliRuntimeStatus("qoder");
+  const status = await cliRuntime.getCliRuntimeStatus("cline");
 
   assert.equal(status.installed, true);
   assert.equal(status.runnable, false);
@@ -247,39 +247,39 @@ test("shouldUseShellForCommand never uses the shell on non-Windows platforms", a
 
 test("getCliRuntimeStatus discovers binaries from CLI_EXTRA_PATHS during PATH lookup", async () => {
   const tempDir = createTempDir("omniroute-cli-extra-path-");
-  const scriptName = process.platform === "win32" ? "qodercli.cmd" : "qodercli";
+  const scriptName = process.platform === "win32" ? "cline.cmd" : "cline";
   writeScript(
     tempDir,
     scriptName,
     process.platform === "win32"
-      ? "@echo off\r\necho qodercli 1.2.3\r\nREM padding padding padding\r\n"
-      : "#!/bin/sh\necho qodercli 1.2.3\n# padding padding padding\n"
+      ? "@echo off\r\necho cline 1.2.3\r\nREM padding padding padding\r\n"
+      : "#!/bin/sh\necho cline 1.2.3\n# padding padding padding\n"
   );
 
   process.env.CLI_EXTRA_PATHS = tempDir;
   process.env.PATH = process.platform === "win32" ? process.env.PATH || "" : "/bin:/usr/bin";
 
   const cliRuntime = await importFresh("extra-paths");
-  const status = await cliRuntime.getCliRuntimeStatus("qoder");
+  const status = await cliRuntime.getCliRuntimeStatus("cline");
 
   assert.equal(status.installed, true);
   assert.equal(status.runnable, true);
   assert.equal(status.reason, null);
   assert.equal(
     path.basename(String(status.commandPath)).toLowerCase(),
-    process.platform === "win32" ? "qodercli.cmd" : "qodercli"
+    process.platform === "win32" ? "cline.cmd" : "cline"
   );
 });
 
 test("getCliRuntimeStatus resolves known binaries from npm global prefix discovered via npm config", async () => {
   const prefixDir = createTempDir("omniroute-cli-prefix-");
-  const scriptName = process.platform === "win32" ? "qodercli.cmd" : "qodercli";
+  const scriptName = process.platform === "win32" ? "cline.cmd" : "cline";
   const scriptPath = writeScript(
     path.join(prefixDir, process.platform === "win32" ? "" : "bin"),
     scriptName,
     process.platform === "win32"
-      ? "@echo off\r\necho qodercli 1.2.3\r\nREM padding padding padding\r\n"
-      : "#!/bin/sh\necho qodercli 1.2.3\n# padding padding padding\n"
+      ? "@echo off\r\necho cline 1.2.3\r\nREM padding padding padding\r\n"
+      : "#!/bin/sh\necho cline 1.2.3\n# padding padding padding\n"
   );
 
   delete process.env.npm_config_prefix;
@@ -292,7 +292,7 @@ test("getCliRuntimeStatus resolves known binaries from npm global prefix discove
   syncBuiltinESMExports();
 
   const cliRuntime = await importFresh("npm-prefix-known-path");
-  const status = await cliRuntime.getCliRuntimeStatus("qoder");
+  const status = await cliRuntime.getCliRuntimeStatus("cline");
 
   assert.equal(status.installed, true);
   assert.equal(status.runnable, true);
@@ -303,7 +303,7 @@ test("getCliRuntimeStatus resolves known binaries from npm global prefix discove
 test("getCliRuntimeStatus ignores suspicious known-path binaries and symlink escapes", async () => {
   const prefixDir = createTempDir("omniroute-cli-suspicious-");
   const binDir = path.join(prefixDir, process.platform === "win32" ? "" : "bin");
-  const scriptName = process.platform === "win32" ? "qodercli.exe" : "qodercli";
+  const scriptName = process.platform === "win32" ? "cline.exe" : "cline";
   fs.mkdirSync(binDir, { recursive: true });
   fs.writeFileSync(path.join(binDir, scriptName), "");
 
@@ -311,7 +311,7 @@ test("getCliRuntimeStatus ignores suspicious known-path binaries and symlink esc
   process.env.PATH = process.platform === "win32" ? process.env.PATH || "" : "/bin:/usr/bin";
 
   const cliRuntime = await importFresh("suspicious-size");
-  const suspiciousStatus = await cliRuntime.getCliRuntimeStatus("qoder");
+  const suspiciousStatus = await cliRuntime.getCliRuntimeStatus("cline");
 
   assert.equal(suspiciousStatus.installed, false);
   assert.equal(suspiciousStatus.reason, "suspicious_size");
@@ -322,12 +322,12 @@ test("getCliRuntimeStatus ignores suspicious known-path binaries and symlink esc
     const outsideDir = createTempDir("omniroute-cli-outside-");
     const outsideTarget = writeScript(
       outsideDir,
-      "qodercli",
-      "#!/bin/sh\necho qodercli 9.9.9\n# padding padding padding\n"
+      "cline",
+      "#!/bin/sh\necho cline 9.9.9\n# padding padding padding\n"
     );
 
     fs.mkdirSync(escapeBinDir, { recursive: true });
-    fs.symlinkSync(outsideTarget, path.join(escapeBinDir, "qodercli"));
+    fs.symlinkSync(outsideTarget, path.join(escapeBinDir, "cline"));
     process.env.npm_config_prefix = escapePrefix;
 
     // #7753: every candidate checkKnownPath() ever receives is constructed by
@@ -341,7 +341,7 @@ test("getCliRuntimeStatus ignores suspicious known-path binaries and symlink esc
     // by tests/unit/cliRuntime-symlink-escape-7753.test.ts via the exported
     // checkKnownPath().
     const escapedRuntime = await importFresh("symlink-escape");
-    const escapedStatus = await escapedRuntime.getCliRuntimeStatus("qoder");
+    const escapedStatus = await escapedRuntime.getCliRuntimeStatus("cline");
 
     assert.equal(escapedStatus.installed, true);
     assert.equal(escapedStatus.reason, null);

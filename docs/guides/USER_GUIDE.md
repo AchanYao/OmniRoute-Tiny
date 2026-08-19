@@ -54,7 +54,6 @@ Complete guide for configuring providers, creating combos, integrating CLI tools
 | **💰 CHEAP**        | GLM-4.7           | $0.6/1M     | Daily 10AM     | Budget backup        |
 |                     | MiniMax M2.1      | $0.2/1M     | 5-hour rolling | Cheapest option      |
 |                     | Kimi K2           | $9/mo flat  | 10M tokens/mo  | Predictable cost     |
-| **🆓 FREE**         | Qoder             | $0          | Unlimited      | 8 models free        |
 |                     | Qwen              | $0          | Unlimited      | 3 models free        |
 |                     | Kiro              | $0          | ~50 credits/mo | Claude free          |
 
@@ -209,14 +208,6 @@ Models:
 No-auth free providers have a switch beside **No authentication required** on their provider page.
 Turning it off disables that provider, removes it from Providers configured/compact views, and
 removes its models from `/v1/models`.
-
-#### Qoder (9 FREE models)
-
-```bash
-Dashboard → Connect Qoder → OAuth login → Unlimited usage
-
-Models: if/qwen3.8-max-preview, if/qwen3.7-max, if/qwen3.7-plus, if/kimi-k3, if/kimi-k2.7-code, if/glm-5.2, if/deepseek-v4-pro, if/deepseek-v4-flash, if/minimax-m3
-```
 
 #### Kiro (Claude FREE)
 
@@ -573,8 +564,6 @@ For the full environment variable reference, see the [README](../README.md).
 **GitHub Copilot (`gh/`)** — OAuth: `gh/gpt-5.5`, `gh/gpt-5.4`, `gh/gpt-5.4-mini`, `gh/gpt-5-mini`, `gh/gpt-5.3-codex`, `gh/claude-opus-4.7`, `gh/claude-opus-4.6`, `gh/claude-opus-4-5-20251101`, `gh/claude-sonnet-4.6`, `gh/claude-sonnet-4.5`, `gh/claude-haiku-4.5`, `gh/gemini-3.1-pro-preview`, `gh/gemini-3-flash-preview`, `gh/oswe-vscode-prime`
 
 **Kiro (`kr/`)** — FREE OAuth: use the live catalog shown under **Dashboard → Providers → Kiro → Available Models**. Availability depends on the account and plan.
-
-**Qoder (`if/`)** — FREE OAuth: `if/qwen3.8-max-preview`, `if/qwen3.7-max`, `if/qwen3.7-plus`, `if/kimi-k3`, `if/kimi-k2.7-code`, `if/glm-5.2`, `if/deepseek-v4-pro`, `if/deepseek-v4-flash`, `if/minimax-m3`
 
 **GLM (`glm/`, `glm-cn/`, `zai/`, `glmt/`)** — $0.2–0.6/1M: `glm/glm-5.1`, `glm/glm-5`, `glm/glm-5-turbo`, `glm/glm-4.7`, `glm/glm-4.7-flash`, `glm/glm-4.6`, `glm/glm-4.6v`, `glm/glm-4.5`, `glm/glm-4.5v`, `glm/glm-4.5-air`
 

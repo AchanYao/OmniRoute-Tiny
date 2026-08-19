@@ -175,7 +175,7 @@ flowchart LR
     end
 
     subgraph Upstreams[Upstream Providers]
-        P1[OAuth Providers\nClaude/Codex/Gemini/Qoder/GitHub/Kiro/Cursor/Antigravity]
+        P1[OAuth Providers\nClaude/Codex/Gemini/GitHub/Kiro/Cursor/Antigravity]
         P2[API Key Providers\nOpenAI/Anthropic/OpenRouter/GLM/Kimi/MiniMax\nDeepSeek/Groq/xAI/Mistral/Perplexity\nTogether/Fireworks/Cerebras/Cohere/NVIDIA]
         P3[Compatible Nodes\nOpenAI-compatible / Anthropic-compatible]
     end
@@ -324,7 +324,7 @@ Domain layer modules:
 OAuth provider modules (16 individual files under `src/lib/oauth/providers/`):
 
 - Registry index: `src/lib/oauth/providers/index.ts`
-- Individual providers: `claude.ts`, `codex.ts`, `gemini.ts`, `antigravity.ts`, `agy.ts`, `qoder.ts`, `qwen.ts`, `kimi-coding.ts`, `github.ts`, `kiro.ts`, `cursor.ts`, `kilocode.ts`, `cline.ts`, `windsurf.ts`, `gitlab-duo.ts`, `trae.ts`
+- Individual providers: `claude.ts`, `codex.ts`, `gemini.ts`, `antigravity.ts`, `agy.ts`, `qwen.ts`, `kimi-coding.ts`, `github.ts`, `kiro.ts`, `cursor.ts`, `kilocode.ts`, `cline.ts`, `windsurf.ts`, `gitlab-duo.ts`, `trae.ts`
 - Thin wrapper: `src/lib/oauth/providers.ts` — re-exports from individual modules
 
 ## 5) Embedded Services (v3.8.4)
@@ -925,7 +925,6 @@ Each provider has a specialized executor extending `BaseExecutor` (in `open-sse/
 | `PetalsExecutor`         | Petals distributed inference                                                                                                                                | Decentralized swarm routing                                          |
 | `PollinationsExecutor`   | Pollinations AI                                                                                                                                             | No API key required, rate-limited requests                           |
 | `PuterExecutor`          | Puter                                                                                                                                                       | Browser-based provider integration                                   |
-| `QoderExecutor`          | Qoder AI                                                                                                                                                    | PAT and OAuth support, multi-model free tier                         |
 | `VertexExecutor`         | Google Vertex AI                                                                                                                                            | Service account auth, region-based endpoints                         |
 | `WindsurfExecutor`       | Windsurf (Codeium)                                                                                                                                          | Codeium OAuth + session token refresh                                |
 
@@ -948,7 +947,6 @@ All other providers (including custom compatible nodes) use the `DefaultExecutor
 | GitHub Copilot    | openai           | OAuth + Copilot Token | ✅               | ✅         | ✅            | ✅ Quota snapshots |
 | Cursor            | cursor           | Custom checksum       | ✅               | ✅         | ❌            | ❌                 |
 | Kiro              | kiro             | AWS SSO OIDC          | ✅ (EventStream) | ❌         | ✅            | ✅ Usage limits    |
-| Qoder             | openai           | OAuth / PAT           | ✅               | ✅         | ✅            | ⚠️ Per request     |
 | Kilo Code         | openai           | OAuth                 | ✅               | ✅         | ✅            | ❌                 |
 | Cline             | openai           | OAuth                 | ✅               | ✅         | ✅            | ❌                 |
 | Kimi Coding       | openai           | OAuth                 | ✅               | ✅         | ✅            | ❌                 |
@@ -994,7 +992,6 @@ All other providers (including custom compatible nodes) use the `DefaultExecutor
 | ModelScope        | openai           | API Key               | ✅               | ✅         | ❌            | ⚠️ Quota policy    |
 | BazaarLink        | openai           | API Key               | ✅               | ✅         | ❌            | ❌                 |
 | Petals            | openai           | None                  | ✅               | ✅         | ❌            | ❌                 |
-| Qoder             | openai           | OAuth / PAT           | ✅               | ✅         | ✅            | ⚠️ Per request     |
 | OpenCode (Go/Zen) | openai           | OAuth                 | ✅               | ✅         | ✅            | ❌                 |
 | CLIProxyAPI       | openai           | Custom                | ✅               | ✅         | ❌            | ❌                 |
 

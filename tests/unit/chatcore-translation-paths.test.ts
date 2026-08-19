@@ -1486,24 +1486,24 @@ test("chatCore uses the native executor when no upstream proxy mode is enabled",
 
 test("chatCore routes providers through CLIProxyAPI in passthrough mode", async () => {
   await upstreamProxyDb.upsertUpstreamProxyConfig({
-    providerId: "qoder",
+    providerId: "deepseek",
     mode: "cliproxyapi",
     enabled: true,
   });
 
   const { call } = await invokeChatCore({
-    provider: "qoder",
-    model: "qoder-rome-30ba3b",
-    credentials: { apiKey: "qoder-token", providerSpecificData: {} },
+    provider: "deepseek",
+    model: "deepseek-chat",
+    credentials: { apiKey: "ds-token", providerSpecificData: {} },
     body: {
-      model: "qoder-rome-30ba3b",
+      model: "deepseek-chat",
       messages: [{ role: "user", content: "hello" }],
     },
     responseFormat: "openai",
   });
 
   assert.match(call.url, /^http:\/\/127\.0\.0\.1:8317\/v1\/chat\/completions$/);
-  assert.equal(call.headers.Authorization ?? call.headers.authorization, "Bearer qoder-token");
+  assert.equal(call.headers.Authorization ?? call.headers.authorization, "Bearer ds-token");
 });
 
 test("chatCore fallback proxy mode retries through CLIProxyAPI after retryable native failures", async () => {

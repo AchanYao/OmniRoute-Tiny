@@ -217,16 +217,13 @@ describe("modelsDevSync — transformModelsDevToPricing", () => {
     assert.equal(pricing.openai["o3-mini"].cache_creation, undefined);
   });
 
-  it("maps deepseek to both deepseek and if (Qoder) providers", () => {
+  it("maps deepseek provider pricing", () => {
     const pricing = transformModelsDevToPricing(MOCK_MODELS_DEV_DATA);
 
     assert.ok(pricing.deepseek, "deepseek provider should exist");
-    assert.ok(pricing.if, "if (Qoder) provider should exist");
     assert.equal(pricing.deepseek["deepseek-chat"].input, 0.27);
     assert.equal(pricing.deepseek["deepseek-chat"].output, 1.1);
     assert.equal(pricing.deepseek["deepseek-chat"].cached, 0.07);
-    // Should be same in if provider
-    assert.equal(pricing.if["deepseek-chat"].input, 0.27);
   });
 
   it("handles unknown providers by using the models.dev ID as-is", () => {
@@ -272,7 +269,7 @@ describe("modelsDevSync — transformModelsDevToPricing", () => {
     // anthropic: 1 model × 2 providers (anthropic, cc) = 2
     // deepseek: 1 model × 2 providers (deepseek, if) = 2
     // unknown-provider: 1 model × 1 provider = 1
-    assert.equal(totalModels, 9);
+    assert.equal(totalModels, 8);
   });
 });
 
@@ -397,8 +394,8 @@ describe("modelsDevSync — mapProviderId", () => {
     assert.deepEqual(mapProviderId("google"), ["gemini"]);
   });
 
-  it("maps deepseek to [deepseek, if]", () => {
-    assert.deepEqual(mapProviderId("deepseek"), ["deepseek", "if"]);
+  it("maps deepseek to [deepseek]", () => {
+    assert.deepEqual(mapProviderId("deepseek"), ["deepseek"]);
   });
 
   it("falls back to original ID for unmapped providers", () => {

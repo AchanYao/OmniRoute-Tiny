@@ -56,9 +56,6 @@ import { getHyperAgentUsage } from "./usage/hyperagent.ts";
 import { getGitHubUsage, formatGitHubQuotaSnapshot, inferGitHubPlanName } from "./usage/github.ts";
 import { getCrofUsage } from "./usage/crof.ts";
 import { getNanoGptUsage } from "./usage/nanogpt.ts";
-import { getQoderUsage, parseQoderUserStatusUsage } from "./usage/qoder.ts";
-// Re-exported para o teste qoder-usage-quota (importa parseQoderUserStatusUsage de services/usage).
-export { parseQoderUserStatusUsage } from "./usage/qoder.ts";
 import { getOpencodeUsage } from "./usage/opencode.ts";
 import { getDeepseekUsage } from "./usage/deepseek.ts";
 import { getBailianCodingPlanUsage } from "./usage/bailian.ts";
@@ -98,7 +95,6 @@ export const USAGE_FETCHER_PROVIDERS = [
   "amazon-q",
   "kimi-coding",
   "kimi-coding-apikey",
-  "qoder",
   "glm",
   "glm-cn",
   "zai",
@@ -173,10 +169,6 @@ export async function getUsageForProvider(
     case "kimi-coding":
     case "kimi-coding-apikey":
       return await getKimiUsage(accessToken, apiKey, providerSpecificData);
-    case "qoder":
-      // Qoder PATs live in `apiKey` (decrypted) or `providerSpecificData.qoderPat`,
-      // never in `accessToken`.
-      return await getQoderUsage(apiKey, providerSpecificData);
     case "glm":
     case "glm-cn":
     case "zai":
@@ -236,7 +228,6 @@ export async function getUsageForProvider(
 
 export const __testing = {
   parseResetTime,
-  parseQoderUserStatusUsage,
   formatGitHubQuotaSnapshot,
   inferGitHubPlanName,
   getAntigravityPlanLabel,

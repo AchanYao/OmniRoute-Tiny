@@ -4202,32 +4202,6 @@
       "stream": "https://api.qnaigc.com/v1/chat/completions"
     }
   },
-  "qoder": {
-    "format": "openai",
-    "headers": {
-      "apiKey": {
-        "Accept": "text/event-stream",
-        "Authorization": "Bearer <TOK>",
-        "Content-Type": "application/json",
-        "User-Agent": "Qoder-Cli"
-      },
-      "nonStream": {
-        "Authorization": "Bearer <TOK>",
-        "Content-Type": "application/json",
-        "User-Agent": "Qoder-Cli"
-      },
-      "oauth": {
-        "Accept": "text/event-stream",
-        "Authorization": "Bearer <TOK>",
-        "Content-Type": "application/json",
-        "User-Agent": "Qoder-Cli"
-      }
-    },
-    "url": {
-      "nonStream": "https://api.qoder.com/v1/chat/completions",
-      "stream": "https://api.qoder.com/v1/chat/completions"
-    }
-  },
   "qwen-cloud": {
     "format": "openai",
     "headers": {

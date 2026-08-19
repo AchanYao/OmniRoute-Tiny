@@ -167,14 +167,6 @@ export async function GET(
         searchParams.get("redirect_uri") || "http://localhost:8080/callback";
       const redirectUri = resolveBrowserOAuthRedirectUri(provider, requestedRedirectUri);
       const authData = generateAuthData(provider, redirectUri);
-      if (provider === "qoder" && !authData.authUrl) {
-        return NextResponse.json({
-          ...authData,
-          supported: false,
-          error:
-            "Qoder browser OAuth is experimental and disabled by default. Configure QODER_OAUTH_* environment variables or use a Personal Access Token.",
-        });
-      }
       // #3861 / #8688: GitLab Duo needs a self-registered OAuth app. Without a client_id,
       // buildAuthUrl returns null — surface a clear setup message instead of a 500.
       // Same copy is shown in the OAuthModal setup step *before* authorize (#8688).

@@ -1,8 +1,8 @@
 // Regression test for #7913: `omniroute setup opencode --auth` spawns the
 // `opencode.cmd` shim on win32. Since Node's CVE-2024-27980 hardening,
 // spawning a `.cmd`/`.bat` shim with `shell:false` throws EINVAL — the same
-// class already fixed for codex (bin/cli/commands/launch-codex.mjs,
-// crediting #6263) and qodercli/Auggie (#6263/#6304). This callsite was
+// class already fixed for codex (bin/cli/commands/launch-codex.mjs) and
+// Auggie (#6304). This callsite was
 // missed; `resolveOpenCodeAuthSpawn` must use `shell: isWin`.
 //
 // Tested through the pure `resolveOpenCodeAuthSpawn(providerId, platform)`
@@ -56,8 +56,5 @@ test("resolveOpenCodeAuthProviderId: idempotent — passes through already-prefi
     resolveOpenCodeAuthProviderId("opencode-omniroute-preprod"),
     "opencode-omniroute-preprod"
   );
-  assert.equal(
-    resolveOpenCodeAuthProviderId("opencode-anthropic"),
-    "opencode-anthropic"
-  );
+  assert.equal(resolveOpenCodeAuthProviderId("opencode-anthropic"), "opencode-anthropic");
 });

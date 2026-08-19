@@ -303,15 +303,6 @@ export default function ConnectionsHeaderToolbar({
                 <Button size="sm" icon="add" onClick={() => gateConnectionFlow(openPrimaryAddFlow)}>
                   {providerSupportsPat ? providerText(t, "addPat", "Add PAT") : t("add")}
                 </Button>
-                {providerId === "qoder" && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => gateConnectionFlow(onOpenOAuthModal)}
-                  >
-                    {providerText(t, "experimentalOauth", "Experimental OAuth")}
-                  </Button>
-                )}
                 {providerId === "codex" && (
                   <Button
                     size="sm"

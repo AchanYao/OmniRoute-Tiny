@@ -32,16 +32,15 @@ test("canonical owned_by grouping: oc prefix with opencode owned_by stays contig
   assert.equal(keys.lastIndexOf("openai") - keys.indexOf("openai"), 1);
 });
 
-test("registry precedence over code-unit: qoder before agy (both oauth)", () => {
-  // oauth.ts key order: qoder (idx 3) before agy (idx 4); code-unit: agy < qoder.
+test("registry precedence over code-unit: agy before kimi-coding (both oauth)", () => {
   const input = [
+    { id: "kimi-coding/model", owned_by: "kimi-coding" },
     { id: "agy/gemini", owned_by: "agy" },
-    { id: "qoder/model", owned_by: "qoder" },
   ];
   const out = sortCatalogModelsProviderGrouped(input);
   assert.deepEqual(
     out.map((m) => m.owned_by),
-    ["qoder", "agy"]
+    ["agy", "kimi-coding"]
   );
 });
 

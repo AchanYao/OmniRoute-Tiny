@@ -148,21 +148,6 @@ test("injectEmptyReasoningContentForToolCalls supports Kimi K2 models", () => {
   }
 });
 
-test("injectEmptyReasoningContentForToolCalls supports Kimi K2 via Qoder provider", () => {
-  const messages = [
-    { role: "user", content: "hello" },
-    { role: "assistant", tool_calls: [{ id: "call_1" }] },
-  ];
-
-  const result = injectEmptyReasoningContentForToolCalls(
-    messages,
-    "qoder",
-    "kimi-k2-thinking"
-  ) as Array<{ reasoning_content?: string }>;
-
-  assert.equal(result[1].reasoning_content, "");
-});
-
 test("injectEmptyReasoningContentForToolCalls supports all reasoning replay providers", () => {
   const messages = [
     { role: "user", content: "hello" },
@@ -264,8 +249,8 @@ test("injectOptionalEnumOmissionForTools: Chat Completions {function:{parameters
   }>;
   // Chat Completions shape (nested under `.function`) is out of scope for this
   // Responses-API-only injector — assert it is not mutated.
-  assert.deepStrictEqual(
-    result[0].function.parameters.properties.isolation.enum,
-    ["worktree", "remote"]
-  );
+  assert.deepStrictEqual(result[0].function.parameters.properties.isolation.enum, [
+    "worktree",
+    "remote",
+  ]);
 });

@@ -117,7 +117,7 @@ export const MODELS_DEV_PROVIDER_MAP: Record<string, string[]> = {
   "google-vertex": ["gemini", "vertex"],
   "google-vertex-anthropic": ["anthropic", "cc", "vertex"],
   vertex_ai: ["gemini", "vertex"],
-  deepseek: ["deepseek", "if"], // if = Qoder (routes through DeepSeek)
+  deepseek: ["deepseek"],
   groq: ["groq"],
   xai: ["xai"],
   mistral: ["mistral"],

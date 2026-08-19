@@ -87,7 +87,6 @@ export default function AddApiKeyModal({
   const { defaultRegion, showsRegion } = ProviderRegion.getProviderRegionConfig(provider);
   const isModal = provider === "modal";
   const isGlm = isGlmProvider(provider);
-  const isQoder = provider === "qoder";
   const openRouterPreset = useOpenRouterPresetControl(provider, t);
   const isCloudflare = provider === "cloudflare-ai";
   const localProviderMetadata = getLocalProviderMetadata(provider);
@@ -168,41 +167,35 @@ export default function AddApiKeyModal({
   const [bulkWarnings, setBulkWarnings] = useState<string[]>([]);
   const apiCredentialLabel = isModal
     ? providerText(t, "modalTokenIdLabel", "Token ID")
-    : isQoder
-      ? t("personalAccessTokenLabel")
-      : webSessionCredential
-        ? getWebSessionCredentialLabel(t, webSessionCredential, apiKeyOptional)
-        : apiKeyOptional
-          ? `${t("apiKeyLabel")} (${t("optional").toLowerCase()})`
-          : t("apiKeyLabel");
+    : webSessionCredential
+      ? getWebSessionCredentialLabel(t, webSessionCredential, apiKeyOptional)
+      : apiKeyOptional
+        ? `${t("apiKeyLabel")} (${t("optional").toLowerCase()})`
+        : t("apiKeyLabel");
   const apiCredentialPlaceholder = isModal
     ? "ak-xxxxxxxxxxxxxxxx"
     : isVertex
       ? t("vertexServiceAccountPlaceholder")
       : isWebSessionCredential
         ? webSessionCredential.placeholder
-        : isQoder
-          ? t("qoderPatPlaceholder")
-          : apiKeyOptional
-            ? t("optional")
-            : undefined;
+        : apiKeyOptional
+          ? t("optional")
+          : undefined;
   const apiCredentialHint = isModal
     ? providerText(
         t,
         "modalTokenIdHint",
         "Modal auth uses a Token ID + Token Secret pair. Create one at https://modal.com/settings → API Tokens."
       )
-    : isQoder
-      ? t("qoderPatHint")
-      : isWebSessionCredential
-        ? getWebSessionCredentialHint(t, webSessionCredential, providerDisplayName, false)
-        : isLocalSelfHostedProvider
-          ? t("localProviderApiKeyOptionalHint", {
-              provider: localProviderMetadata?.name || providerName || provider || "",
-            })
-          : apiKeyOptional
-            ? t("apiKeyOptionalHint")
-            : undefined;
+    : isWebSessionCredential
+      ? getWebSessionCredentialHint(t, webSessionCredential, providerDisplayName, false)
+      : isLocalSelfHostedProvider
+        ? t("localProviderApiKeyOptionalHint", {
+            provider: localProviderMetadata?.name || providerName || provider || "",
+          })
+        : apiKeyOptional
+          ? t("apiKeyOptionalHint")
+          : undefined;
   const credentialValidationFailedMessage = isWebSessionCredential
     ? providerText(
         t,
@@ -694,7 +687,7 @@ export default function AddApiKeyModal({
               label={t("nameLabel")}
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder={isQoder ? t("personalAccessTokenLabel") : t("productionKey")}
+              placeholder={t("productionKey")}
             />
             {webSessionCredential && (
               <WebSessionCredentialGuide

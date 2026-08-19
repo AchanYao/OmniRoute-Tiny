@@ -17,8 +17,7 @@ test("CLI_RUNTIME_PROVIDER_MAP must not gate kilocode on a local CLI binary (#24
 });
 
 test("CLI_RUNTIME_PROVIDER_MAP still gates providers that actually need a local CLI", () => {
-  // cline and qoder both read credentials from a local CLI auth file when used
+  // cline reads credentials from a local CLI auth file when used
   // in their CLI-flavored auth mode, so the runtime check stays meaningful.
   assert.equal(CLI_RUNTIME_PROVIDER_MAP.cline, "cline");
-  assert.equal(CLI_RUNTIME_PROVIDER_MAP.qoder, "qoder");
 });

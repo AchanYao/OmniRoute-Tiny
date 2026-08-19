@@ -3,7 +3,6 @@
 // functions taking `isLocal` where the original closure captured it; behavior is byte-identical
 // to the original inline defs. The host dispatcher still owns the SPECIALTY_VALIDATORS map
 // construction + dispatch — these are just the leaf validator bodies.
-import { validateQoderCliPat } from "@omniroute/open-sse/services/qoderCli.ts";
 import { KiroService } from "@/lib/oauth/services/kiro";
 import { resolveNvidiaValidationModel } from "@/lib/providers/nvidiaValidationModel";
 import { normalizeBaseUrl } from "./urlHelpers";
@@ -59,43 +58,6 @@ export async function validateAuggieProvider() {
     };
   }
   return { valid: true, error: null, unsupported: false, method: result.version };
-}
-
-export async function validateQoderProvider({ apiKey, providerSpecificData }: any) {
-  // Bifurcate validation: PAT tokens use Cosy auth against api1.qoder.sh;
-  // regular API keys validate against dashscope (OpenAI-compatible endpoint).
-  const key = (apiKey || "").trim();
-  if (key.startsWith("pt-")) {
-    return validateQoderCliPat({ apiKey: key, providerSpecificData });
-  }
-  // Non-PAT token → validate against dashscope (Alibaba Cloud).
-  // The executor routes these tokens to dashscope.aliyuncs.com, so the
-  // validation must test against dashscope, NOT the Cosy PAT endpoint.
-  try {
-    const dashscopeUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1/models";
-    const res = await validationRead(
-      dashscopeUrl,
-      {
-        headers: {
-          Authorization: `Bearer ${key}`,
-        },
-      },
-      false
-    );
-    if (res.ok) return { valid: true, error: null };
-    if (res.status === 401 || res.status === 403) {
-      return {
-        valid: false,
-        error:
-          "Invalid Qoder API key. Make sure you're using a valid API key from Qoder / Alibaba Cloud Dashscope.",
-      };
-    }
-    // 4xx/5xx other than auth — treat as valid bypass to prevent false
-    // negatives from transient dashscope issues (consistent with PAT path).
-    return { valid: true, error: null };
-  } catch (err: unknown) {
-    return toValidationErrorResult(err);
-  }
 }
 
 export async function validateKiroProvider({ apiKey, providerSpecificData }: any) {

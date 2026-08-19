@@ -35,7 +35,6 @@ const REMOVED_DEAD = [
   "codex", // CodexService extends OAuthService
   "antigravity", // AntigravityService
   "qwen", // QwenService
-  "qoder", // QoderService
   "index", // the barrel re-exporting all of the above
 ];
 

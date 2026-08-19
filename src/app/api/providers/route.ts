@@ -25,7 +25,6 @@ import {
   batchUpdateProviderConnectionsSchema,
 } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
-import { normalizeQoderPatProviderData } from "@omniroute/open-sse/services/qoderCli";
 import {
   normalizeProviderSpecificData,
   sanitizeProviderSpecificDataForResponse,
@@ -120,10 +119,6 @@ export async function POST(request: Request) {
     let providerSpecificData = incomingPsd || null;
     const allowMultipleCompatibleConnections =
       process.env.ALLOW_MULTI_CONNECTIONS_PER_COMPAT_NODE === "true";
-
-    if (provider === "qoder") {
-      providerSpecificData = normalizeQoderPatProviderData(providerSpecificData || {});
-    }
 
     if (isOpenAICompatibleProvider(provider)) {
       const node: any = await resolveProviderNodeForConnection(provider);

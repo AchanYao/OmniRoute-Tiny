@@ -16,7 +16,7 @@ test("merged OAuth providers keep free-tier providers in the OAuth section", () 
   };
 
   const mockOauthProviders = { claude: { name: "Claude" } };
-  const mockFreeProviders = { qoder: { name: "Qoder" } };
+  const mockFreeProviders = { pollinations: { name: "Pollinations" } };
 
   const entries = providerPageUtils.buildMergedOAuthProviderEntries(
     mockOauthProviders,
@@ -498,7 +498,6 @@ test("static catalog entries resolve local, search, audio, web-cookie and upstre
 });
 
 test("managed provider connection ids include supported static categories and exclude upstream proxy", () => {
-  assert.equal(providerCatalog.isManagedProviderConnectionId("qoder"), true);
   assert.equal(providerCatalog.isManagedProviderConnectionId("synthetic"), true);
   assert.equal(providerCatalog.isManagedProviderConnectionId("gitlab"), true);
   assert.equal(providerCatalog.isManagedProviderConnectionId("thebai"), true);
@@ -1063,11 +1062,9 @@ test("buildCompatibleProviderGroups partitions nodes by type + claude-code prefi
 test("connectionMatchesProviderCard counts a dual-auth provider's PAT (apikey) connection on its OAuth card", () => {
   const { connectionMatchesProviderCard } = providerPageUtils;
 
-  // qoder is OAuth-categorized but its working auth is a PAT (authType "apikey").
-  // Regression: the OAuth card must count the PAT connection, else the dashboard
-  // shows a connected qoder as "not connected".
+  // Kiro supports OAuth and API-key-shaped connections. The OAuth card must count both.
   assert.equal(
-    connectionMatchesProviderCard({ provider: "qoder", authType: "apikey" }, "qoder", "oauth"),
+    connectionMatchesProviderCard({ provider: "kiro", authType: "apikey" }, "kiro", "oauth"),
     true
   );
   assert.equal(
@@ -1075,7 +1072,7 @@ test("connectionMatchesProviderCard counts a dual-auth provider's PAT (apikey) c
     true
   );
   assert.equal(
-    connectionMatchesProviderCard({ provider: "qoder", authType: "oauth" }, "qoder", "oauth"),
+    connectionMatchesProviderCard({ provider: "cline", authType: "oauth" }, "cline", "oauth"),
     true
   );
   // A normal OAuth-only provider must NOT count an apikey connection on its OAuth card.
@@ -1090,15 +1087,15 @@ test("connectionMatchesProviderCard counts a dual-auth provider's PAT (apikey) c
 
   // Provider mismatch and the "free" card (counts everything) behave as expected.
   assert.equal(
-    connectionMatchesProviderCard({ provider: "openai", authType: "apikey" }, "qoder", "oauth"),
+    connectionMatchesProviderCard({ provider: "openai", authType: "apikey" }, "kiro", "oauth"),
     false
   );
   assert.equal(
-    connectionMatchesProviderCard({ provider: "qoder", authType: "apikey" }, "qoder", "free"),
+    connectionMatchesProviderCard({ provider: "kiro", authType: "apikey" }, "kiro", "free"),
     true
   );
 
   // Defensive: a null/undefined connection must not throw (gemini-code-assist).
-  assert.equal(connectionMatchesProviderCard(null, "qoder", "oauth"), false);
-  assert.equal(connectionMatchesProviderCard(undefined, "qoder", "oauth"), false);
+  assert.equal(connectionMatchesProviderCard(null, "cline", "oauth"), false);
+  assert.equal(connectionMatchesProviderCard(undefined, "cline", "oauth"), false);
 });

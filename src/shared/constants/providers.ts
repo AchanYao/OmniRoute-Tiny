@@ -29,7 +29,6 @@ export const FREE_PROVIDERS = {};
 // No-auth Providers
 
 export const FREE_APIKEY_PROVIDER_IDS = new Set([
-  "qoder",
   "mimocode",
   "opencode",
   "dahl",
@@ -223,7 +222,6 @@ const BULK_API_KEY_EXCLUDED = new Set([
   "muse-spark-web",
   "deepseek-web",
   "inner-ai",
-  "qoder",
   "google-pse-search",
   "command-code",
   "azure",
@@ -429,7 +427,6 @@ export const USAGE_SUPPORTED_PROVIDERS = [
   "codex",
   "claude",
   "cursor",
-  "qoder",
   "kimi-coding",
   "kimi-coding-apikey",
   "glm",

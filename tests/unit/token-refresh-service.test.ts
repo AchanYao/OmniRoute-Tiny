@@ -15,7 +15,6 @@ const {
   refreshGoogleToken,
   refreshCodexToken,
   refreshKiroToken,
-  refreshQoderToken,
   refreshGitHubToken,
   refreshCopilotToken,
   supportsTokenRefresh,
@@ -155,7 +154,7 @@ test("TOKEN_EXPIRY_BUFFER_MS stays at five minutes", () => {
 
 test("refreshAccessToken returns null when no provider refresh endpoint exists", async () => {
   const log = createLog();
-  const result = await refreshAccessToken("qoder", "refresh-token", {}, log);
+  const result = await refreshAccessToken("unknown-oauth", "refresh-token", {}, log);
   assert.equal(result, null);
   assert.equal(
     log.entries.some((entry) => entry.level === "warn"),
@@ -631,50 +630,6 @@ test("refreshKiroToken uses social-auth path for imported token even with client
   assert.ok(!calls[0].url.includes("oidc."), "imported token must not use AWS OIDC");
 });
 
-test("refreshQoderToken uses basic auth once qoder oauth settings are configured", async () => {
-  const log = createLog();
-  const calls: any[] = [];
-
-  await withPatchedProperties(
-    PROVIDERS.qoder,
-    {
-      clientId: "qoder-client",
-      clientSecret: "qoder-secret",
-    },
-    async () => {
-      await withPatchedProperties(
-        OAUTH_ENDPOINTS.qoder,
-        {
-          token: "https://qoder.example.com/oauth/token",
-        },
-        async () => {
-          await withMockedFetch(
-            async (url, options = {}) => {
-              calls.push({ url, options });
-              return jsonResponse({
-                access_token: "qoder-access",
-                refresh_token: "qoder-refresh-next",
-                expires_in: 2400,
-              });
-            },
-            async () => {
-              const result = await refreshQoderToken("qoder-refresh", log);
-              assert.deepEqual(result, {
-                accessToken: "qoder-access",
-                refreshToken: "qoder-refresh-next",
-                expiresIn: 2400,
-              });
-            }
-          );
-        }
-      );
-    }
-  );
-
-  assert.equal(calls[0].url, "https://qoder.example.com/oauth/token");
-  assert.match(calls[0].options.headers.Authorization, /^Basic /);
-});
-
 test("refreshGitHubToken sends the real public github client_id and no client_secret (port from 9router#442)", async () => {
   // GitHub Copilot's OAuth app is a public device-flow client: it has a client_id but
   // NO client_secret. PROVIDERS.github.clientId must be populated from the embedded public
@@ -797,70 +752,79 @@ test("supportsTokenRefresh, isUnrecoverableRefreshError and formatProviderCreden
 
 test("getAccessToken discovers projectId for antigravity when stored value is empty", async () => {
   const log = createLog();
-  const { clearAntigravityProjectCache } = await import("../../open-sse/services/antigravityProjectBootstrap.ts");
+  const { clearAntigravityProjectCache } =
+    await import("../../open-sse/services/antigravityProjectBootstrap.ts");
   clearAntigravityProjectCache();
 
   let fetchCalls: string[] = [];
-  await withMockedFetch(async (url, init) => {
-    const urlStr = String(url);
-    fetchCalls.push(urlStr);
-    if (urlStr.includes("oauth2.googleapis.com/token")) {
-      return jsonResponse({
-        access_token: "new-token-1",
-        refresh_token: "new-refresh",
-        expires_in: 3600,
+  await withMockedFetch(
+    async (url, init) => {
+      const urlStr = String(url);
+      fetchCalls.push(urlStr);
+      if (urlStr.includes("oauth2.googleapis.com/token")) {
+        return jsonResponse({
+          access_token: "new-token-1",
+          refresh_token: "new-refresh",
+          expires_in: 3600,
+        });
+      }
+      if (urlStr.includes("loadCodeAssist")) {
+        return jsonResponse({ cloudaicompanionProject: "discovered-project" });
+      }
+      return new Response("not found", { status: 404 });
+    },
+    async () => {
+      const result = await getAccessToken("antigravity", {
+        refreshToken: "refresh",
+        projectId: "",
+        connectionId: "conn-1",
+        providerSpecificData: {},
       });
+      assert.equal(result.projectId, "discovered-project");
+      assert.ok(
+        fetchCalls.some((u) => u.includes("loadCodeAssist")),
+        "should call loadCodeAssist"
+      );
     }
-    if (urlStr.includes("loadCodeAssist")) {
-      return jsonResponse({ cloudaicompanionProject: "discovered-project" });
-    }
-    return new Response("not found", { status: 404 });
-  }, async () => {
-    const result = await getAccessToken("antigravity", {
-      refreshToken: "refresh",
-      projectId: "",
-      connectionId: "conn-1",
-      providerSpecificData: {},
-    });
-    assert.equal(result.projectId, "discovered-project");
-    assert.ok(fetchCalls.some((u) => u.includes("loadCodeAssist")), "should call loadCodeAssist");
-  });
+  );
   clearAntigravityProjectCache();
 });
-
 
 test("getAccessToken handles projectId discovery failure gracefully for antigravity", async () => {
   const log = createLog();
-  const { clearAntigravityProjectCache } = await import("../../open-sse/services/antigravityProjectBootstrap.ts");
+  const { clearAntigravityProjectCache } =
+    await import("../../open-sse/services/antigravityProjectBootstrap.ts");
   clearAntigravityProjectCache();
   tokenRefresh._clearTokenRotationMap();
 
-  await withMockedFetch(async (url) => {
-    const urlStr = String(url);
-    if (urlStr.includes("oauth2.googleapis.com/token")) {
-      return jsonResponse({
-        access_token: "new-token-3",
-        refresh_token: "new-refresh",
-        expires_in: 3600,
+  await withMockedFetch(
+    async (url) => {
+      const urlStr = String(url);
+      if (urlStr.includes("oauth2.googleapis.com/token")) {
+        return jsonResponse({
+          access_token: "new-token-3",
+          refresh_token: "new-refresh",
+          expires_in: 3600,
+        });
+      }
+      if (urlStr.includes("loadCodeAssist")) {
+        return new Response("server error", { status: 500 });
+      }
+      return new Response("not found", { status: 404 });
+    },
+    async () => {
+      const result = await getAccessToken("antigravity", {
+        refreshToken: "refresh",
+        projectId: "",
+        connectionId: "conn-1",
+        providerSpecificData: {},
       });
+      assert.equal(result.accessToken, "new-token-3");
+      assert.ok(result, "should return a result without throwing");
     }
-    if (urlStr.includes("loadCodeAssist")) {
-      return new Response("server error", { status: 500 });
-    }
-    return new Response("not found", { status: 404 });
-  }, async () => {
-    const result = await getAccessToken("antigravity", {
-      refreshToken: "refresh",
-      projectId: "",
-      connectionId: "conn-1",
-      providerSpecificData: {},
-    });
-    assert.equal(result.accessToken, "new-token-3");
-    assert.ok(result, "should return a result without throwing");
-  });
+  );
   clearAntigravityProjectCache();
 });
-
 
 test("getAccessToken deduplicates concurrent refreshes for the same provider and token", async () => {
   const log = createLog();

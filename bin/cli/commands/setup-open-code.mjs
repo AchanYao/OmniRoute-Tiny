@@ -247,7 +247,7 @@ export function resolveOpenCodeAuthProviderId(providerId) {
  * spawnSync (post CVE-2024-27980) refuses to run without a shell — spawning it
  * with shell:false throws EINVAL (#7913). Mirror the same fix already applied to
  * codex (resolveCodexSpawn in launch-codex.mjs, crediting #6263) and
- * qodercli/Auggie (#6263/#6304): shell:true on win32, shell:false everywhere else.
+ * Auggie (#6263/#6304): shell:true on win32, shell:false everywhere else.
  */
 export function resolveOpenCodeAuthSpawn(providerId, platform = process.platform) {
   const isWin = platform === "win32";

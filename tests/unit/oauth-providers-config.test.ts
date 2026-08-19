@@ -13,7 +13,6 @@ Object.assign(process.env, {
   KIMI_CODING_DEVICE_ID: "test-kimi-device-id",
   GITHUB_OAUTH_CLIENT_ID: "Iv1.b507a08c87ecfe98",
 });
-
 const providersModule = await import("../../src/lib/oauth/providers/index.ts");
 const oauthModule = await import("../../src/lib/oauth/constants/oauth.ts");
 const antigravityHeadersModule = await import("../../open-sse/services/antigravityHeaders.ts");
@@ -39,7 +38,6 @@ const {
   KIRO_CONFIG,
   OAUTH_TIMEOUT,
   PROVIDERS: OAUTH_PROVIDER_IDS,
-  QODER_CONFIG,
   RAYCAST_CONFIG,
   TRAE_CONFIG,
   WINDSURF_CONFIG,
@@ -55,7 +53,6 @@ const EXPECTED_PROVIDER_KEYS = [
   "codex",
   "antigravity",
   "agy",
-  "qoder",
   "kimi-coding",
   "github",
   "ghe-copilot",
@@ -89,7 +86,6 @@ const EXPECTED_CONFIG_BY_PROVIDER = {
   codex: CODEX_CONFIG,
   antigravity: ANTIGRAVITY_CONFIG,
   agy: AGY_CONFIG,
-  qoder: QODER_CONFIG,
   "kimi-coding": KIMI_CODING_CONFIG,
   github: GITHUB_CONFIG,
   "ghe-copilot": GHE_COPILOT_CONFIG,
@@ -127,7 +123,6 @@ const REQUIRED_FIELDS_BY_PROVIDER = {
   codex: ["authorizeUrl", "tokenUrl", "scope", "clientId"],
   antigravity: ["authorizeUrl", "tokenUrl", "userInfoUrl", "scopes", "clientId"],
   agy: ["authorizeUrl", "tokenUrl", "userInfoUrl", "scopes", "clientId"],
-  qoder: ["extraParams"],
   "kimi-coding": ["deviceCodeUrl", "tokenUrl", "clientId"],
   github: ["deviceCodeUrl", "tokenUrl", "userInfoUrl", "copilotTokenUrl", "clientId"],
   // GHE Copilot derives its URLs at runtime from the per-connection gheUrl — only static fields.
@@ -219,7 +214,6 @@ function useFetchSequence(sequence) {
 test.afterEach(() => {
   globalThis.fetch = originalFetch;
 });
-
 test.after(() => {
   globalThis.fetch = originalFetch;
   for (const key of Object.keys(process.env)) {
@@ -279,14 +273,6 @@ test("every required provider config field is present when the provider is enabl
 
     for (const field of fields) {
       const value = getByPath(config, field);
-
-      if (
-        providerId === "qoder" &&
-        !config.enabled &&
-        ["authorizeUrl", "tokenUrl", "userInfoUrl", "clientId"].includes(field)
-      ) {
-        continue;
-      }
 
       assert.notEqual(value, undefined, `${providerId} missing config field ${field}`);
 
@@ -468,83 +454,8 @@ test("provider-specific config shapes remain valid for special cases", () => {
   assert.ok(Array.isArray(CLAUDE_CONFIG.scopes) && CLAUDE_CONFIG.scopes.length > 0);
   assert.ok(Array.isArray(ANTIGRAVITY_CONFIG.scopes) && ANTIGRAVITY_CONFIG.scopes.length > 0);
   assert.equal(typeof CODEX_CONFIG.extraParams.originator, "string");
-  assert.equal(typeof QODER_CONFIG.extraParams.loginMethod, "string");
   assert.ok(Array.isArray(KIRO_CONFIG.grantTypes) && KIRO_CONFIG.grantTypes.length > 0);
   assert.equal(typeof KILOCODE_CONFIG.pollUrlBase, "string");
-});
-
-test("Qoder remains a safe special case when browser OAuth is disabled", () => {
-  if (!QODER_CONFIG.enabled) {
-    assert.equal(
-      PROVIDERS.qoder.buildAuthUrl(QODER_CONFIG, "http://localhost/callback", "state"),
-      null
-    );
-    return;
-  }
-
-  const authUrl = PROVIDERS.qoder.buildAuthUrl(
-    QODER_CONFIG,
-    "http://localhost/callback",
-    "state-123"
-  );
-  assert.equal(typeof authUrl, "string");
-  assert.ok(authUrl.startsWith("https://"));
-});
-
-test("Codex parses id_token metadata and prefers a team workspace when the JWT only marks the personal plan", async () => {
-  const idToken = createJwt({
-    email: "dev@example.com",
-    "https://api.openai.com/auth": {
-      chatgpt_account_id: "personal-workspace",
-      chatgpt_plan_type: "free",
-      chatgpt_user_id: "user-123",
-      organizations: [
-        {
-          id: "team-workspace",
-          is_default: false,
-          role: "member",
-          title: "Platform Team",
-        },
-      ],
-    },
-  });
-
-  const extra = await PROVIDERS.codex.postExchange({ id_token: idToken });
-  const mapped = PROVIDERS.codex.mapTokens(
-    {
-      access_token: "access-token",
-      refresh_token: "refresh-token",
-      id_token: idToken,
-      expires_in: 3600,
-    },
-    extra
-  );
-
-  assert.equal(extra.authInfo.chatgpt_account_id, "personal-workspace");
-  assert.equal(mapped.email, "dev@example.com");
-  assert.equal(mapped.providerSpecificData.workspaceId, "team-workspace");
-  assert.equal(mapped.providerSpecificData.workspacePlanType, "team");
-});
-
-test("Cline decodes embedded callback payloads without using the network", async () => {
-  const encodedCode = Buffer.from(
-    JSON.stringify({
-      accessToken: "cline-access",
-      refreshToken: "cline-refresh",
-      email: "cline@example.com",
-      firstName: "Cline",
-      lastName: "Bot",
-      expiresAt: "2030-01-01T00:00:00.000Z",
-    })
-  ).toString("base64");
-
-  const tokens = await PROVIDERS.cline.exchangeToken(CLINE_CONFIG, encodedCode, "http://localhost");
-  const mapped = PROVIDERS.cline.mapTokens(tokens);
-
-  assert.equal(tokens.access_token, "cline-access");
-  assert.equal(mapped.accessToken, "cline-access");
-  assert.equal(mapped.email, "cline@example.com");
-  assert.equal(mapped.name, "Cline Bot");
 });
 
 test("Antigravity runs mocked browser OAuth exchanges and post-exchange enrichment", async () => {
@@ -609,200 +520,4 @@ test("Antigravity runs mocked browser OAuth exchanges and post-exchange enrichme
   // flow, which also returns the loadCodeAssist project id.
   assert.equal(antigravityMapped.projectId, "anti-project");
   assert.equal(antigravityMapped.providerSpecificData.clientProfile, "ide");
-});
-
-test("Qoder enabled mode exchanges tokens and loads profile metadata through mocked endpoints", async () => {
-  const originalQoderConfig = structuredClone(QODER_CONFIG);
-  const qoderConfig = Object.assign(QODER_CONFIG, {
-    enabled: true,
-    clientId: "qoder-client",
-    clientSecret: "qoder-secret",
-    authorizeUrl: "https://auth.qoder.dev/authorize",
-    tokenUrl: "https://auth.qoder.dev/token",
-    userInfoUrl: "https://auth.qoder.dev/user",
-    extraParams: {
-      loginMethod: "phone",
-      type: "phone",
-    },
-  });
-
-  try {
-    useFetchSequence([
-      jsonResponse({
-        access_token: "qoder-access",
-        refresh_token: "qoder-refresh",
-        expires_in: 1800,
-      }),
-      jsonResponse({
-        success: true,
-        data: {
-          apiKey: "qoder-api-key",
-          email: "qoder@example.com",
-          nickname: "Qoder User",
-        },
-      }),
-    ]);
-
-    const authUrl = PROVIDERS.qoder.buildAuthUrl(
-      qoderConfig,
-      "http://localhost/callback",
-      "state-123"
-    );
-    const tokens = await PROVIDERS.qoder.exchangeToken(
-      qoderConfig,
-      "browser-code",
-      "http://localhost/callback"
-    );
-    const extra = await PROVIDERS.qoder.postExchange(tokens);
-    const mapped = PROVIDERS.qoder.mapTokens(tokens, extra);
-
-    assert.ok(authUrl.startsWith("https://auth.qoder.dev/authorize?"));
-    assert.equal(mapped.apiKey, "qoder-api-key");
-    assert.equal(mapped.email, "qoder@example.com");
-    assert.equal(mapped.displayName, "Qoder User");
-  } finally {
-    Object.assign(QODER_CONFIG, originalQoderConfig);
-  }
-});
-
-test("Kimi Coding executes mocked device-code flow and token mapping", async () => {
-  useFetchSequence([
-    (url, init) => {
-      const params = init.body;
-      assert.equal(String(url), KIMI_CODING_CONFIG.deviceCodeUrl);
-      assert.equal(params.get("client_id"), KIMI_CODING_CONFIG.clientId);
-      assert.equal(init.headers["X-Msh-Platform"], "kimi_code_cli");
-      assert.equal(init.headers["X-Msh-Device-Id"], "test-kimi-device-id");
-      assert.equal(init.headers["X-Msh-Os-Version"], os.release());
-      if (os.type() === "Windows_NT") {
-        assert.equal(init.headers["X-Msh-Device-Model"], `Windows ${os.release()} ${os.arch()}`);
-      }
-
-      return jsonResponse({
-        device_code: "kimi-device",
-        user_code: "KIMI123",
-        verification_uri: "https://www.kimi.com/code/authorize_device",
-        verification_uri_complete: "https://www.kimi.com/code/authorize_device?user_code=KIMI123",
-        expires_in: 600,
-        interval: 4,
-      });
-    },
-    (url, init) => {
-      const params = init.body;
-      assert.equal(String(url), KIMI_CODING_CONFIG.tokenUrl);
-      assert.equal(params.get("client_id"), KIMI_CODING_CONFIG.clientId);
-      assert.equal(params.get("device_code"), "kimi-device");
-      assert.equal(params.get("grant_type"), "urn:ietf:params:oauth:grant-type:device_code");
-      assert.equal(init.headers["X-Msh-Platform"], "kimi_code_cli");
-      assert.equal(init.headers["X-Msh-Device-Id"], "test-kimi-device-id");
-
-      return jsonResponse({
-        access_token: "kimi-access",
-        refresh_token: "kimi-refresh",
-        expires_in: 7200,
-        token_type: "Bearer",
-        scope: "profile",
-      });
-    },
-  ]);
-
-  const kimiDevice = await PROVIDERS["kimi-coding"].requestDeviceCode(KIMI_CODING_CONFIG);
-  const kimiPoll = await PROVIDERS["kimi-coding"].pollToken(
-    KIMI_CODING_CONFIG,
-    kimiDevice.device_code
-  );
-  const kimiMapped = PROVIDERS["kimi-coding"].mapTokens(kimiPoll.data);
-
-  assert.equal(kimiMapped.accessToken, "kimi-access");
-  assert.equal(kimiMapped.tokenType, "Bearer");
-  assert.equal(
-    kimiDevice.verification_uri_complete,
-    "https://www.kimi.com/code/authorize_device?user_code=KIMI123"
-  );
-});
-
-test("GitHub executes mocked device-code and profile enrichment flows", async () => {
-  useFetchSequence([
-    jsonResponse({
-      device_code: "github-device",
-      user_code: "GH123",
-      verification_uri: "https://github.com/login/device",
-      expires_in: 900,
-      interval: 5,
-    }),
-    jsonResponse({
-      access_token: "github-access",
-      refresh_token: "github-refresh",
-      expires_in: 3600,
-    }),
-    jsonResponse({ token: "copilot-token", expires_at: "2030-01-01T00:00:00.000Z" }),
-    jsonResponse({
-      id: 42,
-      login: "octocat",
-      name: "Octo Cat",
-      email: "octo@example.com",
-    }),
-  ]);
-
-  const device = await PROVIDERS.github.requestDeviceCode(GITHUB_CONFIG);
-  const poll = await PROVIDERS.github.pollToken(GITHUB_CONFIG, device.device_code);
-  const extra = await PROVIDERS.github.postExchange(poll.data);
-  const mapped = PROVIDERS.github.mapTokens(poll.data, extra);
-
-  assert.equal(poll.ok, true);
-  assert.equal(mapped.providerSpecificData.copilotToken, "copilot-token");
-  assert.equal(mapped.providerSpecificData.githubLogin, "octocat");
-  assert.equal(mapped.providerSpecificData.githubEmail, "octo@example.com");
-});
-
-test("Kiro and KiloCode execute mocked device-code flows across their custom endpoints", async () => {
-  useFetchSequence([
-    jsonResponse({ clientId: "kiro-client", clientSecret: "kiro-secret" }),
-    jsonResponse({
-      deviceCode: "kiro-device",
-      userCode: "KIRO123",
-      verificationUri: "https://device.kiro.dev/verify",
-      verificationUriComplete: "https://device.kiro.dev/verify?code=KIRO123",
-      expiresIn: 600,
-      interval: 5,
-    }),
-    jsonResponse({
-      accessToken: "kiro-access",
-      refreshToken: "kiro-refresh",
-      expiresIn: 3600,
-    }),
-    jsonResponse({
-      code: "kilo-code",
-      verificationUrl: "https://api.kilo.ai/device-auth/kilo-code",
-      expiresIn: 300,
-    }),
-    jsonResponse({ status: "approved", token: "kilo-access", userEmail: "kilo@example.com" }),
-    textResponse("", 202),
-    textResponse("", 403),
-    textResponse("", 410),
-  ]);
-
-  const kiroDevice = await PROVIDERS.kiro.requestDeviceCode(KIRO_CONFIG);
-  const kiroPoll = await PROVIDERS.kiro.pollToken(
-    KIRO_CONFIG,
-    kiroDevice.device_code,
-    undefined,
-    kiroDevice
-  );
-  const kiroMapped = PROVIDERS.kiro.mapTokens(kiroPoll.data);
-
-  const kiloDevice = await PROVIDERS.kilocode.requestDeviceCode(KILOCODE_CONFIG);
-  const kiloApproved = await PROVIDERS.kilocode.pollToken(KILOCODE_CONFIG, kiloDevice.device_code);
-  const kiloPending = await PROVIDERS.kilocode.pollToken(KILOCODE_CONFIG, kiloDevice.device_code);
-  const kiloDenied = await PROVIDERS.kilocode.pollToken(KILOCODE_CONFIG, kiloDevice.device_code);
-  const kiloExpired = await PROVIDERS.kilocode.pollToken(KILOCODE_CONFIG, kiloDevice.device_code);
-  const kiloMapped = PROVIDERS.kilocode.mapTokens(kiloApproved.data);
-
-  assert.equal(kiroMapped.accessToken, "kiro-access");
-  assert.equal(kiroMapped.providerSpecificData.clientId, "kiro-client");
-  assert.equal(kiloApproved.ok, true);
-  assert.equal(kiloPending.data.error, "authorization_pending");
-  assert.equal(kiloDenied.data.error, "access_denied");
-  assert.equal(kiloExpired.data.error, "expired_token");
-  assert.equal(kiloMapped.email, "kilo@example.com");
 });

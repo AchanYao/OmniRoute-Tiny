@@ -16,7 +16,6 @@ import {
   getGitHubCopilotInternalUserHeaders,
   getGitHubCopilotRefreshHeaders,
   getKiroServiceHeaders,
-  getQoderDashscopeCompatHeaders,
 } from "../../open-sse/config/providerHeaderProfiles.ts";
 
 test("provider header profiles expose current GitHub chat and internal headers", () => {
@@ -36,20 +35,12 @@ test("provider header profiles expose current GitHub chat and internal headers",
   assert.equal(internalHeaders["X-GitHub-Api-Version"], GITHUB_COPILOT_API_VERSION);
 });
 
-test("provider header profiles expose dedicated refresh, qoder and kiro variants", () => {
+test("provider header profiles expose dedicated refresh and kiro variants", () => {
   const refreshHeaders = getGitHubCopilotRefreshHeaders("token gh-access");
   assert.equal(refreshHeaders.Authorization, "token gh-access");
   assert.equal(refreshHeaders["User-Agent"], GITHUB_COPILOT_REFRESH_USER_AGENT);
   assert.equal(refreshHeaders["Editor-Version"], GITHUB_COPILOT_EDITOR_VERSION);
   assert.equal(refreshHeaders["Editor-Plugin-Version"], GITHUB_COPILOT_REFRESH_PLUGIN_VERSION);
-
-  const qoderHeaders = getQoderDashscopeCompatHeaders();
-  assert.equal(qoderHeaders["user-agent"], getQwenCliUserAgent());
-  assert.equal(qoderHeaders["x-dashscope-useragent"], getQwenCliUserAgent());
-  assert.equal(
-    qoderHeaders["user-agent"],
-    `QwenCode/${QWEN_CLI_VERSION} (${process.platform}; ${process.arch})`
-  );
 
   const kiroHeaders = getKiroServiceHeaders("application/json");
   assert.equal(kiroHeaders.Accept, "application/json");
@@ -68,8 +59,6 @@ test("provider header profiles tolerate browser-like process shims", async () =>
 
   try {
     assert.equal(getQwenCliUserAgent(), `QwenCode/${QWEN_CLI_VERSION} (unknown; unknown)`);
-    const qoderHeaders = getQoderDashscopeCompatHeaders();
-    assert.equal(qoderHeaders["user-agent"], `QwenCode/${QWEN_CLI_VERSION} (unknown; unknown)`);
   } finally {
     Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
     Object.defineProperty(process, "arch", { value: originalArch, configurable: true });

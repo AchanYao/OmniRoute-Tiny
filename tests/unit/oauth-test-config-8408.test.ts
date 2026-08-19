@@ -10,13 +10,7 @@ import { OAUTH_TEST_CONFIG } from "../../src/app/api/providers/[id]/test/oauthTe
 // treatment devin-cli and agy get here; removing an id from this list is the fix, not a
 // regression. Do not add new ids to it — a provider added without a test config should fail
 // this test at the time it is added, which is the entire point.
-const GRANDFATHERED_WITHOUT_TEST_CONFIG = new Set([
-  "qoder",
-  "zed",
-  "zed-hosted",
-  "trae",
-  "windsurf",
-]);
+const GRANDFATHERED_WITHOUT_TEST_CONFIG = new Set(["zed", "zed-hosted", "trae", "windsurf"]);
 
 test("#8408: devin-cli and agy are present in OAUTH_TEST_CONFIG", () => {
   assert.ok(

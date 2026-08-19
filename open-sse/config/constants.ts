@@ -65,27 +65,27 @@ export const PROVIDERS: Record<string, LegacyProvider> = new Proxy(
   {} as Record<string, LegacyProvider>,
   {
     get(_, prop) {
-      if (typeof prop === 'symbol') return undefined;
+      if (typeof prop === "symbol") return undefined;
       return Reflect.get(initProviders(), prop, _providers);
     },
     has(_, prop) {
-      if (typeof prop === 'symbol') return false;
+      if (typeof prop === "symbol") return false;
       return Reflect.has(initProviders(), prop);
     },
     ownKeys() {
       return Reflect.ownKeys(initProviders());
     },
     getOwnPropertyDescriptor(_, prop) {
-      if (typeof prop === 'symbol') return undefined;
+      if (typeof prop === "symbol") return undefined;
       return Object.getOwnPropertyDescriptor(initProviders(), prop);
     },
     set(_, prop, value) {
-      if (typeof prop === 'symbol') return false;
+      if (typeof prop === "symbol") return false;
       (initProviders() as Record<string, LegacyProvider>)[prop] = value;
       return true;
     },
     deleteProperty(_, prop) {
-      if (typeof prop === 'symbol') return false;
+      if (typeof prop === "symbol") return false;
       return Reflect.deleteProperty(initProviders(), prop);
     },
   }
@@ -114,10 +114,6 @@ export const OAUTH_ENDPOINTS = {
   anthropic: {
     token: "https://api.anthropic.com/v1/oauth/token",
     auth: "https://api.anthropic.com/v1/oauth/authorize",
-  },
-  qoder: {
-    token: process.env.QODER_OAUTH_TOKEN_URL || "",
-    auth: process.env.QODER_OAUTH_AUTHORIZE_URL || "",
   },
   github: {
     token: "https://github.com/login/oauth/access_token",

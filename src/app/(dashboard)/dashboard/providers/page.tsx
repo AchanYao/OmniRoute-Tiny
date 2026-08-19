@@ -408,7 +408,7 @@ export default function ProvidersPage() {
 
   // Toggle all connections for a provider on/off
   const handleToggleProvider = async (providerId: string, authType: string, newActive: boolean) => {
-    // Mirror getProviderStats: dual-auth providers (qoder, …) toggle BOTH their
+    // Mirror getProviderStats: dual-auth providers toggle BOTH their
     // oauth and apikey/PAT connections from the single OAuth card.
     const matchesToggle = (c: { provider: string; authType?: string }) =>
       connectionMatchesProviderCard(c, providerId, authType as "oauth" | "free" | "apikey");

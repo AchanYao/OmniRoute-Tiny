@@ -30,12 +30,6 @@ describe("TierResolver", () => {
       expect(result.hasFreeTier).toBe(true);
     });
 
-    it("classifies Qoder as free", () => {
-      const result = classifyTier("qoder", "kimi-k2-thinking");
-      expect(result.tier).toBe(PROVIDER_TIER.FREE);
-      expect(result.hasFreeTier).toBe(true);
-    });
-
     it("classifies Pollinations as free", () => {
       const result = classifyTier("pollinations", "gpt-5");
       expect(result.tier).toBe(PROVIDER_TIER.FREE);
@@ -180,11 +174,10 @@ describe("TierResolver", () => {
         { provider: "minimax", model: "minimax-m2.1" },
         { provider: "anthropic", model: "claude-opus-4-7" },
         { provider: "groq", model: "llama-3.3-70b" },
-        { provider: "qoder", model: "kimi-k2-thinking" },
         { provider: "unknown", model: "unknown-model" },
       ];
       const results = classifyTiers(targets);
-      expect(results.length).toBe(9);
+      expect(results.length).toBe(8);
       expect(results[0].tier).toBe(PROVIDER_TIER.FREE); // kiro
       expect(results[1].tier).toBe(PROVIDER_TIER.PREMIUM); // openai gpt-4o ($2.50/M)
       expect(results[2].tier).toBe(PROVIDER_TIER.CHEAP); // deepseek
@@ -223,7 +216,6 @@ describe("TierResolver", () => {
     it("LEGACY_FREE_PROVIDERS keeps the historical explicit list", () => {
       for (const id of [
         "kiro",
-        "qoder",
         "pollinations",
         "longcat",
         "cloudflare-ai",

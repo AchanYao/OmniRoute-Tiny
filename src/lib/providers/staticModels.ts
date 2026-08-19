@@ -7,7 +7,6 @@ import {
   getTranscriptionProvider,
 } from "@omniroute/open-sse/config/audioRegistry.ts";
 import { ANTIGRAVITY_PUBLIC_MODELS } from "@omniroute/open-sse/config/antigravityModelAliases.ts";
-import { getStaticQoderModels } from "@omniroute/open-sse/services/qoderCli.ts";
 import { getSearchProvider } from "@omniroute/open-sse/config/searchRegistry.ts";
 import { BAILIAN_CODING_PLAN_MODELS } from "@omniroute/open-sse/config/providers/registry/bailian-coding-plan/index.ts";
 
@@ -60,7 +59,6 @@ const STATIC_MODEL_PROVIDERS: Record<string, () => Array<{ id: string; name: str
       id: model.id,
       name: model.name || model.id,
     })),
-  qoder: () => getStaticQoderModels(),
   // Non-LLM providers with no /v1/models endpoint — expose their selectable
   // capability ids as a static catalog so the model-import step shows a usable
   // list instead of a red "does not support models listing" failure.

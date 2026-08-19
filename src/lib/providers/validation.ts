@@ -106,7 +106,6 @@ import {
 import {
   validateV0VercelProvider,
   validateAuggieProvider,
-  validateQoderProvider,
   validateKiroProvider,
   validateGitlabProvider,
   validateVertexProvider,
@@ -179,7 +178,6 @@ export async function validateProviderApiKey({ provider, apiKey, providerSpecifi
     // for parity with the "jules" cloud-agent entry above — see #6142.
     devin: validateDevinCloudAgentProvider,
     auggie: validateAuggieProvider,
-    qoder: validateQoderProvider,
     kiro: validateKiroProvider,
     "command-code": validateCommandCodeProvider,
     huggingface: validateHuggingFaceProvider,
@@ -225,7 +223,7 @@ export async function validateProviderApiKey({ provider, apiKey, providerSpecifi
           error:
             "Modal requires a Base URL pointing to your OpenAI-compatible Modal app " +
             "(e.g. https://<workspace>--<app>.modal.run/v1). " +
-            "Fill in the \"Base URL override\" field.",
+            'Fill in the "Base URL override" field.',
         };
       }
       return validateOpenAILikeProvider({

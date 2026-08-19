@@ -215,7 +215,7 @@
     <line x1="18" y1="44" x2="244" y2="44" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1"/>
     <g font-family="Inter, 'Segoe UI', Arial, Helvetica, system-ui, sans-serif" font-size="13.5" font-weight="600" fill="#F7F6FC">
       <text x="18" y="70">Kiro</text>
-      <text x="18" y="94">Qoder</text>
+      <text x="18" y="94">OpenCode</text>
       <text x="18" y="118">Pollinations</text>
     </g>
   </g>

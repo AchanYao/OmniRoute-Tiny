@@ -121,8 +121,6 @@ import PerplexityMonoIcon from "@lobehub/icons/es/Perplexity/components/Mono";
 import PoeColorIcon from "@lobehub/icons/es/Poe/components/Color";
 import PoeMonoIcon from "@lobehub/icons/es/Poe/components/Mono";
 import PollinationsMonoIcon from "@lobehub/icons/es/Pollinations/components/Mono";
-import QoderColorIcon from "@lobehub/icons/es/Qoder/components/Color";
-import QoderMonoIcon from "@lobehub/icons/es/Qoder/components/Mono";
 import QwenColorIcon from "@lobehub/icons/es/Qwen/components/Color";
 import QwenMonoIcon from "@lobehub/icons/es/Qwen/components/Mono";
 import RecraftMonoIcon from "@lobehub/icons/es/Recraft/components/Mono";
@@ -269,7 +267,6 @@ const LOBE_ICON_COMPONENTS = {
   Perplexity: { mono: PerplexityMonoIcon, color: PerplexityColorIcon },
   Poe: { mono: PoeMonoIcon, color: PoeColorIcon },
   Pollinations: { mono: PollinationsMonoIcon },
-  Qoder: { mono: QoderMonoIcon, color: QoderColorIcon },
   Qwen: { mono: QwenMonoIcon, color: QwenColorIcon },
   Recraft: { mono: RecraftMonoIcon },
   Replicate: { mono: ReplicateMonoIcon },
@@ -429,7 +426,6 @@ const LOBE_PROVIDER_ALIASES = {
   "perplexity-web": "Perplexity",
   poe: "Poe",
   pollinations: "Pollinations",
-  qoder: "Qoder",
   qwen: "Qwen",
   "qwen-web": "Qwen",
   recraft: "Recraft",
