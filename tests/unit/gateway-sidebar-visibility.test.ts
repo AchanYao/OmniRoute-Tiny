@@ -26,6 +26,7 @@ describe("Gateway Edition sidebar visibility", () => {
       "settings-routing",
       "settings-resilience",
       "settings-security",
+      "settings-model-overrides",
     ];
 
     for (const item of retained) {

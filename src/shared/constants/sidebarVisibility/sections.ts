@@ -669,6 +669,13 @@ const CONFIGURATION_ITEMS: readonly SidebarItemDefinition[] = [
     icon: "auto_awesome",
   },
   {
+    id: "settings-model-overrides",
+    href: "/dashboard/settings/model-overrides",
+    i18nKey: "settingsModelOverrides",
+    subtitleKey: "settingsModelOverridesSubtitle",
+    icon: "tune",
+  },
+  {
     id: "settings-routing",
     href: "/dashboard/settings/routing",
     i18nKey: "globalRouting",
