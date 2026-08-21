@@ -231,10 +231,47 @@ test("xaiCompletedToChatJson: maps function_call to tool_calls with finish_reaso
 
 // ─── openaiResponsesRequestToXai ─────────────────────────────────────────────
 
-test("openaiResponsesRequestToXai: drops service_tier", () => {
-  const req = { model: "grok-4", input: [], service_tier: "default" };
-  const out = openaiResponsesRequestToXai(req);
-  assert.equal("service_tier" in out, false);
+test("openaiResponsesRequestToXai: preserves valid service tiers and rejects garbage", () => {
+  assert.equal(
+    openaiResponsesRequestToXai({ model: "grok-4", input: [], service_tier: "priority" })
+      .service_tier,
+    "priority"
+  );
+  assert.equal(
+    openaiResponsesRequestToXai({ model: "grok-4", input: [], service_tier: "default" })
+      .service_tier,
+    "default"
+  );
+  assert.equal(
+    openaiResponsesRequestToXai({ model: "grok-4", input: [], service_tier: "fast" }).service_tier,
+    "priority"
+  );
+  assert.equal(
+    "service_tier" in
+      openaiResponsesRequestToXai({ model: "grok-4", input: [], service_tier: "garbage" }),
+    false
+  );
+});
+
+test("xAI request translators preserve normalized service tiers", () => {
+  assert.equal(
+    chatRequestToXaiResponses({ model: "grok-4", messages: [], service_tier: "fast" })
+      .service_tier,
+    "priority"
+  );
+  assert.equal(
+    claudeRequestToXaiResponses({ model: "grok-4", messages: [], service_tier: "default" })
+      .service_tier,
+    "default"
+  );
+  assert.equal(
+    geminiRequestToXaiResponses({ contents: [], service_tier: "priority" }).service_tier,
+    "priority"
+  );
+  assert.equal(
+    "service_tier" in chatRequestToXaiResponses({ messages: [], service_tier: "flex" }),
+    false
+  );
 });
 
 test("openaiResponsesRequestToXai: preserves other fields verbatim", () => {

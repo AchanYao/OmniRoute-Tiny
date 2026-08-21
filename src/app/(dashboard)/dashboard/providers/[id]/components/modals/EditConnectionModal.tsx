@@ -18,7 +18,12 @@ import { providerHasFreeModels } from "@/shared/utils/freeModels";
 import { maskEmail } from "@/shared/utils/maskEmail";
 import useEmailPrivacyStore from "@/store/emailPrivacyStore";
 import { useNotificationStore } from "@/store/notificationStore";
-import { type CodexServiceTier } from "@/lib/providers/requestDefaults";
+import {
+  getXaiRequestDefaults,
+  isXaiServiceTierProvider,
+  type CodexServiceTier,
+  type XaiServiceTier,
+} from "@/lib/providers/requestDefaults";
 import { isClaudeExtraUsageBlockEnabled } from "@/lib/providers/claudeExtraUsage";
 import { resolveDashboardProviderInfo } from "../../../providerPageUtils";
 import {
@@ -126,6 +131,7 @@ export default function EditConnectionModal({
     accountId: "",
     codexReasoningEffort: "medium",
     codexServiceTier: "default" as CodexServiceTier,
+    xaiServiceTier: "default" as XaiServiceTier,
     codexOpenaiStoreEnabled: false,
     consoleApiKey: "",
     newApiUserId: "",
@@ -193,6 +199,7 @@ export default function EditConnectionModal({
   const openRouterPreset = useOpenRouterPresetControl(provider, t);
   const setOpenRouterPreset = openRouterPreset.setValue;
   const isCodex = provider === "codex";
+  const supportsXaiPriority = isXaiServiceTierProvider(provider);
   const isClaude = provider === "claude";
   const isAntigravityFamily = provider === "antigravity" || provider === "agy";
   const localProviderMetadata = getLocalProviderMetadata(provider);
@@ -263,6 +270,10 @@ export default function EditConnectionModal({
         stringField(connection.providerSpecificData?.bigmodelProject) ||
         stringField(connection.providerSpecificData?.glmProject);
       const codexRequestDefaults = getCodexRequestDefaults(connection.providerSpecificData);
+      const xaiRequestDefaults = getXaiRequestDefaults(
+        effectiveProvider,
+        connection.providerSpecificData
+      );
       const ccRequestDefaults = getClaudeCodeCompatibleRequestDefaults(
         connection.providerSpecificData
       );
@@ -317,6 +328,7 @@ export default function EditConnectionModal({
         accountId: existingAccountId,
         codexReasoningEffort: codexRequestDefaults.reasoningEffort,
         codexServiceTier: codexRequestDefaults.serviceTier ?? "default",
+        xaiServiceTier: xaiRequestDefaults.serviceTier ?? "default",
         codexOpenaiStoreEnabled: connection.providerSpecificData?.openaiStoreEnabled === true,
         consoleApiKey: existingConsoleApiKey,
         newApiUserId: existingNewApiUserId,
@@ -603,6 +615,15 @@ export default function EditConnectionModal({
         };
       }
       if (updates.providerSpecificData) {
+        if (supportsXaiPriority) {
+          const requestDefaults = {
+            ...((updates.providerSpecificData.requestDefaults as Record<string, unknown>) || {}),
+          };
+          if (formData.xaiServiceTier === "priority") requestDefaults.serviceTier = "priority";
+          else delete requestDefaults.serviceTier;
+          updates.providerSpecificData.requestDefaults =
+            Object.keys(requestDefaults).length > 0 ? requestDefaults : null;
+        }
         updates.providerSpecificData.disableCooling = formData.disableCooling ? true : undefined;
         // Explicit `null`, not `undefined`: the PUT route merges
         // { ...existing, ...incoming }, so omitting the key would keep the previous
@@ -703,6 +724,25 @@ export default function EditConnectionModal({
               onChange={(checked) => setFormData({ ...formData, codexOpenaiStoreEnabled: checked })}
               label={t("openaiResponsesStoreLabel")}
               description={t("openaiResponsesStoreDescription")}
+            />
+          </div>
+        )}
+        {supportsXaiPriority && (
+          <div className="flex flex-col gap-4 rounded-lg border border-border/50 bg-surface/20 p-4">
+            <Select
+              label={t("xaiServiceTierLabel")}
+              value={formData.xaiServiceTier}
+              options={[
+                { value: "default", label: t("xaiServiceTierDefaultOption") },
+                { value: "priority", label: t("xaiServiceTierPriorityOption") },
+              ]}
+              onChange={(event) =>
+                setFormData({
+                  ...formData,
+                  xaiServiceTier: event.target.value as XaiServiceTier,
+                })
+              }
+              hint={t("xaiServiceTierDescription")}
             />
           </div>
         )}

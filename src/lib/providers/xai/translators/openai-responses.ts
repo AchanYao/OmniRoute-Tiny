@@ -10,6 +10,8 @@
  *   - apply the thinking patcher hook (delegated upstream)
  */
 
+import { normalizeXaiServiceTier } from "@/lib/providers/requestDefaults";
+
 interface OpenAiResponsesRequest {
   service_tier?: string;
   messages?: unknown[];
@@ -38,8 +40,9 @@ export function openaiResponsesRequestToXai(req: OpenAiResponsesRequest): OpenAi
   // xAI does not currently honor `parallel_tool_calls: false` on every model;
   // mirror CLIProxyAPI: leave the flag as caller specified.
 
-  // Drop OpenAI-specific service_tier hint that xAI rejects.
-  if ("service_tier" in out) delete out.service_tier;
+  const serviceTier = normalizeXaiServiceTier(out.service_tier);
+  if (serviceTier) out.service_tier = serviceTier;
+  else delete out.service_tier;
 
   // xAI expects `input` (Responses-style); if the caller passed `messages`
   // instead, leave them — xAI also accepts messages, but warn via metadata.

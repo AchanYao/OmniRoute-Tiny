@@ -10,6 +10,10 @@ import { Badge, Button, Toggle } from "@/shared/components";
 import { pickDisplayValue } from "@/shared/utils/maskEmail";
 import useEmailPrivacyStore from "@/store/emailPrivacyStore";
 import { isClaudeExtraUsageBlockEnabled } from "@/lib/providers/claudeExtraUsage";
+import {
+  getXaiRequestDefaults,
+  isXaiServiceTierProvider,
+} from "@/lib/providers/requestDefaults";
 import { shouldShowConnectionLastError } from "./connectionRowHelpers";
 import {
   getCodexEffectiveServiceTier,
@@ -517,6 +521,19 @@ export default function ConnectionRow({
                 ),
           }
         : null;
+  const xaiPriorityBadge =
+    isXaiServiceTierProvider(connection.provider) &&
+    getXaiRequestDefaults(connection.provider, connection.providerSpecificData).serviceTier ===
+      "priority"
+      ? {
+          label: providerText(t, "xaiServiceTierBadge", "Priority · 2× quota"),
+          title: providerText(
+            t,
+            "xaiServiceTierBadgeTitle",
+            "xAI Priority Processing is enabled for this connection"
+          ),
+        }
+      : null;
   const claudeBlockExtraUsageEnabled = isClaude
     ? isClaudeExtraUsageBlockEnabled("claude", connection.providerSpecificData)
     : false;
@@ -768,6 +785,18 @@ export default function ConnectionRow({
                   <span className="material-symbols-outlined text-[13px]">date_range</span>
                   {t("weeklyShort")} {codexWeeklyEnabled ? t("toggleOnShort") : t("toggleOffShort")}
                 </button>
+              </>
+            )}
+            {xaiPriorityBadge && (
+              <>
+                <span className="text-text-muted/30 select-none">|</span>
+                <span
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-sky-500/15 text-sky-500"
+                  title={xaiPriorityBadge.title}
+                >
+                  <span className="material-symbols-outlined text-[13px]">bolt</span>
+                  {xaiPriorityBadge.label}
+                </span>
               </>
             )}
             {onToggleProxyEnabled && (

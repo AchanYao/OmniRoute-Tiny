@@ -38,6 +38,16 @@ test("resolveEffectiveServiceTier: codex honors the providerSpecificData service
   assert.equal(resolveEffectiveServiceTier("codex", psd, { service_tier: "flex" }), "flex");
 });
 
+test("resolveEffectiveServiceTier: xAI providers and aliases honor request precedence", () => {
+  const psd = { requestDefaults: { serviceTier: "priority" } };
+  for (const provider of ["grok-cli", "gc", "xai", "xai-oauth", "xao"]) {
+    assert.equal(resolveEffectiveServiceTier(provider, psd, {}), "priority", provider);
+    assert.equal(resolveEffectiveServiceTier(provider, psd, { service_tier: "default" }), "standard");
+    assert.equal(resolveEffectiveServiceTier(provider, undefined, { service_tier: "fast" }), "priority");
+    assert.equal(resolveEffectiveServiceTier(provider, undefined, { service_tier: "flex" }), "standard");
+  }
+});
+
 test("resolveReportedServiceTier: non-codex / missing payload → null", () => {
   assert.equal(resolveReportedServiceTier("openai", { service_tier: "flex" }), null);
   assert.equal(resolveReportedServiceTier("codex", null), null);
@@ -47,6 +57,15 @@ test("resolveReportedServiceTier: non-codex / missing payload → null", () => {
 
 test("resolveReportedServiceTier: reads a top-level service_tier", () => {
   assert.equal(resolveReportedServiceTier("codex", { service_tier: "priority" }), "priority");
+});
+
+test("resolveReportedServiceTier: xAI priority requires upstream confirmation", () => {
+  for (const provider of ["grok-cli", "gc", "xai", "xai-oauth", "xao"]) {
+    assert.equal(resolveReportedServiceTier(provider, { service_tier: "priority" }), "priority");
+    assert.equal(resolveReportedServiceTier(provider, { service_tier: "default" }), "standard");
+    assert.equal(resolveReportedServiceTier(provider, { response: {} }), "standard");
+    assert.equal(resolveReportedServiceTier(provider, { service_tier: "garbage" }), "standard");
+  }
 });
 
 test("resolveReportedServiceTier: descends into nested response payloads", () => {

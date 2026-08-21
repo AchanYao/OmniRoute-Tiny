@@ -69,7 +69,7 @@ type ComputeCostFromPricing = (
   tokens: Record<string, number | undefined> | null | undefined,
   options?: Record<string, unknown>
 ) => number;
-type GetCodexFastCostMultiplier = (
+type GetServiceTierCostMultiplier = (
   provider: string | null | undefined,
   model: string | null | undefined,
   serviceTier: string | null | undefined
@@ -293,17 +293,17 @@ function computeUsageRowStandardCost(
 function computeUsageSavingsTokens(
   row: Record<string, unknown>,
   serviceTier: string,
-  getCodexFastCostMultiplier: GetCodexFastCostMultiplier
+  getServiceTierCostMultiplier: GetServiceTierCostMultiplier
 ): number {
   const provider = toStringValue(row.provider);
   const model = toStringValue(row.model);
   const totalTokens = toNumber(row.totalTokens);
   if (!provider || !model || totalTokens <= 0) return 0;
 
-  const standardMultiplier = getCodexFastCostMultiplier(provider, model, "standard");
+  const standardMultiplier = getServiceTierCostMultiplier(provider, model, "standard");
   if (standardMultiplier <= 0) return 0;
 
-  const actualMultiplier = getCodexFastCostMultiplier(provider, model, serviceTier);
+  const actualMultiplier = getServiceTierCostMultiplier(provider, model, serviceTier);
   const savingsRatio = Math.max(0, (standardMultiplier - actualMultiplier) / standardMultiplier);
   return totalTokens * savingsRatio;
 }
@@ -409,7 +409,7 @@ export async function GET(request: Request) {
       }
       pricingByProvider[providerKey.toLowerCase()] = lowerProvider;
     }
-    const { computeCostFromPricing, getCodexFastCostMultiplier, normalizeModelName } =
+    const { computeCostFromPricing, getServiceTierCostMultiplier, normalizeModelName } =
       await import("@/lib/usage/costCalculator");
     const { PROVIDER_ID_TO_ALIAS } = await import("@omniroute/open-sse/config/providerModels");
 
@@ -796,7 +796,7 @@ export async function GET(request: Request) {
         existing.usageSavingsTokens += computeUsageSavingsTokens(
           row,
           serviceTier,
-          getCodexFastCostMultiplier
+          getServiceTierCostMultiplier
         );
       }
       serviceTierMap.set(serviceTier, existing);

@@ -11,6 +11,8 @@
  *   - per-event xAI SSE → Gemini streamGenerateContent chunks
  */
 
+import { normalizeXaiServiceTier } from "@/lib/providers/requestDefaults";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface GeminiInlineData {
@@ -114,6 +116,7 @@ interface XaiReasoning {
 }
 
 interface XaiResponsesRequest {
+  service_tier?: string;
   model?: string | null;
   input: XaiInputItem[];
   instructions?: string;
@@ -285,6 +288,8 @@ export function geminiRequestToXaiResponses(
   }
 
   const out: XaiResponsesRequest = { model: model ?? req.model, input };
+  const serviceTier = normalizeXaiServiceTier(req.service_tier);
+  if (serviceTier) out.service_tier = serviceTier;
 
   if (req.systemInstruction) {
     const sys = req.systemInstruction;

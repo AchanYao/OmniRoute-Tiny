@@ -57,12 +57,32 @@ export function normalizeCodexReasoningEffort(value: unknown): CodexReasoningEff
 
 export type CodexServiceTier = "default" | "priority" | "flex";
 
+export type XaiServiceTier = "default" | "priority";
+
+const XAI_SERVICE_TIER_PROVIDERS: Record<string, true> = {
+  "grok-cli": true,
+  gc: true,
+  xai: true,
+  "xai-oauth": true,
+  xao: true,
+};
+
 export function normalizeCodexServiceTier(value: unknown): CodexServiceTier | undefined {
   const normalized = normalizeString(value);
   if (!normalized) return undefined;
   if (normalized === "fast" || normalized === "priority") return "priority";
   if (normalized === "default" || normalized === "flex") return normalized;
   return undefined;
+}
+
+export function normalizeXaiServiceTier(value: unknown): XaiServiceTier | undefined {
+  const normalized = normalizeString(value);
+  if (normalized === "fast" || normalized === "priority") return "priority";
+  return normalized === "default" ? "default" : undefined;
+}
+
+export function isXaiServiceTierProvider(provider: string | null | undefined): boolean {
+  return typeof provider === "string" && XAI_SERVICE_TIER_PROVIDERS[provider.toLowerCase()] === true;
 }
 
 export function normalizeClaudeCodeCompatibleContext1m(value: unknown): true | undefined {
@@ -95,6 +115,15 @@ export function normalizeRequestDefaults(
     }
 
     const serviceTier = normalizeCodexServiceTier(record.serviceTier);
+    if (serviceTier) {
+      normalized.serviceTier = serviceTier;
+    } else {
+      delete normalized.serviceTier;
+    }
+  }
+
+  if (isXaiServiceTierProvider(provider)) {
+    const serviceTier = normalizeXaiServiceTier(record.serviceTier);
     if (serviceTier) {
       normalized.serviceTier = serviceTier;
     } else {
@@ -367,6 +396,16 @@ export function getCodexRequestDefaults(providerSpecificData: unknown): {
     ...(reasoningEffort ? { reasoningEffort } : {}),
     ...(serviceTier ? { serviceTier } : {}),
   };
+}
+
+export function getXaiRequestDefaults(
+  provider: string | null | undefined,
+  providerSpecificData: unknown
+): { serviceTier?: XaiServiceTier } {
+  if (!isXaiServiceTierProvider(provider)) return {};
+  const defaults = getProviderRequestDefaults(provider, providerSpecificData);
+  const serviceTier = normalizeXaiServiceTier(defaults.serviceTier);
+  return serviceTier ? { serviceTier } : {};
 }
 
 export function getClaudeCodeCompatibleRequestDefaults(providerSpecificData: unknown): {

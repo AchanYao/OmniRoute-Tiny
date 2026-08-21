@@ -5,14 +5,38 @@ const {
   buildOpenAIStoreSessionId,
   ensureOpenAIStoreSessionFallback,
   getClaudeCodeCompatibleRequestDefaults,
+  getXaiRequestDefaults,
   normalizeCodexReasoningEffort,
   normalizeProviderSpecificData,
+  normalizeRequestDefaults,
   sanitizeProviderSpecificDataForResponse,
 } = await import("../../src/lib/providers/requestDefaults.ts");
 
 test("Codex request defaults accept max but leave ultra to the Codex client", () => {
   assert.equal(normalizeCodexReasoningEffort("max"), "max");
   assert.equal(normalizeCodexReasoningEffort("ultra"), undefined);
+});
+
+test("xAI request defaults normalize priority for providers and aliases", () => {
+  for (const provider of ["grok-cli", "gc", "xai", "xai-oauth", "xao"]) {
+    assert.deepEqual(normalizeRequestDefaults(provider, { serviceTier: "priority" }), {
+      serviceTier: "priority",
+    });
+    assert.deepEqual(normalizeRequestDefaults(provider, { serviceTier: "fast" }), {
+      serviceTier: "priority",
+    });
+    assert.deepEqual(getXaiRequestDefaults(provider, {
+      requestDefaults: { serviceTier: "priority" },
+    }), { serviceTier: "priority" });
+  }
+});
+
+test("xAI request defaults preserve default and drop flex or unknown values", () => {
+  assert.deepEqual(normalizeRequestDefaults("xai", { serviceTier: "default" }), {
+    serviceTier: "default",
+  });
+  assert.equal(normalizeRequestDefaults("xai", { serviceTier: "flex" }), undefined);
+  assert.equal(normalizeRequestDefaults("xai-oauth", { serviceTier: "turbo" }), undefined);
 });
 
 test("buildOpenAIStoreSessionId normalizes external and generated session ids", () => {

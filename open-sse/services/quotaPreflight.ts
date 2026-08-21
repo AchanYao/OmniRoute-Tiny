@@ -103,6 +103,8 @@ export function isQuotaPreflightEnabled(connection: Record<string, unknown>): bo
 }
 
 export interface PreflightQuotaThresholds {
+  /** Scale this request's estimated burn before cutoff checks. */
+  consumptionMultiplier?: number;
   /**
    * Resolve the minimum-remaining cutoff (0-100 integer) for a given window
    * name. The connection is blocked when its remaining quota drops to this
@@ -137,6 +139,16 @@ function resolveOrDefault(
 
 function remainingPercentFrom(percentUsed: number): number {
   return Math.max(0, (1 - percentUsed) * 100);
+}
+
+function effectiveRemainingPercent(
+  percentUsed: number,
+  thresholds?: PreflightQuotaThresholds
+): number {
+  const multiplier = thresholds?.consumptionMultiplier;
+  const normalizedMultiplier =
+    typeof multiplier === "number" && Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
+  return remainingPercentFrom(percentUsed) / normalizedMultiplier;
 }
 
 function isRemainingAtOrBelowThreshold(
@@ -179,7 +191,7 @@ function quotaWindowCutoffResult(
     );
     if (
       !isRemainingAtOrBelowThreshold(
-        remainingPercentFrom(windowInfo.percentUsed),
+        effectiveRemainingPercent(windowInfo.percentUsed, thresholds),
         minRemainingPercent
       )
     ) {
@@ -205,7 +217,7 @@ function quotaPercentCutoffResult(
     null,
     DEFAULT_MIN_REMAINING_PERCENT
   );
-  const remainingPercent = remainingPercentFrom(quota.percentUsed);
+  const remainingPercent = effectiveRemainingPercent(quota.percentUsed, thresholds);
   return isRemainingAtOrBelowThreshold(remainingPercent, minRemainingPercent)
     ? exhaustedResult(quota.percentUsed, quota.resetAt ?? null)
     : { proceed: true, quotaPercent: quota.percentUsed };
@@ -309,7 +321,7 @@ export async function preflightQuota(
         windowName,
         DEFAULT_WARN_REMAINING_PERCENT
       );
-      const remainingPercent = remainingPercentFrom(windowInfo.percentUsed);
+      const remainingPercent = effectiveRemainingPercent(windowInfo.percentUsed, thresholds);
 
       if (isRemainingAtOrBelowThreshold(remainingPercent, minRemainingPercent)) {
         // Track the most-depleted blocking window so the response can name it.
@@ -329,7 +341,7 @@ export async function preflightQuota(
     }
 
     if (worstWindow !== null) {
-      const worstRemaining = remainingPercentFrom(worstUsedPercent);
+      const worstRemaining = effectiveRemainingPercent(worstUsedPercent, thresholds);
       console.info(
         `[QuotaPreflight] ${provider}/${connectionId} ${worstWindow}: ${worstRemaining.toFixed(1)}% remaining — switching`
       );
@@ -357,7 +369,7 @@ export async function preflightQuota(
   );
 
   const { percentUsed } = quota;
-  const remainingPercent = remainingPercentFrom(percentUsed);
+  const remainingPercent = effectiveRemainingPercent(percentUsed, thresholds);
 
   if (isRemainingAtOrBelowThreshold(remainingPercent, minRemainingPercent)) {
     console.info(

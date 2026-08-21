@@ -1,0 +1,1 @@
+- **feat(xAI):** add opt-in Priority Processing for Grok Build, xAI API key, and xAI OAuth connections with upstream-confirmed 2× accounting.

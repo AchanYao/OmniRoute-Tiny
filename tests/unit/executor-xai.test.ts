@@ -26,6 +26,40 @@ test("XaiExecutor can target the separate xAI OAuth provider config", () => {
   assert.equal(executor.buildUrl("grok-4.5", false), "https://api.x.ai/v1/chat/completions");
 });
 
+test("XaiExecutor injects priority from connection defaults for API key and OAuth", () => {
+  for (const provider of ["xai", "xai-oauth"]) {
+    const executor = new XaiExecutor(provider);
+    const out = executor.transformRequest("grok-4.3", { messages: [] }, false, {
+      apiKey: "test-key",
+      providerSpecificData: { requestDefaults: { serviceTier: "priority" } },
+    }) as Record<string, unknown>;
+    assert.equal(out.service_tier, "priority", provider);
+  }
+});
+
+test("XaiExecutor keeps a valid client tier ahead of connection defaults", () => {
+  const executor = new XaiExecutor();
+  const out = executor.transformRequest(
+    "grok-4.3",
+    { messages: [], service_tier: "default" },
+    false,
+    {
+      apiKey: "test-key",
+      providerSpecificData: { requestDefaults: { serviceTier: "priority" } },
+    }
+  ) as Record<string, unknown>;
+  assert.equal(out.service_tier, "default");
+});
+
+test("XaiExecutor omits service_tier when neither request nor defaults select priority", () => {
+  const executor = new XaiExecutor();
+  const out = executor.transformRequest("grok-4.3", { messages: [] }, false, credentials) as Record<
+    string,
+    unknown
+  >;
+  assert.equal("service_tier" in out, false);
+});
+
 test("strips a -{level} suffix from an allow-listed model and sets reasoning_effort", () => {
   const executor = new XaiExecutor();
 

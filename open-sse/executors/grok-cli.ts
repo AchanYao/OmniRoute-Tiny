@@ -16,6 +16,10 @@ import {
 } from "../config/grokBuild.ts";
 import { resolvePublicCred } from "../utils/publicCreds.ts";
 import { BaseExecutor, type ExecutorLog, type ProviderCredentials } from "./base.ts";
+import {
+  getXaiRequestDefaults,
+  normalizeXaiServiceTier,
+} from "@/lib/providers/requestDefaults";
 
 const GROK_BUILD_MAX_TOOLS = 200;
 const GROK_BUILD_SUPPORTED_REASONING_EFFORTS = new Set(["low", "medium", "high"]);
@@ -284,6 +288,17 @@ export class GrokCliExecutor extends BaseExecutor {
   ) {
     const base = super.transformRequest(model, body, stream, _credentials);
     const transformed = asRequestRecord(base);
+    const requestedServiceTier = normalizeXaiServiceTier(transformed.service_tier);
+    if (requestedServiceTier) {
+      transformed.service_tier = requestedServiceTier;
+    } else if (
+      getXaiRequestDefaults("grok-cli", _credentials.providerSpecificData).serviceTier ===
+      "priority"
+    ) {
+      transformed.service_tier = "priority";
+    } else {
+      delete transformed.service_tier;
+    }
     if (!transformed.model) {
       transformed.model = model || "grok-composer-2.5-fast";
     }

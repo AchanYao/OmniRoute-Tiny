@@ -138,6 +138,7 @@ function buildOpenAISummary(events: StructuredSSEEvent[], fallbackModel?: string
   let unknownToolCallSeq = 0;
   let finishReason = "stop";
   let usage: JsonRecord | null = null;
+  let serviceTier: string | null = null;
 
   const getToolCallKey = (toolCall: JsonRecord) => {
     const idKey = typeof toolCall.id === "string" && toolCall.id ? `id:${toolCall.id}` : null;
@@ -226,6 +227,9 @@ function buildOpenAISummary(events: StructuredSSEEvent[], fallbackModel?: string
     if (chunk.usage && typeof chunk.usage === "object") {
       usage = { ...asRecord(chunk.usage) };
     }
+    if (typeof chunk.service_tier === "string") {
+      serviceTier = chunk.service_tier;
+    }
   }
 
   const joinedContent = contentParts.length > 0 ? contentParts.join("").trim() : null;
@@ -260,6 +264,9 @@ function buildOpenAISummary(events: StructuredSSEEvent[], fallbackModel?: string
 
   if (usage && Object.keys(usage).length > 0) {
     result.usage = usage;
+  }
+  if (serviceTier) {
+    result.service_tier = serviceTier;
   }
 
   return result;
@@ -326,6 +333,9 @@ function buildResponsesSummary(
       model: toString(picked.model, fallbackModel || "unknown"),
       output: pickedOutput.length > 0 ? pickedOutput : buildOutputFromText(),
       usage: picked.usage ?? usage ?? null,
+      ...(typeof picked.service_tier === "string"
+        ? { service_tier: picked.service_tier }
+        : {}),
       status: toString(picked.status, completed ? "completed" : "in_progress"),
       created_at: toNumber(picked.created_at, Math.floor(Date.now() / 1000)),
       metadata: asRecord(picked.metadata),
