@@ -419,7 +419,14 @@ test("Codex Fast service tier applies GPT-5.5 and GPT-5.6 credit multipliers", a
     await calculateCost("codex", "gpt-5.6-sol-high", tokens, { serviceTier: "fast" }),
     0.03
   );
-2: @theirs
+  assert.equal(getServiceTierCostMultiplier("cx", "gpt-5.6-terra-ultra", "fast"), 1.5);
+  assert.equal(getServiceTierCostMultiplier("codex", "gpt-5.6-luna-max", "priority"), 1.5);
+  assert.equal(getServiceTierCostMultiplier("grok-cli", "grok-composer-2.5-fast", "priority"), 2);
+  assert.equal(getServiceTierCostMultiplier("gc", "grok-composer-2.5-fast", "fast"), 2);
+  assert.equal(getServiceTierCostMultiplier("xai", "grok-4.3", "priority"), 2);
+  assert.equal(getServiceTierCostMultiplier("xai-oauth", "grok-4.3", "priority"), 2);
+  assert.equal(getServiceTierCostMultiplier("xao", "grok-4.3", "default"), 1);
+  assert.equal(await calculateCost("xai", "grok-4.3", tokens, { serviceTier: "priority" }), 0.04);
   assert.equal(await calculateCost("openai", "gpt-5.5", tokens, { serviceTier: "priority" }), 0.02);
   assert.equal(await calculateCost("openai", "gpt-5.5", tokens, { serviceTier: "flex" }), 0.02);
 });

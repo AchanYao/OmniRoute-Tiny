@@ -89,7 +89,13 @@ export function getServiceTierCostMultiplier(
 ): number {
   const providerKey = normalizeServiceTier(provider);
   const tier = normalizeServiceTier(serviceTier);
-1: @theirs
+  if (
+    ["xai", "xai-oauth", "xao", "grok-cli", "gc"].includes(providerKey) &&
+    (tier === "priority" || tier === "fast")
+  ) {
+    return 2;
+  }
+  if (providerKey !== "codex" && providerKey !== "cx") {
     return 1;
   }
 
