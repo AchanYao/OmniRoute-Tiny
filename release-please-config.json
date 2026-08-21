@@ -3,7 +3,6 @@
   "release-type": "node",
   "include-component-in-tag": false,
   "include-v-in-tag": true,
-  "pull-request-title-pattern": "chore: release ${version}",
   "packages": {
     ".": {
       "package-name": "omniroute",
@@ -12,6 +11,13 @@
         "electron/package-lock.json",
         "open-sse/package.json"
       ]
+    },
+    "omp-plugin": {
+      "package-name": "omniroute-omp-plugin",
+      "component": "omp-plugin",
+      "include-component-in-tag": true,
+      "release-type": "node"
     }
-  }
+  },
+  "pull-request-title-pattern": "chore: release ${version}"
 }

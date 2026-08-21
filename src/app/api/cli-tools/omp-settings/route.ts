@@ -7,6 +7,7 @@ import path from "path";
 import os from "os";
 import fs from "fs/promises";
 import { load as yamlLoad, dump as yamlDump } from "js-yaml";
+import { generateOmpPluginExtensionCode, resolveOmpPaths } from "../../../../../bin/cli/commands/setup-omp.mjs";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { cliAuthOnlyConfigSchema } from "@/shared/validation/schemas/cli";
 import { getOmpCredentials, saveOmpCredentials, deleteOmpCredentials } from "@/lib/db/omp";
@@ -24,8 +25,7 @@ const getOmpModelsYmlPath = () => path.join(getOmpDir(), "models.yml");
 const checkOmpInstalled = async () => {
   const isWindows = os.platform() === "win32";
   try {
-    const command = isWindows ? "where omp" : "which omp";
-    await execAsync(command, { windowsHide: true });
+    await execAsync("which omp");
     return true;
   } catch {
     try {
@@ -57,22 +57,13 @@ export async function GET(request: Request) {
   const authError = await requireCliToolsAuth(request);
   if (authError) return authError;
   try {
-    const installed = await checkOmpInstalled();
-
-    if (!installed) {
-      return NextResponse.json({
-        installed: false,
-        config: null,
-        message: "Oh My Pi is not installed",
-      });
-    }
-
+    const isInstalled = await checkOmpInstalled();
     const creds = getOmpCredentials(PROVIDER_ID);
     const modelsYml = await readModelsYml();
     const ymlProvider = modelsYml?.providers?.[PROVIDER_ID];
 
     return NextResponse.json({
-      installed: true,
+      installed: isInstalled,
       config: {
         providers: {
           [PROVIDER_ID]: {
@@ -115,7 +106,17 @@ export async function POST(request: Request) {
 
     await fs.mkdir(getOmpDir(), { recursive: true });
 
-    // 1. Write models.yml — provider config + auto-discovery
+    // 1. Install omniroute-omp-plugin extension to auto-discover and map models
+    const { extensionsDir } = resolveOmpPaths();
+    await fs.mkdir(extensionsDir, { recursive: true });
+    const pluginPath = path.join(extensionsDir, "omniroute-omp-plugin.js");
+    await fs.writeFile(
+      pluginPath,
+      generateOmpPluginExtensionCode({ baseUrl: normalizedBaseUrl, apiKey: keyRef }),
+      "utf-8"
+    );
+
+    // 2. Write models.yml — provider config + auto-discovery
     const modelsYml = await readModelsYml();
     if (!modelsYml.providers) modelsYml.providers = {};
 
@@ -130,7 +131,7 @@ export async function POST(request: Request) {
 
     await fs.writeFile(getOmpModelsYmlPath(), yamlDump(modelsYml, { lineWidth: -1 }), "utf-8");
 
-    // 2. Write auth_credentials — so omp sees omniroute as "logged in"
+    // 3. Write auth_credentials — so omp sees omniroute as "logged in"
     saveOmpCredentials(PROVIDER_ID, keyRef, normalizedBaseUrl);
 
     return NextResponse.json({
@@ -164,12 +165,12 @@ export async function DELETE(request: Request) {
       }
     }
 
-    // 2. Remove from auth_credentials
+    // 2. Delete auth credentials
     deleteOmpCredentials(PROVIDER_ID);
 
     return NextResponse.json({
       success: true,
-      message: "OmniRoute removed from Oh My Pi",
+      message: "OmniRoute provider config removed from Oh My Pi.",
     });
   } catch (error) {
     return NextResponse.json(

@@ -20,13 +20,17 @@ test("Release Please owns version tags and GitHub releases on main", () => {
 
 test("release manifest starts from the current application version", () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  const ompPkg = JSON.parse(fs.readFileSync(path.join(root, "omp-plugin", "package.json"), "utf8"));
   const manifest = JSON.parse(
     fs.readFileSync(path.join(root, ".release-please-manifest.json"), "utf8")
   );
   const config = JSON.parse(fs.readFileSync(path.join(root, "release-please-config.json"), "utf8"));
 
   assert.equal(manifest["."], pkg.version);
+  assert.equal(manifest["omp-plugin"], ompPkg.version);
   assert.equal(config.packages["."]["package-name"], "omniroute");
+  assert.equal(config.packages["omp-plugin"]["package-name"], "omniroute-omp-plugin");
+  assert.equal(config.packages["omp-plugin"]["component"], "omp-plugin");
   assert.deepEqual(config.packages["."]["extra-files"], [
     "electron/package.json",
     "electron/package-lock.json",
