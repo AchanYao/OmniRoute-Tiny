@@ -780,6 +780,19 @@ export function createSSEStream(options: StreamOptions = {}) {
   const providerPayloadCollector = createStructuredSSECollector({
     stage: "provider_response",
   });
+  let reportedServiceTier: string | undefined;
+  const pushProviderPayload = (payload: unknown): void => {
+    providerPayloadCollector.push(payload);
+    const record = asRecord(payload);
+    const nestedResponse = asRecord(record.response);
+    const tier =
+      typeof record.service_tier === "string"
+        ? record.service_tier
+        : typeof nestedResponse.service_tier === "string"
+          ? nestedResponse.service_tier
+          : undefined;
+    if (tier) reportedServiceTier = tier;
+  };
   const clientPayloadCollector = createStructuredSSECollector({
     stage: "client_response",
   });
@@ -1238,7 +1251,7 @@ export function createSSEStream(options: StreamOptions = {}) {
             if (trimmed.startsWith("data:")) {
               const providerPayload = parsedPassthroughData ?? parseSSELine(trimmed);
               if (providerPayload) {
-                providerPayloadCollector.push(providerPayload);
+                pushProviderPayload(providerPayload);
                 if ((providerPayload as { done?: unknown }).done === true) {
                   continue;
                 }
@@ -1962,7 +1975,7 @@ export function createSSEStream(options: StreamOptions = {}) {
 
           if (shouldDropResponsesCommentary && dropCommentary(parsed as JsonRecord)) continue;
 
-          providerPayloadCollector.push(parsed);
+          pushProviderPayload(parsed);
 
           if (parsed && parsed.done) {
             continue;
@@ -2177,7 +2190,7 @@ export function createSSEStream(options: StreamOptions = {}) {
                 reqLogger?.appendConvertedChunk?.(output);
                 controller.enqueue(encoder.encode(output));
               },
-              pushProviderPayload: (payload: unknown) => providerPayloadCollector.push(payload),
+              pushProviderPayload,
               pushClientPayload: (payload: unknown) => clientPayloadCollector.push(payload),
               setPassthroughResponsesId: (value: string) => {
                 passthroughResponsesId = value;
@@ -2239,7 +2252,7 @@ export function createSSEStream(options: StreamOptions = {}) {
               }
               const bufferedPayload = parseSSELine(bufferedLine);
               if (bufferedPayload) {
-                providerPayloadCollector.push(bufferedPayload);
+                pushProviderPayload(bufferedPayload);
                 if (
                   shouldInjectClaudeEmptyResponseBeforeCurrentEvent(
                     claudeEmptyResponseLifecycle,
@@ -2458,6 +2471,7 @@ export function createSSEStream(options: StreamOptions = {}) {
                     total_tokens: prompt + completion,
                   },
                   _streamed: true,
+                  ...(reportedServiceTier ? { service_tier: reportedServiceTier } : {}),
                 };
                 onComplete({
                   status: 200,
@@ -2494,7 +2508,7 @@ export function createSSEStream(options: StreamOptions = {}) {
           if (buffer.trim()) {
             const parsed = parseSSELine(buffer.trim());
             if (parsed && !parsed.done) {
-              providerPayloadCollector.push(parsed);
+              pushProviderPayload(parsed);
               // Extract usage from remaining buffer — if the usage-bearing event
               // (e.g. response.completed) is the last SSE line, it ends up here
               // in the flush handler where extractUsage was not called.
@@ -2739,6 +2753,7 @@ export function createSSEStream(options: StreamOptions = {}) {
                   total_tokens: prompt + completion,
                 },
                 _streamed: true,
+                ...(reportedServiceTier ? { service_tier: reportedServiceTier } : {}),
               };
               onComplete({
                 status: 200,

@@ -10,6 +10,7 @@
  *   - aggregated xAI response.completed → OpenAI ChatCompletion JSON
  *   - per-event xAI SSE → OpenAI ChatCompletion stream chunks
  */
+import { normalizeXaiServiceTier } from "@/lib/providers/requestDefaults";
 import { normalizeXaiReasoningEffort } from "../thinking.ts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -217,6 +218,8 @@ export function chatRequestToXaiResponses(req: OpenAiChatRequest): XaiResponsesR
   }
 
   const out: XaiResponsesRequest = { model: req.model, input };
+  const serviceTier = normalizeXaiServiceTier(req.service_tier);
+  if (serviceTier) out.service_tier = serviceTier;
   if (instructionsParts.length) out.instructions = instructionsParts.join("\n\n");
 
   if (req.temperature != null) out.temperature = req.temperature;

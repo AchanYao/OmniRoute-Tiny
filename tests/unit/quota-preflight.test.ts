@@ -142,6 +142,48 @@ test("preflightQuota (legacy single-signal): proceeds when remaining is above th
   assert.equal(result.proceed, true);
 });
 
+test("preflightQuota applies a priority consumption multiplier before cutoff checks", async () => {
+  registerQuotaFetcher("provider-priority-burn", async () => ({
+    used: 75,
+    total: 100,
+    percentUsed: 0.75,
+  }));
+
+  const standard = await preflightQuota(
+    "provider-priority-burn",
+    "conn-priority-standard",
+    createConnection(),
+    { resolveMinRemainingPercent: () => 15 }
+  );
+  const priority = await preflightQuota(
+    "provider-priority-burn",
+    "conn-priority-double",
+    createConnection(),
+    { resolveMinRemainingPercent: () => 15, consumptionMultiplier: 2 }
+  );
+
+  assert.equal(standard.proceed, true);
+  assert.equal(priority.proceed, false);
+  assert.equal(priority.reason, "quota_exhausted");
+});
+
+test("preflightQuota priority multiplier scales remaining capacity, not historical use", async () => {
+  registerQuotaFetcher("provider-priority-remaining", async () => ({
+    used: 45,
+    total: 100,
+    percentUsed: 0.45,
+  }));
+
+  const priority = await preflightQuota(
+    "provider-priority-remaining",
+    "conn-priority-remaining",
+    createConnection(),
+    { resolveMinRemainingPercent: () => 15, consumptionMultiplier: 2 }
+  );
+
+  assert.equal(priority.proceed, true);
+});
+
 // ─── New per-window path (windows map on QuotaInfo) ───────────────────────
 
 test("preflightQuota (per-window): blocks if ANY window falls to its cutoff", async () => {

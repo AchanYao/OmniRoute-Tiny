@@ -49,6 +49,7 @@ import {
   isQuotaPreflightEnabled,
 } from "@omniroute/open-sse/services/quotaPreflight.ts";
 import { resolveResilienceSettings } from "@/lib/resilience/settings";
+import { getXaiRequestDefaults, normalizeXaiServiceTier } from "@/lib/providers/requestDefaults";
 import { resolveModelLockoutSettings } from "@/lib/resilience/modelLockoutSettings";
 import { syncHealthFromDB, type KeyHealth } from "@omniroute/open-sse/services/apiKeyRotator.ts";
 import {
@@ -103,6 +104,7 @@ interface CredentialSelectionOptions {
   excludeConnectionIds?: string[] | null;
   sessionKey?: string | null;
   sessionAffinityTtlMs?: number | null;
+  requestedServiceTier?: unknown;
 }
 
 interface CooldownInspectionState {
@@ -1840,9 +1842,17 @@ export async function getProviderCredentialsWithQuotaPreflight(
     const modelAwarePreflight = provider === "codex" || provider === "openrouter";
     const preflightCredentials =
       requestedModel && modelAwarePreflight ? { ...credentials, requestedModel } : credentials;
+    const requestedServiceTier = normalizeXaiServiceTier(options.requestedServiceTier);
+    const grokPriority =
+      (provider === "grok-cli" || provider === "gc") &&
+      (requestedServiceTier === "priority" ||
+        (requestedServiceTier === undefined &&
+          getXaiRequestDefaults(provider, credentials.providerSpecificData).serviceTier ===
+            "priority"));
     const preflight = await preflightQuota(provider, connectionId, preflightCredentials, {
       resolveMinRemainingPercent,
       resolveWarnRemainingPercent: () => warnThresholdPercent,
+      consumptionMultiplier: grokPriority ? 2 : 1,
     });
     if (preflight.proceed) {
       return credentials;

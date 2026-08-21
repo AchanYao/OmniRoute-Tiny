@@ -143,6 +143,43 @@ test("createSSEStream leaves successful pending requests for onComplete finaliza
   usageHistory.clearPendingRequests();
 });
 
+test("createSSEStream reports the upstream Chat service tier at completion", async () => {
+  let onCompletePayload = null;
+  await readTransformed(
+    [
+      `data: ${JSON.stringify({
+        id: "chatcmpl_priority",
+        object: "chat.completion.chunk",
+        created: 1,
+        model: "grok-4.3",
+        choices: [{ index: 0, delta: { content: "hello" }, finish_reason: null }],
+      })}\n\n`,
+      `data: ${JSON.stringify({
+        id: "chatcmpl_priority",
+        object: "chat.completion.chunk",
+        created: 1,
+        model: "grok-4.3",
+        service_tier: "priority",
+        choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      })}\n\n`,
+    ],
+    {
+      mode: "passthrough",
+      sourceFormat: FORMATS.OPENAI,
+      provider: "xai",
+      model: "grok-4.3",
+      body: { messages: [{ role: "user", content: "hello" }] },
+      onComplete(payload) {
+        onCompletePayload = payload;
+      },
+    }
+  );
+
+  assert.equal(onCompletePayload.responseBody.service_tier, "priority");
+  assert.equal(onCompletePayload.providerPayload.summary.service_tier, "priority");
+});
+
 test.after(() => {
   core.resetDbInstance();
   if (fs.existsSync(TEST_DATA_DIR)) {
@@ -1193,6 +1230,7 @@ test("buildStreamSummaryFromEvents falls back to response.output_text.delta when
             object: "response",
             model: "gpt-5.4",
             status: "completed",
+            service_tier: "priority",
             output: [],
             usage: { output_tokens: 2 },
           },
@@ -1203,11 +1241,13 @@ test("buildStreamSummaryFromEvents falls back to response.output_text.delta when
     "gpt-5.4"
   );
 
-  assert.equal((summary as any).object, "response");
-  assert.equal((summary as any).output[0].type, "message");
-  assert.equal((summary as any).output[0].content[0].type, "output_text");
-  assert.equal((summary as any).output[0].content[0].text, "Hello world");
-  assert.equal((summary as any).usage.output_tokens, 2);
+  assert.equal((summary as Record<string, any>).service_tier, "priority");
+
+  assert.equal((summary as Record<string, any>).object, "response");
+  assert.equal((summary as Record<string, any>).output[0].type, "message");
+  assert.equal((summary as Record<string, any>).output[0].content[0].type, "output_text");
+  assert.equal((summary as Record<string, any>).output[0].content[0].text, "Hello world");
+  assert.equal((summary as Record<string, any>).usage.output_tokens, 2);
 });
 
 test("createSSEStream translate mode aborts on Responses failure with rate limit error", async () => {
@@ -1836,10 +1876,10 @@ test("buildStreamSummaryFromEvents compacts Responses API deltas into a syntheti
     "gpt-4.1-mini"
   );
 
-  assert.equal((summary as any).object, "response");
-  assert.equal((summary as any).model, "gpt-4.1-mini");
-  assert.equal((summary as any).output[0].content[0].text, "Hello world");
-  assert.deepEqual((summary as any).usage, { input_tokens: 2, output_tokens: 3, total_tokens: 5 });
+  assert.equal((summary as Record<string, any>).object, "response");
+  assert.equal((summary as Record<string, any>).model, "gpt-4.1-mini");
+  assert.equal((summary as Record<string, any>).output[0].content[0].text, "Hello world");
+  assert.deepEqual((summary as Record<string, any>).usage, { input_tokens: 2, output_tokens: 3, total_tokens: 5 });
 });
 
 test("buildStreamSummaryFromEvents preserves Gemini thought parts and function calls", () => {
@@ -1889,13 +1929,13 @@ test("buildStreamSummaryFromEvents preserves Gemini thought parts and function c
     "gemini-2.5-pro"
   );
 
-  assert.equal((summary as any).modelVersion, "gemini-2.5-pro");
-  assert.equal((summary as any).candidates[0].content.parts[0].text, "Thinking aloud");
-  assert.equal((summary as any).candidates[0].content.parts[0].thought, true);
-  assert.deepEqual((summary as any).candidates[0].content.parts[2], {
+  assert.equal((summary as Record<string, any>).modelVersion, "gemini-2.5-pro");
+  assert.equal((summary as Record<string, any>).candidates[0].content.parts[0].text, "Thinking aloud");
+  assert.equal((summary as Record<string, any>).candidates[0].content.parts[0].thought, true);
+  assert.deepEqual((summary as Record<string, any>).candidates[0].content.parts[2], {
     functionCall: { name: "read_file", args: { path: "/tmp/a" } },
   });
-  assert.deepEqual((summary as any).usageMetadata, {
+  assert.deepEqual((summary as Record<string, any>).usageMetadata, {
     promptTokenCount: 4,
     candidatesTokenCount: 5,
     totalTokenCount: 9,

@@ -47,6 +47,14 @@ function setTextareaValue(textarea: HTMLTextAreaElement, value: string) {
   });
 }
 
+function setSelectValue(select: HTMLSelectElement, value: string) {
+  const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
+  act(() => {
+    setter?.call(select, value);
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}
+
 describe("conn-modals (Phase 1c extraction)", () => {
   beforeEach(() => {
     (
@@ -319,6 +327,76 @@ describe("conn-modals (Phase 1c extraction)", () => {
       />
     );
     expect(c.querySelector("*")).not.toBeNull();
+  });
+
+  it.each(["grok-cli", "xai", "xai-oauth"])(
+    "EditConnectionModal renders Priority Processing for %s",
+    (provider) => {
+      const c = renderModal(
+        <EditConnectionModal
+          isOpen={true}
+          connection={{
+            id: `conn-${provider}`,
+            name: provider,
+            provider,
+            authType: provider === "xai" ? "apikey" : "oauth",
+            priority: 1,
+            providerSpecificData: { requestDefaults: { serviceTier: "priority" } },
+          }}
+          providerId={provider}
+          onSave={vi.fn().mockResolvedValue(undefined)}
+          onClose={vi.fn()}
+        />
+      );
+
+      expect(c.textContent).toContain("providers.xaiServiceTierLabel");
+      const prioritySelect = Array.from(c.querySelectorAll("select")).find((select) =>
+        Array.from(select.options).some((option) => option.value === "priority")
+      );
+      expect(prioritySelect?.value).toBe("priority");
+    }
+  );
+
+  it("EditConnectionModal explicitly clears a saved xAI priority default", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const c = renderModal(
+      <EditConnectionModal
+        isOpen={true}
+        connection={{
+          id: "conn-xai-oauth",
+          name: "xAI OAuth",
+          provider: "xai-oauth",
+          authType: "oauth",
+          priority: 1,
+          providerSpecificData: { requestDefaults: { serviceTier: "priority" } },
+        }}
+        providerId="xai-oauth"
+        onSave={onSave}
+        onClose={vi.fn()}
+      />
+    );
+
+    const prioritySelect = Array.from(c.querySelectorAll("select")).find((select) =>
+      Array.from(select.options).some((option) => option.value === "priority")
+    );
+    expect(prioritySelect).toBeDefined();
+    setSelectValue(prioritySelect!, "default");
+
+    const saveButton = Array.from(c.querySelectorAll("button")).find(
+      (button) => button.textContent === "providers.save"
+    );
+    expect(saveButton).toBeDefined();
+    await act(async () => {
+      saveButton!.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerSpecificData: expect.objectContaining({ requestDefaults: null }),
+      })
+    );
   });
 
   it("EditConnectionModal renders the API key value returned by the provider connection API", () => {

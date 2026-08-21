@@ -759,6 +759,7 @@ async function handleChatImplementation(
         resolvedModel,
         {
           sessionKey: sessionAffinityKey,
+          requestedServiceTier: body?.service_tier,
           ...(target?.allowRateLimitedConnection ? { allowRateLimitedConnections: true } : {}),
           ...(target?.connectionId ? { forcedConnectionId: target.connectionId } : {}),
           ...(bypassProviderQuotaPolicy ? { bypassQuotaPolicy: true } : {}),
@@ -1282,6 +1283,7 @@ async function handleSingleModelChat(
               model,
               {
                 sessionKey: runtimeOptions.sessionAffinityKey ?? runtimeOptions.sessionId ?? null,
+                requestedServiceTier: body?.service_tier,
                 excludeConnectionIds: Array.from(excludedConnectionIds),
                 ...(runtimeOptions.allowRateLimitedConnection
                   ? { allowRateLimitedConnections: true }

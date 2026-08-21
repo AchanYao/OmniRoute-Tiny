@@ -82,13 +82,19 @@ function stripCodexEffortSuffix(model: string): string {
   return model.replace(/-(?:ultra|max|xhigh|high|medium|low|none)$/i, "");
 }
 
-export function getCodexFastCostMultiplier(
+export function getServiceTierCostMultiplier(
   provider: string | null | undefined,
   model: string | null | undefined,
   serviceTier: string | null | undefined
 ): number {
   const providerKey = normalizeServiceTier(provider);
   const tier = normalizeServiceTier(serviceTier);
+  if (
+    ["xai", "xai-oauth", "xao", "grok-cli", "gc"].includes(providerKey) &&
+    (tier === "priority" || tier === "fast")
+  ) {
+    return 2;
+  }
   if (providerKey !== "codex" && providerKey !== "cx") {
     return 1;
   }
@@ -170,7 +176,7 @@ export function computeCostFromPricing(
 
   if (cacheCreationTokens > 0) cost += cacheCreationTokens * (cacheCreationPrice / 1_000_000);
 
-  return cost * getCodexFastCostMultiplier(options.provider, options.model, options.serviceTier);
+  return cost * getServiceTierCostMultiplier(options.provider, options.model, options.serviceTier);
 }
 
 export async function calculateCost(

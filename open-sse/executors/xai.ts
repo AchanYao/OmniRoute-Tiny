@@ -2,6 +2,10 @@ import { BaseExecutor, type ExecutorLog, type ProviderCredentials } from "./base
 import { PROVIDERS } from "../config/constants.ts";
 import { getModelTargetFormat } from "../config/providerModels.ts";
 import { isResponsesEndpointPath } from "../utils/responsesEndpoint.ts";
+import {
+  getXaiRequestDefaults,
+  normalizeXaiServiceTier,
+} from "@/lib/providers/requestDefaults";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -125,6 +129,17 @@ export class XaiExecutor extends BaseExecutor {
     if (!record) return cleaned;
 
     const out: JsonRecord = { ...record };
+    const requestedServiceTier = normalizeXaiServiceTier(out.service_tier);
+    if (requestedServiceTier) {
+      out.service_tier = requestedServiceTier;
+    } else if (
+      getXaiRequestDefaults(this.provider, credentials.providerSpecificData).serviceTier ===
+      "priority"
+    ) {
+      out.service_tier = "priority";
+    } else {
+      delete out.service_tier;
+    }
     const nativeXaiPassthrough = record._nativeXaiResponsesPassthrough === true;
     delete out._nativeXaiResponsesPassthrough;
     delete out._nativeCodexPassthrough;

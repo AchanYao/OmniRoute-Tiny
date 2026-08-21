@@ -13,6 +13,8 @@
  *       content_block_stop, message_delta, message_stop
  */
 
+import { normalizeXaiServiceTier } from "@/lib/providers/requestDefaults";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AnthropicImageSource {
@@ -284,6 +286,8 @@ export function claudeRequestToXaiResponses(req: AnthropicRequest): XaiResponses
   }
 
   const out: XaiResponsesRequest = { model: req.model, input };
+  const serviceTier = normalizeXaiServiceTier(req.service_tier);
+  if (serviceTier) out.service_tier = serviceTier;
 
   // System → instructions
   if (req.system) {

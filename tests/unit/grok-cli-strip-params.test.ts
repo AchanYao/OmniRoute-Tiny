@@ -63,6 +63,36 @@ test("#5273 grok-cli transformRequest leaves a clean body unchanged (no false st
   assert.equal(out.stream, true);
 });
 
+test("grok-cli transformRequest injects priority from connection defaults", () => {
+  const executor = new GrokCliExecutor();
+  const out = executor.transformRequest("grok-composer-2.5-fast", {}, false, {
+    providerSpecificData: { requestDefaults: { serviceTier: "priority" } },
+  } as never) as Record<string, unknown>;
+
+  assert.equal(out.service_tier, "priority");
+});
+
+test("grok-cli transformRequest keeps the client tier ahead of connection defaults", () => {
+  const executor = new GrokCliExecutor();
+  const out = executor.transformRequest(
+    "grok-composer-2.5-fast",
+    { service_tier: "default" },
+    false,
+    { providerSpecificData: { requestDefaults: { serviceTier: "priority" } } } as never
+  ) as Record<string, unknown>;
+
+  assert.equal(out.service_tier, "default");
+});
+
+test("grok-cli transformRequest omits service_tier when the connection default is standard", () => {
+  const executor = new GrokCliExecutor();
+  const out = executor.transformRequest("grok-composer-2.5-fast", {}, false, {
+    providerSpecificData: { requestDefaults: { serviceTier: "default" } },
+  } as never) as Record<string, unknown>;
+
+  assert.equal("service_tier" in out, false);
+});
+
 // Ported from decolua/9router#2534 (@gitcommit90): xAI's cli-chat-proxy enforces a
 // hard cap of 200 tools per request and 400s above it. Clients that fan a large MCP
 // toolset through Grok Build/Composer can exceed that ceiling — transformRequest()

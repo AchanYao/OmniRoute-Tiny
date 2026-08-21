@@ -4783,7 +4783,10 @@ export async function handleChatCore({
         // Cache capture is non-critical — never block the stream
       }
     }
-    effectiveServiceTier = resolveReportedServiceTier(streamResponseBody) ?? effectiveServiceTier;
+    effectiveServiceTier =
+      resolveReportedServiceTier(providerPayload) ??
+      resolveReportedServiceTier(streamResponseBody) ??
+      effectiveServiceTier;
 
     // Context Editing telemetry (streaming): the reconstructed stream body now carries
     // context_management.applied_edits from the final message_delta snapshot. Mirror the

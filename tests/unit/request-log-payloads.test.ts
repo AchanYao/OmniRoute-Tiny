@@ -95,6 +95,7 @@ test("builds compact OpenAI stream summary for detailed logs", () => {
     object: "chat.completion.chunk",
     created: 123,
     model: "gpt-4.1-mini",
+    service_tier: "priority",
     choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
     usage: { prompt_tokens: 5, completion_tokens: 2, total_tokens: 7 },
   });
@@ -111,6 +112,7 @@ test("builds compact OpenAI stream summary for detailed logs", () => {
   assert.equal(compact.object, "chat.completion");
   assert.equal(compact.choices[0].message.content, "Hello world");
   assert.equal(compact.choices[0].finish_reason, "stop");
+  assert.equal(compact.service_tier, "priority");
   assert.equal(compact._omniroute_stream.stage, "provider_response");
   assert.equal(compact._omniroute_stream.eventCount, 3);
   assert.equal("events" in compact, false);
