@@ -101,6 +101,11 @@ export const OAUTH_TEST_CONFIG = {
   },
   cursor: {
     checkExpiry: true,
+    refreshable: true,
+  },
+  "cursor-oauth": {
+    checkExpiry: true,
+    refreshable: true,
   },
   "kimi-coding": {
     checkExpiry: true,
