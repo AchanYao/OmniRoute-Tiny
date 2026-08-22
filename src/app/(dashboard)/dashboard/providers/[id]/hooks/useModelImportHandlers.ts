@@ -223,9 +223,6 @@ export function useModelImportHandlers({
               : {}),
           }),
         });
-        if (!modelAliases[baseAlias]) {
-          await handleSetAlias(modelId, baseAlias, providerStorageAlias);
-        }
         importedCount += 1;
       }
 
