@@ -300,7 +300,14 @@ const CURSOR_MODEL_ALIASES: Record<string, string> = {
 };
 
 export function normalizeCursorModelId(modelId: string): string {
-  const id = (modelId ?? "").trim();
+  let id = (modelId ?? "").trim();
+  const slashIdx = id.indexOf("/");
+  if (slashIdx > 0) {
+    const prefix = id.slice(0, slashIdx).toLowerCase();
+    if (prefix === "cursor" || prefix === "cursor-oauth" || prefix === "cu" || prefix === "cuo") {
+      id = id.slice(slashIdx + 1);
+    }
+  }
   const alias = CURSOR_MODEL_ALIASES[id.toLowerCase()];
   return alias ?? id;
 }

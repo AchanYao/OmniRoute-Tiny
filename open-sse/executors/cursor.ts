@@ -696,14 +696,25 @@ export class CursorExecutor extends BaseExecutor {
     super("cursor", PROVIDERS.cursor);
   }
 
-  buildUrl() {
-    return CURSOR_AGENT_URL;
+  buildUrl(credentials?: { providerSpecificData?: Record<string, unknown> }) {
+    const customUrl =
+      typeof credentials?.providerSpecificData?.baseUrl === "string"
+        ? (credentials.providerSpecificData.baseUrl as string)
+        : null;
+    const base = customUrl || process.env.CURSOR_BASE_URL || "https://api2.cursor.sh";
+    const cleanBase = base.replace(/\/+$/, "");
+    return cleanBase.endsWith("/agent.v1.AgentService/Run")
+      ? cleanBase
+      : `${cleanBase}/agent.v1.AgentService/Run`;
   }
 
   buildHeaders(credentials) {
-    const accessToken = credentials.accessToken;
+    const accessToken = credentials?.accessToken || "";
     const ghostMode = credentials.providerSpecificData?.ghostMode !== false;
-    const cleanToken = accessToken.includes("::") ? accessToken.split("::")[1] : accessToken;
+    const cleanToken =
+      typeof accessToken === "string" && accessToken.includes("::")
+        ? accessToken.split("::")[1]
+        : accessToken;
     const requestId = crypto.randomUUID();
     const traceParent = `00-${crypto.randomBytes(16).toString("hex")}-${crypto.randomBytes(8).toString("hex")}-01`;
 
@@ -1146,7 +1157,7 @@ export class CursorExecutor extends BaseExecutor {
   }
 
   async execute({ model, body, stream, credentials, signal, log, upstreamExtraHeaders }) {
-    const url = this.buildUrl();
+    const url = this.buildUrl(credentials);
     const headers = this.buildHeaders(credentials);
     mergeUpstreamExtraHeaders(headers, upstreamExtraHeaders);
 
@@ -1220,8 +1231,10 @@ export class CursorExecutor extends BaseExecutor {
     if (isToolFollowUp) {
       session = cursorSessionManager.acquire(conversationId);
       // #9029: content-based session match when client lacks conversation_id.
-      if (!session && !body.conversation_id) session = cursorSessionManager.findByToolCallIds(
-        messages.filter(m => m.role === "tool" && m.tool_call_id).map(m => m.tool_call_id!));
+      if (!session && !body.conversation_id)
+        session = cursorSessionManager.findByToolCallIds(
+          messages.filter((m) => m.role === "tool" && m.tool_call_id).map((m) => m.tool_call_id!)
+        );
     }
 
     if (session) {
