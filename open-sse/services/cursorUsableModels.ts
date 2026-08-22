@@ -1,4 +1,5 @@
 import * as http2 from "node:http2";
+import * as zlib from "node:zlib";
 import { decodeVarint, WT_LEN, WT_VARINT } from "../utils/cursorAgentProtobuf/wire.ts";
 
 export type CursorUsableModel = {
@@ -70,9 +71,17 @@ export function decodeGetUsableModelsResponse(payload: Buffer): CursorUsableMode
   // Connect-RPC unary frame header: 1-byte flag + 4-byte big-endian length
   let buf = payload;
   if (buf.length > 5 && (buf[0] === 0x00 || buf[0] === 0x01)) {
+    const isCompressed = (buf[0] & 0x01) !== 0;
     const frameLen = buf.readUInt32BE(1);
     if (buf.length >= 5 + frameLen) {
       buf = buf.subarray(5, 5 + frameLen);
+      if (isCompressed) {
+        try {
+          buf = zlib.gunzipSync(buf);
+        } catch {
+          return [];
+        }
+      }
     }
   }
 
@@ -156,7 +165,7 @@ export async function fetchCursorUsableModels(options: {
     if (!resolved) {
       resolved = true;
       clearTimeout(timer);
-      client.close();
+      client.destroy();
       const payload = Buffer.concat(chunks);
       const models = decodeGetUsableModelsResponse(payload);
       resolve(models);
@@ -167,7 +176,7 @@ export async function fetchCursorUsableModels(options: {
     if (!resolved) {
       resolved = true;
       clearTimeout(timer);
-      client.close();
+      client.destroy();
       resolve(null);
     }
   });
@@ -178,15 +187,14 @@ export async function fetchCursorUsableModels(options: {
       if (!resolved) {
         resolved = true;
         clearTimeout(timer);
-        client.close();
+        client.destroy();
         resolve(null);
       }
     }
   });
 
   // Empty GetUsableModelsRequest body: 5-byte Connect-RPC frame with 0 length payload
-  const emptyFrame = Buffer.from([0x00, 0x00, 0x00, 0x00, 0x00]);
-  req.end(emptyFrame);
+  req.end();
 
   return promise;
 }

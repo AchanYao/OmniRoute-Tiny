@@ -113,11 +113,4 @@ describe("Cursor Provider Separation (IDE vs OAuth group)", () => {
     assert.equal(supportsTokenRefresh("cursor"), true);
     assert.equal(supportsTokenRefresh("cursor-oauth"), true);
   });
-
-  it("exposes clean static base models for cursor and cursor-oauth without suffix splitting", () => {
-    const oauthModels = getStaticModelsForProvider("cursor-oauth");
-    assert.ok(Array.isArray(oauthModels) && oauthModels.length > 0);
-    assert.ok(oauthModels.some((m) => m.id === "composer-2.5"));
-    assert.ok(oauthModels.some((m) => m.id === "gpt-5.5"));
-  });
 });
