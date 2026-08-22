@@ -2,7 +2,6 @@
   "name": "omniroute-omp-plugin",
   "version": "0.0.1",
   "description": "Oh My Pi plugin for OmniRoute automatic model discovery, filtering non-chat models, and per-model native provider resolution.",
-  "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,20 +14,21 @@
   "files": [
     "dist"
   ],
-  "scripts": {
-    "build": "tsup",
-    "test": "vitest run"
-  },
   "omp": {
     "extensions": [
       "./dist/index.js"
     ]
   },
+  "scripts": {
+    "build": "tsc",
+    "test": "node --import tsx/esm --test tests/plugin.test.ts"
+  },
+  "type": "module",
+  "license": "MIT",
   "keywords": [
     "omp",
     "oh-my-pi",
     "omniroute",
     "plugin"
-  ],
-  "license": "MIT"
+  ]
 }
