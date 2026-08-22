@@ -29,6 +29,7 @@ const {
   CODEBUDDY_CN_CONFIG,
   ZED_CONFIG,
   CURSOR_CONFIG,
+  CURSOR_OAUTH_CONFIG,
   GHE_COPILOT_CONFIG,
   GITHUB_CONFIG,
   GITLAB_DUO_CONFIG,
@@ -60,6 +61,7 @@ const EXPECTED_PROVIDER_KEYS = [
   "kiro",
   "amazon-q",
   "cursor",
+  "cursor-oauth",
   "trae",
   "raycast",
   "kilocode",
@@ -93,6 +95,7 @@ const EXPECTED_CONFIG_BY_PROVIDER = {
   kiro: KIRO_CONFIG,
   "amazon-q": KIRO_CONFIG,
   cursor: CURSOR_CONFIG,
+  "cursor-oauth": CURSOR_OAUTH_CONFIG,
   kilocode: KILOCODE_CONFIG,
   cline: CLINE_CONFIG,
   clinepass: CLINE_CONFIG, // reuses the Cline WorkOS flow (clinepass: cline in providers/index.ts)
@@ -432,7 +435,7 @@ test("Google OAuth callbacks stay on localhost when no custom credentials are co
 });
 
 test("device and import-token providers expose the flow-specific fields expected by their configs", () => {
-  const deviceProviders = ["kimi-coding", "github", "kiro", "amazon-q", "kilocode", "cursor"];
+  const deviceProviders = ["kimi-coding", "github", "kiro", "amazon-q", "kilocode", "cursor-oauth"];
 
   for (const providerId of deviceProviders) {
     const provider = PROVIDERS[providerId];

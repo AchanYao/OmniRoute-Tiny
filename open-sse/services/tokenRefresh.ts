@@ -419,6 +419,7 @@ async function _getAccessTokenInternal(provider, credentials, log, proxyConfig: 
       return await refreshCodebuddyCnToken(credentials.refreshToken, log, proxyConfig);
 
     case "cursor":
+    case "cursor-oauth":
       return await refreshCursorToken(credentials.refreshToken, log, proxyConfig);
 
     default:
@@ -451,6 +452,7 @@ export function supportsTokenRefresh(provider) {
     "gitlab-duo",
     "codebuddy-cn",
     "cursor",
+    "cursor-oauth",
   ]);
   if (explicitlySupported.has(provider)) return true;
   const config = PROVIDERS[provider];

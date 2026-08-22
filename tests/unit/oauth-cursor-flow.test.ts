@@ -1,21 +1,26 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { getProvider } from "../../src/lib/oauth/providers";
-import { CURSOR_CONFIG } from "../../src/lib/oauth/constants/oauth";
+import { CURSOR_OAUTH_CONFIG } from "../../src/lib/oauth/constants/oauth";
 import { refreshCursorToken } from "../../open-sse/services/tokenRefresh/providers/cursor";
 import { supportsTokenRefresh } from "../../open-sse/services/tokenRefresh";
 
-describe("Cursor OAuth Flow (omp alignment)", () => {
-  it("cursor provider is registered with device_code flowType", () => {
+describe("Cursor Provider Separation (IDE vs OAuth group)", () => {
+  it("original cursor provider is restored as IDE group import_token flow", () => {
     const provider = getProvider("cursor");
+    assert.equal(provider.flowType, "import_token");
+  });
+
+  it("new cursor-oauth provider is registered with device_code flowType under OAuth group", () => {
+    const provider = getProvider("cursor-oauth");
     assert.equal(provider.flowType, "device_code");
     assert.equal(typeof provider.requestDeviceCode, "function");
     assert.equal(typeof provider.pollToken, "function");
   });
 
-  it("requestDeviceCode generates valid PKCE loginUrl and device_code", async () => {
-    const provider = getProvider("cursor");
-    const result = await provider.requestDeviceCode(CURSOR_CONFIG);
+  it("requestDeviceCode generates valid PKCE loginUrl and device_code for cursor-oauth", async () => {
+    const provider = getProvider("cursor-oauth");
+    const result = await provider.requestDeviceCode(CURSOR_OAUTH_CONFIG);
 
     assert.ok(result.device_code.includes(":"));
     assert.equal(result.user_code, "");
@@ -26,15 +31,15 @@ describe("Cursor OAuth Flow (omp alignment)", () => {
     assert.equal(result.expires_in, 300);
   });
 
-  it("pollToken handles 404 as authorization_pending", async () => {
+  it("pollToken handles 404 as authorization_pending for cursor-oauth", async () => {
     const originalFetch = globalThis.fetch;
     try {
       globalThis.fetch = (async () => {
         return new Response(JSON.stringify({ error: "not_found" }), { status: 404 });
       }) as typeof fetch;
 
-      const provider = getProvider("cursor");
-      const pollRes = await provider.pollToken(CURSOR_CONFIG, "test-uuid:test-verifier");
+      const provider = getProvider("cursor-oauth");
+      const pollRes = await provider.pollToken(CURSOR_OAUTH_CONFIG, "test-uuid:test-verifier");
 
       assert.equal(pollRes.ok, false);
       assert.equal(pollRes.data.error, "authorization_pending");
@@ -43,7 +48,7 @@ describe("Cursor OAuth Flow (omp alignment)", () => {
     }
   });
 
-  it("pollToken maps 200 OK response with accessToken and refreshToken", async () => {
+  it("pollToken maps 200 OK response with accessToken and refreshToken for cursor-oauth", async () => {
     const originalFetch = globalThis.fetch;
     try {
       globalThis.fetch = (async () => {
@@ -56,8 +61,8 @@ describe("Cursor OAuth Flow (omp alignment)", () => {
         );
       }) as typeof fetch;
 
-      const provider = getProvider("cursor");
-      const pollRes = await provider.pollToken(CURSOR_CONFIG, "test-uuid:test-verifier");
+      const provider = getProvider("cursor-oauth");
+      const pollRes = await provider.pollToken(CURSOR_OAUTH_CONFIG, "test-uuid:test-verifier");
 
       assert.equal(pollRes.ok, true);
       assert.equal(pollRes.data.access_token, "mock-access-token");
@@ -103,7 +108,8 @@ describe("Cursor OAuth Flow (omp alignment)", () => {
     }
   });
 
-  it("supportsTokenRefresh includes cursor", () => {
+  it("supportsTokenRefresh includes cursor and cursor-oauth", () => {
     assert.equal(supportsTokenRefresh("cursor"), true);
+    assert.equal(supportsTokenRefresh("cursor-oauth"), true);
   });
 });

@@ -81,11 +81,13 @@ const executors = {
   bedrock: new BedrockExecutor(),
   codex: new CodexExecutor(),
   cursor: new CursorExecutor(),
+  "cursor-oauth": new CursorExecutor(),
   trae: new TraeExecutor(),
   glm: new GlmExecutor("glm"),
   "glm-cn": new GlmExecutor("glm-cn"),
   glmt: new GlmExecutor("glmt"),
   cu: new CursorExecutor(), // Alias for cursor
+  cuo: new CursorExecutor(), // Alias for cursor-oauth
   "azure-openai": new AzureOpenAIExecutor(),
   "command-code": new CommandCodeExecutor(),
   cmd: new CommandCodeExecutor(), // Alias

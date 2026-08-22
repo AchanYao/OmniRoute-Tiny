@@ -263,6 +263,13 @@ export default function ProviderModalsPanel({
             onSuccess={handleOAuthSuccess}
             onClose={() => setShowOAuthModal(false)}
           />
+        ) : providerId === "cursor" ? (
+          <CursorAuthModal
+            isOpen={showOAuthModal}
+            reauthConnection={reauthConnection}
+            onSuccess={handleOAuthSuccess}
+            onClose={() => setShowOAuthModal(false)}
+          />
         ) : providerId === "trae" ? (
           <TraeAuthModal
             isOpen={showOAuthModal}

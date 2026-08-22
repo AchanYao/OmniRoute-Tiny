@@ -927,6 +927,12 @@ export default function ProviderOnboardingWizard() {
             onSuccess={handleOAuthSuccess}
             onClose={() => setShowOAuthModal(false)}
           />
+        ) : selectedProvider.id === "cursor" ? (
+          <CursorAuthModal
+            isOpen={showOAuthModal}
+            onSuccess={handleOAuthSuccess}
+            onClose={() => setShowOAuthModal(false)}
+          />
         ) : (
           <OAuthModal
             isOpen={showOAuthModal}

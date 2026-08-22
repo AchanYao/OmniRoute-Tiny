@@ -159,3 +159,9 @@ export const cursorProvider: RegistryEntry = {
     { id: "kimi-k2.5", name: "Kimi K2.5" },
   ],
 };
+
+export const cursorOAuthProvider: RegistryEntry = {
+  ...cursorProvider,
+  id: "cursor-oauth",
+  alias: "cuo",
+};

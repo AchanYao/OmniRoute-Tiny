@@ -20,6 +20,7 @@ import { gheCopilot } from "./ghe-copilot";
 import { gitlabDuo } from "./gitlab-duo";
 import { kiro } from "./kiro";
 import { cursor } from "./cursor";
+import { cursorOauth } from "./cursor-oauth";
 import { trae } from "./trae";
 import { raycast } from "./raycast";
 import { kilocode } from "./kilocode";
@@ -43,6 +44,7 @@ export const PROVIDERS = {
   kiro,
   "amazon-q": kiro,
   cursor,
+  "cursor-oauth": cursorOauth,
   trae,
   raycast,
   kilocode,
