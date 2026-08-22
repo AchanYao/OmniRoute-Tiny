@@ -4,6 +4,7 @@ import { getProvider } from "../../src/lib/oauth/providers";
 import { CURSOR_OAUTH_CONFIG } from "../../src/lib/oauth/constants/oauth";
 import { refreshCursorToken } from "../../open-sse/services/tokenRefresh/providers/cursor";
 import { supportsTokenRefresh } from "../../open-sse/services/tokenRefresh";
+import { getStaticModelsForProvider } from "../../src/lib/providers/staticModels";
 
 describe("Cursor Provider Separation (IDE vs OAuth group)", () => {
   it("original cursor provider is restored as IDE group import_token flow", () => {
@@ -111,5 +112,12 @@ describe("Cursor Provider Separation (IDE vs OAuth group)", () => {
   it("supportsTokenRefresh includes cursor and cursor-oauth", () => {
     assert.equal(supportsTokenRefresh("cursor"), true);
     assert.equal(supportsTokenRefresh("cursor-oauth"), true);
+  });
+
+  it("exposes clean static base models for cursor and cursor-oauth without suffix splitting", () => {
+    const oauthModels = getStaticModelsForProvider("cursor-oauth");
+    assert.ok(Array.isArray(oauthModels) && oauthModels.length > 0);
+    assert.ok(oauthModels.some((m) => m.id === "composer-2.5"));
+    assert.ok(oauthModels.some((m) => m.id === "gpt-5.5"));
   });
 });
