@@ -227,10 +227,36 @@ export function getClientVisibleAntigravityModelName(
 ): string {
   return CLIENT_VISIBLE_MODEL_NAMES[modelId] || fallbackName || modelId;
 }
+const ANTIGRAVITY_NON_CHAT_MODEL_IDS = new Set([
+  "tab_flash_lite_preview",
+  "tab_jump_flash_lite_preview",
+  "gemini-3.1-flash-image",
+  "gemini-3-pro-image-preview",
+  "gemini-3-pro-preview",
+  "gemini-3.1-pro",
+  "gemini-2.5-pro",
+  "gemini-2.5-computer-use-preview-10-2025",
+  "gemini-3.5-flash-medium",
+  "gemini-3.5-flash-high",
+  "gemini-3.5-flash-preview",
+  "gemini-3-flash-preview",
+  "claude-sonnet-5",
+]);
 
 export function isUserCallableAntigravityModelId(modelId: string): boolean {
   if (!modelId) return false;
   const clientId = toClientAntigravityModelId(modelId);
   const upstreamId = resolveAntigravityModelId(modelId);
-  return PUBLIC_MODEL_IDS.has(clientId) || UPSTREAM_PUBLIC_MODEL_IDS.has(upstreamId);
+  if (PUBLIC_MODEL_IDS.has(clientId) || UPSTREAM_PUBLIC_MODEL_IDS.has(upstreamId)) {
+    return true;
+  }
+  if (ANTIGRAVITY_NON_CHAT_MODEL_IDS.has(modelId) || ANTIGRAVITY_NON_CHAT_MODEL_IDS.has(clientId)) {
+    return false;
+  }
+  if (modelId.startsWith("tab_") || modelId.includes("internal")) {
+    return false;
+  }
+  return (
+    modelId.startsWith("gemini-") || modelId.startsWith("claude-") || modelId.startsWith("gpt-")
+  );
 }

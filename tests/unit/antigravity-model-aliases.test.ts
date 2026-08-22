@@ -82,6 +82,8 @@ test("isUserCallableAntigravityModelId only allows public chat-capable model IDs
   assert.equal(isUserCallableAntigravityModelId("gemini-2.5-flash-lite"), true);
   assert.equal(isUserCallableAntigravityModelId("gemini-2.5-flash-thinking"), true);
   assert.equal(isUserCallableAntigravityModelId("gemini-pro-agent"), true);
+  assert.equal(isUserCallableAntigravityModelId("gemini-3.7-flash"), true);
+  assert.equal(isUserCallableAntigravityModelId("gemini-3.7-flash-high"), true);
   // #3184: Claude IS user-callable through the Antigravity OAuth provider (same backend as
   // `agy`, verified empirically). An earlier assumption that it was removed in Antigravity
   // 2.0 was wrong.
