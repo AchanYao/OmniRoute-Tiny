@@ -90,6 +90,7 @@ import {
 } from "@/lib/providerModels/geminiModelsParser";
 import { getSyncedAvailableModels, getCustomModels } from "@/lib/db/models";
 import { fetchCursorAgentModels } from "@/lib/providerModels/cursorAgent";
+import { fetchCursorUsableModels } from "@omniroute/open-sse/services/cursorUsableModels.ts";
 import { fetchRaycastModels } from "@omniroute/open-sse/services/raycast.ts";
 import { runWithProxyContext } from "@omniroute/open-sse/utils/proxyFetch.ts";
 import {
@@ -1396,29 +1397,46 @@ export async function GET(
       }
     }
 
-    if (provider === "cursor") {
+    if (provider === "cursor" || provider === "cursor-oauth") {
       const cachedResponse = maybeReturnCachedDiscovery();
       if (cachedResponse) return cachedResponse;
 
       const autoFetchDisabledResponse = maybeReturnAutoFetchDisabled();
       if (autoFetchDisabledResponse) return autoFetchDisabledResponse;
 
-      try {
-        const models = await fetchCursorAgentModels();
-        return buildApiDiscoveryResponse(models);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.log("[models] cursor-agent fetch failed:", message);
-        const fallback = buildDiscoveryFallbackResponse({
-          cacheWarning: `cursor-agent unavailable (${message}) — using cached catalog`,
-          localWarning: `cursor-agent unavailable (${message}) — using local catalog`,
-        });
-        if (fallback) return fallback;
-        return NextResponse.json(
-          { error: `Failed to fetch Cursor models: ${message}` },
-          { status: 502 }
-        );
+      const cleanToken = (accessToken || apiKey || "").trim();
+      if (cleanToken) {
+        try {
+          const usableModels = await runWithProxyContext(proxy, () =>
+            fetchCursorUsableModels({ accessToken: cleanToken })
+          );
+          if (usableModels && usableModels.length > 0) {
+            return buildApiDiscoveryResponse(usableModels);
+          }
+        } catch (err) {
+          console.log("[models] GetUsableModels RPC failed:", err);
+        }
       }
+
+      if (provider === "cursor") {
+        try {
+          const models = await fetchCursorAgentModels();
+          return buildApiDiscoveryResponse(models);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          console.log("[models] cursor-agent fetch failed:", message);
+        }
+      }
+
+      const fallback = buildDiscoveryFallbackResponse({
+        cacheWarning: "Cursor API unavailable — using cached catalog",
+        localWarning: "Cursor API unavailable — using local catalog",
+      });
+      if (fallback) return fallback;
+      return NextResponse.json(
+        { error: "Failed to fetch Cursor models from upstream API" },
+        { status: 502 }
+      );
     }
 
     if (provider === "inner-ai") {
