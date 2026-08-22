@@ -432,7 +432,7 @@ test("Google OAuth callbacks stay on localhost when no custom credentials are co
 });
 
 test("device and import-token providers expose the flow-specific fields expected by their configs", () => {
-  const deviceProviders = ["kimi-coding", "github", "kiro", "amazon-q", "kilocode"];
+  const deviceProviders = ["kimi-coding", "github", "kiro", "amazon-q", "kilocode", "cursor"];
 
   for (const providerId of deviceProviders) {
     const provider = PROVIDERS[providerId];
@@ -441,7 +441,6 @@ test("device and import-token providers expose the flow-specific fields expected
     assert.equal(typeof provider.pollToken, "function");
   }
 
-  assert.equal(PROVIDERS.cursor.flowType, "import_token");
   assert.equal(CURSOR_CONFIG.dbKeys.accessToken, "cursorAuth/accessToken");
   assert.equal(CURSOR_CONFIG.dbKeys.machineId, "storage.serviceMachineId");
   assert.equal(PROVIDERS.trae.flowType, "import_token");

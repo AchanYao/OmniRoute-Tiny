@@ -48,9 +48,10 @@ const DEVICE_CODE_PROVIDERS = new Set([
   "codebuddy-cn",
   "ghe-copilot",
   "grok-cli",
+  "cursor",
 ]);
 
-const TOKEN_PASTE_PROVIDERS = new Set(["windsurf", "devin-cli", "grok-cli"]);
+const TOKEN_PASTE_PROVIDERS = new Set(["windsurf", "devin-cli", "grok-cli", "cursor"]);
 
 /**
  * Phase 1 hotfix (2026-05-29): windsurf & devin-cli only support import-token.

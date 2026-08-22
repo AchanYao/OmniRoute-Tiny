@@ -331,6 +331,9 @@ export const KIRO_CONFIG = {
 export const CURSOR_CONFIG = {
   // API endpoints
   apiEndpoint: "https://api2.cursor.sh",
+  loginUrl: "https://cursor.com/loginDeepControl",
+  pollUrl: "https://api2.cursor.sh/auth/poll",
+  refreshUrl: "https://api2.cursor.sh/auth/exchange_user_api_key",
   chatEndpoint: "/aiserver.v1.ChatService/StreamUnifiedChatWithTools",
   modelsEndpoint: "/aiserver.v1.AiService/GetDefaultModelNudgeData",
   // Additional endpoints

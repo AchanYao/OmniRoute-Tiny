@@ -64,6 +64,7 @@ const NO_PKCE_DEVICE_CODE_PROVIDERS = new Set([
   "codebuddy-cn",
   "grok-cli",
   "ghe-copilot",
+  "cursor",
 ]);
 
 /**
@@ -77,7 +78,7 @@ const NO_PKCE_DEVICE_CODE_PROVIDERS = new Set([
 const RETIRED_PKCE_PROVIDERS = new Set(["windsurf", "devin-cli"]);
 
 /** Providers that allow direct import of a raw API token (no OAuth exchange). */
-const IMPORT_TOKEN_PROVIDERS = new Set(["windsurf", "devin-cli", "grok-cli"]);
+const IMPORT_TOKEN_PROVIDERS = new Set(["windsurf", "devin-cli", "grok-cli", "cursor"]);
 
 /**
  * Constant-time string comparison to prevent timing-oracle attacks (CWE-208).

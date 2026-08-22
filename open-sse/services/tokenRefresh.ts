@@ -51,6 +51,7 @@ import { refreshCodexToken } from "./tokenRefresh/providers/codex.ts";
 import { refreshKiroToken } from "./tokenRefresh/providers/kiro.ts";
 import { refreshGitHubToken } from "./tokenRefresh/providers/github.ts";
 import { refreshCopilotToken } from "./tokenRefresh/providers/copilot.ts";
+import { refreshCursorToken } from "./tokenRefresh/providers/cursor.ts";
 
 export {
   refreshWindsurfToken,
@@ -64,6 +65,7 @@ export {
   refreshKiroToken,
   refreshGitHubToken,
   refreshCopilotToken,
+  refreshCursorToken,
   extractOAuthErrorCode,
   isUnrecoverableRefreshError,
   isProviderBlocked,
@@ -416,6 +418,9 @@ async function _getAccessTokenInternal(provider, credentials, log, proxyConfig: 
     case "codebuddy-cn":
       return await refreshCodebuddyCnToken(credentials.refreshToken, log, proxyConfig);
 
+    case "cursor":
+      return await refreshCursorToken(credentials.refreshToken, log, proxyConfig);
+
     default:
       // Fallback to generic OAuth refresh for unknown providers
       return refreshAccessToken(provider, credentials.refreshToken, credentials, log, proxyConfig);
@@ -445,6 +450,7 @@ export function supportsTokenRefresh(provider) {
     // explicit set (same idea as not listing non-refresh local-CLI providers).
     "gitlab-duo",
     "codebuddy-cn",
+    "cursor",
   ]);
   if (explicitlySupported.has(provider)) return true;
   const config = PROVIDERS[provider];
