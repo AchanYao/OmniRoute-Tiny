@@ -64,7 +64,7 @@ export const APIKEY_PROVIDERS_REGIONAL = {
   },
   "qwen-cloud-token-plan": {
     id: "qwen-cloud-token-plan",
-    alias: "qct",
+    alias: undefined,
     name: "Qwen Cloud Token Plan",
     icon: "cloud",
     color: "#615CED",

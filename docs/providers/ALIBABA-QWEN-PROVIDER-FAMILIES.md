@@ -65,7 +65,9 @@ creating another provider card or changing saved provider IDs.
    endpoint also returns image, video, audio, embedding, and other non-chat models. `qwen-cloud`
    then applies the maintained allowlist declared in its provider registry. Alibaba Model Studio
    and Qwen Cloud keep separate curated catalogs even though they currently share runtime hosts.
-3. Register `qwen-cloud-token-plan` with the current Token Plan text-model allowlist.
+3. Register `qwen-cloud-token-plan` with live regional `/models` discovery. Chat availability
+   comes from the authenticated upstream list after the shared text-generation filter; there is
+   no short alias and no built-in static chat catalog.
 4. Add a typed region selector to add/edit connection dialogs.
 5. Hide the duplicate `alibaba-cn` card and include its existing connections on the `alibaba`
    provider page.
@@ -102,9 +104,10 @@ The regular `alibaba` identity has separate image and video allowlists. Its imag
 connection and its selected regional media endpoint; they are not added to any Coding Plan or Qwen
 Cloud registry.
 
-The Qwen Cloud Token Plan chat catalog follows the Individual plan's exact-string text allowlist:
-`qwen3.8-max-preview`, `qwen3.7-max`, `qwen3.7-plus`, `qwen3.6-flash`, `glm-5.2`, and
-`deepseek-v4-pro`. Wan and HappyHorse entries belong to the separate image/video generation APIs.
+The Qwen Cloud Token Plan chat catalog is discovered per connection from the regional
+OpenAI-compatible `/models` endpoint. Media IDs are filtered out of that chat list because Wan
+and HappyHorse use the separate image/video generation APIs. Requests use the full provider ID
+`qwen-cloud-token-plan`, not a short alias.
 
 Alibaba Token Plan exposes the same six current text-generation model IDs through its
 Anthropic-compatible endpoint. Its Singapore option stores the existing `global-sg` region key;

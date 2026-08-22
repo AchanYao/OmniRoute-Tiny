@@ -66,7 +66,9 @@ tworzenia kolejnej karty providera ani zmiany zapisanych ID providerów.
    nie-chatowe. `qwen-cloud` następnie stosuje utrzymywaną listę dozwoloną zadeklarowaną w jego rejestrze
    providera. Alibaba Model Studio i Qwen Cloud zachowują osobne kuratorowane katalogi, mimo że obecnie
    współdzielą hosty runtime.
-3. Zarejestrować `qwen-cloud-token-plan` z obecną listą dozwoloną modeli tekstowych Token Plan.
+3. Zarejestrować `qwen-cloud-token-plan` z żywym regionalnym odkrywaniem `/models`. Dostępność
+   czatu pochodzi z uwierzytelnionej listy upstream po wspólnym filtrze generacji tekstu; nie ma
+   krótkiego aliasu ani wbudowanego statycznego katalogu czatu.
 4. Dodać typowany selektor regionu do dialogów dodawania/edycji połączenia.
 5. Ukryć zduplikowaną kartę `alibaba-cn` i uwzględnić jej istniejące połączenia na stronie providera
    `alibaba`.
@@ -103,9 +105,10 @@ Zwykła tożsamość `alibaba` ma osobne listy dozwolone obrazu i wideo. Jej mod
 i wybranego regionalnego endpointu mediów; nie są dodawane do żadnego rejestru Coding Plan ani Qwen
 Cloud.
 
-Katalog czatu Qwen Cloud Token Plan podąża za dokładną listą dozwoloną tekstu planu Individual:
-`qwen3.8-max-preview`, `qwen3.7-max`, `qwen3.7-plus`, `qwen3.6-flash`, `glm-5.2` i
-`deepseek-v4-pro`. Wpisy Wan i HappyHorse należą do osobnych API generacji obrazu/wideo.
+Katalog czatu Qwen Cloud Token Plan jest odkrywany per połączenie z regionalnego endpointu
+`/models` zgodnego z OpenAI. ID mediów są odfiltrowywane z tej listy czatu, ponieważ Wan i
+HappyHorse używają osobnych API generacji obrazu/wideo. Żądania używają pełnego ID providera
+`qwen-cloud-token-plan`, a nie krótkiego aliasu.
 
 Alibaba Token Plan udostępnia te same sześć bieżących ID modeli generacji tekstu przez swój
 endpoint zgodny z Anthropic. Opcja Singapore przechowuje istniejący klucz regionu `global-sg`;

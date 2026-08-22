@@ -15,7 +15,15 @@ import {
   resolveAlibabaProviderMediaBaseUrl,
   resolveAlibabaProviderModelsUrl,
 } from "../../src/shared/constants/alibabaProviderRegions.ts";
-import { APIKEY_PROVIDERS } from "../../src/shared/constants/providers.ts";
+import {
+  APIKEY_PROVIDERS,
+  getProviderAlias,
+  getProviderByAlias,
+} from "../../src/shared/constants/providers.ts";
+import {
+  parseDashscopeTextModels,
+  PROVIDER_MODELS_CONFIG,
+} from "../../src/app/api/providers/[id]/models/discovery/providerModelsConfig.ts";
 
 test("Alibaba-family endpoint matrix keeps product and region boundaries distinct", () => {
   assert.deepEqual(ALIBABA_PROVIDER_ENDPOINTS, {
@@ -265,26 +273,41 @@ test("Qwen Cloud model discovery follows the selected region", () => {
   );
 });
 
-test("Qwen Cloud Token Plan remains a flat-rate provider with chat models only", () => {
+test("Qwen Cloud Token Plan uses live discovery without a short alias", () => {
   assert.equal(APIKEY_PROVIDERS["qwen-cloud-token-plan"]?.name, "Qwen Cloud Token Plan");
   assert.equal(REGISTRY["qwen-cloud-token-plan"]?.format, "openai");
   assert.equal(isFlatRateProvider("qwen-cloud-token-plan"), true);
+  assert.equal(APIKEY_PROVIDERS["qwen-cloud-token-plan"]?.alias, undefined);
+  assert.equal(REGISTRY["qwen-cloud-token-plan"]?.alias, undefined);
+  assert.equal(getProviderAlias("qwen-cloud-token-plan"), "qwen-cloud-token-plan");
+  assert.equal(getProviderByAlias("qct"), null);
+  assert.equal(REGISTRY["qwen-cloud-token-plan"]?.passthroughModels, true);
+  assert.deepEqual(REGISTRY["qwen-cloud-token-plan"].models, []);
+  assert.equal(
+    REGISTRY["qwen-cloud-token-plan"]?.modelsUrl,
+    "https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/models"
+  );
+  assert.equal(
+    resolveAlibabaProviderModelsUrl("qwen-cloud-token-plan", { region: "global-sg" }),
+    "https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/models"
+  );
+  assert.equal(
+    resolveAlibabaProviderModelsUrl("qwen-cloud-token-plan", { region: "china-beijing" }),
+    "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/models"
+  );
 
-  const modelIds = REGISTRY["qwen-cloud-token-plan"].models.map((model) => model.id);
-  assert.deepEqual(modelIds, [
-    "qwen3.8-max-preview",
-    "qwen3.7-max",
-    "qwen3.7-plus",
-    "qwen3.6-flash",
-    "glm-5.2",
-    "deepseek-v4-pro",
-  ]);
-
-  const preview = REGISTRY["qwen-cloud-token-plan"].models[0];
-  assert.equal(preview.supportsReasoning, true);
-  assert.equal(preview.supportsVision, true);
-  assert.equal(preview.contextLength, 1_000_000);
-  assert.equal(preview.maxOutputTokens, 65_536);
+  const discovery = PROVIDER_MODELS_CONFIG["qwen-cloud-token-plan"];
+  assert.equal(
+    discovery.url,
+    "https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/models"
+  );
+  assert.equal(discovery.parseResponse, parseDashscopeTextModels);
+  assert.deepEqual(
+    discovery.parseResponse({
+      data: [{ id: "qwen3.8-max-preview" }, { id: "wan2.7-image" }, { id: "happyhorse-1.1-t2v" }],
+    }),
+    [{ id: "qwen3.8-max-preview" }]
+  );
 });
 
 test("dashboard folds legacy China connections into the unified Alibaba card", () => {

@@ -2226,7 +2226,12 @@ export async function GET(
 
     // Build request URL
     let url = config.url;
-    if (provider === "alibaba" || provider === "alibaba-cn" || provider === "qwen-cloud") {
+    if (
+      provider === "alibaba" ||
+      provider === "alibaba-cn" ||
+      provider === "qwen-cloud" ||
+      provider === "qwen-cloud-token-plan"
+    ) {
       url = resolveAlibabaProviderModelsUrl(
         provider,
         connection.providerSpecificData,

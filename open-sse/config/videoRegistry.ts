@@ -29,7 +29,6 @@ interface VideoProvider {
 export const VIDEO_PROVIDERS: Record<string, VideoProvider> = {
   "qwen-cloud-token-plan": {
     id: "qwen-cloud-token-plan",
-    alias: "qct",
     baseUrl: "https://token-plan.ap-southeast-1.maas.aliyuncs.com/api/v1",
     statusUrl: "https://token-plan.ap-southeast-1.maas.aliyuncs.com/api/v1/tasks",
     authType: "apikey",

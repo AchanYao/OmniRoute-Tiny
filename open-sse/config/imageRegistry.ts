@@ -143,7 +143,6 @@ function resolveAliasImageRequired(alias, modelConfig) {
 export const IMAGE_PROVIDERS: Record<string, ImageProviderConfig> = {
   "qwen-cloud-token-plan": {
     id: "qwen-cloud-token-plan",
-    alias: "qct",
     baseUrl:
       "https://token-plan.ap-southeast-1.maas.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
     authType: "apikey",

@@ -35,13 +35,21 @@ test("Qwen Cloud Token Plan registers Wan image and HappyHorse video models", ()
     VIDEO_PROVIDERS["qwen-cloud-token-plan"].models.map((model) => model.id),
     ["happyhorse-1.1-i2v", "happyhorse-1.1-t2v", "happyhorse-1.1-r2v"]
   );
-  assert.deepEqual(parseImageModel("qct/wan2.7-image-pro"), {
+  assert.deepEqual(parseImageModel("qwen-cloud-token-plan/wan2.7-image-pro"), {
     provider: "qwen-cloud-token-plan",
     model: "wan2.7-image-pro",
   });
-  assert.deepEqual(parseVideoModel("qct/happyhorse-1.1-t2v"), {
+  assert.deepEqual(parseVideoModel("qwen-cloud-token-plan/happyhorse-1.1-t2v"), {
     provider: "qwen-cloud-token-plan",
     model: "happyhorse-1.1-t2v",
+  });
+  assert.deepEqual(parseImageModel("qct/wan2.7-image-pro"), {
+    provider: null,
+    model: "qct/wan2.7-image-pro",
+  });
+  assert.deepEqual(parseVideoModel("qct/happyhorse-1.1-t2v"), {
+    provider: null,
+    model: "qct/happyhorse-1.1-t2v",
   });
   assert.deepEqual(resolveProviderServiceKinds("qwen-cloud-token-plan", ["llm"]).sort(), [
     "image",

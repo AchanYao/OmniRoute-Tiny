@@ -93,7 +93,7 @@ test("Qwen Cloud and Token Plan keep independent video model lists", () => {
     provider: "qwen-cloud",
     model: "wan2.7-videoedit",
   });
-  assert.deepEqual(parseVideoModel("qct/happyhorse-1.1-t2v"), {
+  assert.deepEqual(parseVideoModel("qwen-cloud-token-plan/happyhorse-1.1-t2v"), {
     provider: "qwen-cloud-token-plan",
     model: "happyhorse-1.1-t2v",
   });
