@@ -370,14 +370,6 @@ export function resolveRequestedModel(modelId: string): {
       parameters: [{ id: "fast", value: "true" }],
     };
   }
-  const claudeSplit = splitCursorEffortSuffix(normalized, "claude-", "effort");
-  if (claudeSplit) {
-    return claudeSplit;
-  }
-  const gptSplit = splitCursorEffortSuffix(normalized, "gpt-", "reasoning");
-  if (gptSplit) {
-    return gptSplit;
-  }
   return { modelId: normalized, parameters: [] };
 }
 

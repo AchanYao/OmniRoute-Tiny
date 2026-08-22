@@ -35,12 +35,9 @@ test("resolveRequestedModel maps cursor-agent's client-side aliases", () => {
     modelId: "composer-2",
     parameters: [{ id: "fast", value: "true" }],
   });
-  // #7289: pinned Claude ids with an effort suffix split into the base id +
-  // an "effort" ModelParameter — cursor's server has no route for the
-  // suffixed id verbatim (see cursor-model-effort-suffix-7289.test.ts).
-  assert.deepEqual(resolveRequestedModel("claude-4.6-sonnet-medium"), {
+  assert.deepEqual(resolveRequestedModel("claude-4.6-sonnet"), {
     modelId: "claude-4.6-sonnet",
-    parameters: [{ id: "effort", value: "medium" }],
+    parameters: [],
   });
   assert.deepEqual(resolveRequestedModel("composer-2"), { modelId: "composer-2", parameters: [] });
 });
@@ -304,8 +301,6 @@ test("encodeAgentRunRequest sends ModelDetails for pinned thinking models (#3714
     occurrences >= 4,
     `base model id must be encoded in both RequestedModel and ModelDetails (got ${occurrences})`
   );
-  assert.ok(text.includes("effort"), "effort parameter id present (#7289)");
-  assert.ok(text.includes("xhigh"), "effort parameter value present (#7289)");
 });
 
 test("encodeAgentRunRequest keeps RequestedModel + parameters alongside ModelDetails (#3714)", () => {
