@@ -1,7 +1,75 @@
 import * as http2 from "node:http2";
 import * as zlib from "node:zlib";
 import { decodeVarint, WT_LEN, WT_VARINT } from "../utils/cursorAgentProtobuf/wire.ts";
+const CURSOR_VARIANT_SUFFIX_REGEX =
+  /^(.+?)-(extra-high|none|minimal|low|medium|high|xhigh|max)(-fast)?$/;
 
+function cleanCursorDisplayName(name: string, baseId: string): string {
+  if (!name) return baseId;
+  const cleaned = name
+    .replace(/\s+(Minimal|Low|Medium|High|Extra High|XHigh|Max)\b/gi, "")
+    .replace(/\s+Fast\b/gi, "")
+    .trim();
+  return cleaned || baseId;
+}
+
+/**
+ * Collapse model variants:
+ * Group raw models by base ID (stripping effort/thinking/fast suffixes), create primary
+ * collapsed base model entries at the top of the list, followed by raw variant models.
+ */
+export function collapseCursorUsableModels(rawModels: CursorUsableModel[]): CursorUsableModel[] {
+  if (!rawModels || rawModels.length === 0) return [];
+
+  const rawMap = new Map<string, CursorUsableModel>();
+  const baseGroups = new Map<string, CursorUsableModel[]>();
+
+  for (const model of rawModels) {
+    if (!model || !model.id) continue;
+    rawMap.set(model.id, model);
+
+    const match = CURSOR_VARIANT_SUFFIX_REGEX.exec(model.id);
+    const baseId = match ? match[1] : model.id;
+
+    const group = baseGroups.get(baseId);
+    if (group) {
+      group.push(model);
+    } else {
+      baseGroups.set(baseId, [model]);
+    }
+  }
+
+  const result: CursorUsableModel[] = [];
+  const addedIds = new Set<string>();
+
+  for (const [baseId, group] of baseGroups.entries()) {
+    let baseModel: CursorUsableModel;
+    if (rawMap.has(baseId)) {
+      baseModel = rawMap.get(baseId)!;
+    } else {
+      const sampleName = group[0]?.name || baseId;
+      baseModel = {
+        id: baseId,
+        name: cleanCursorDisplayName(sampleName, baseId),
+        owned_by: "cursor",
+      };
+    }
+
+    if (!addedIds.has(baseModel.id)) {
+      addedIds.add(baseModel.id);
+      result.push(baseModel);
+    }
+  }
+
+  for (const model of rawModels) {
+    if (!addedIds.has(model.id)) {
+      addedIds.add(model.id);
+      result.push(model);
+    }
+  }
+
+  return result;
+}
 export type CursorUsableModel = {
   id: string;
   name: string;
@@ -120,7 +188,7 @@ export function decodeGetUsableModelsResponse(payload: Buffer): CursorUsableMode
     }
   }
 
-  return models;
+  return collapseCursorUsableModels(models);
 }
 
 /**

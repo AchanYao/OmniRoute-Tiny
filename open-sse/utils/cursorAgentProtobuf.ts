@@ -380,18 +380,14 @@ export function resolveRequestedModel(modelId: string): {
     parameters.push({ id: "fast", value: "true" });
   }
 
-  if (normalized.startsWith("claude-")) {
-    const split = splitCursorEffortSuffix(normalized, "claude-", "effort");
-    if (split) {
-      return { modelId: split.modelId, parameters: [...split.parameters, ...parameters] };
-    }
-  }
-
-  if (normalized.startsWith("gpt-")) {
-    const split = splitCursorEffortSuffix(normalized, "gpt-", "reasoning");
-    if (split) {
-      return { modelId: split.modelId, parameters: [...split.parameters, ...parameters] };
-    }
+  const match = /^(.+?)-(extra-high|none|minimal|low|medium|high|xhigh|max)$/.exec(normalized);
+  if (match) {
+    const baseId = match[1];
+    const rawEffort = match[2];
+    const effort = rawEffort === "extra-high" ? "xhigh" : rawEffort;
+    const paramId = baseId.startsWith("claude-") ? "effort" : "reasoning";
+    parameters.unshift({ id: paramId, value: effort });
+    return { modelId: baseId, parameters };
   }
 
   return { modelId: normalized, parameters };
