@@ -86,6 +86,7 @@ export function decodeGetUsableModelsResponse(payload: Buffer): CursorUsableMode
   }
 
   const models: CursorUsableModel[] = [];
+  const seenIds = new Set<string>();
   let pos = 0;
 
   while (pos < buf.length) {
@@ -102,7 +103,10 @@ export function decodeGetUsableModelsResponse(payload: Buffer): CursorUsableMode
 
       if (fieldNumber === 1) {
         const model = decodeModelDetails(msgBytes);
-        if (model) models.push(model);
+        if (model && model.id && !seenIds.has(model.id)) {
+          seenIds.add(model.id);
+          models.push(model);
+        }
       }
     } else if (wireType === WT_VARINT) {
       const [, nextPos] = decodeVarint(buf, pos);

@@ -42,9 +42,16 @@ export {
 } from "./models/compat";
 export { getModelAliases, setModelAlias, deleteModelAlias } from "./models/aliases";
 export { getMitmAlias, setMitmAliasAll } from "./models/mitmAlias";
-export type { SyncedAvailableModel } from "./models/synced";
 
 // ──────────────── Custom Models ────────────────
+
+function filterUserCustomModels(models: unknown): unknown[] {
+  if (!Array.isArray(models)) return [];
+  return models.filter((m) => {
+    const source = (m?.source || "").toString().toLowerCase();
+    return source !== "imported" && source !== "api-sync" && source !== "auto-sync";
+  });
+}
 
 export async function getCustomModels(providerId?: string) {
   const db = getDbInstance();
@@ -53,7 +60,8 @@ export async function getCustomModels(providerId?: string) {
       .prepare("SELECT value FROM key_value WHERE namespace = 'customModels' AND key = ?")
       .get(providerId);
     const value = getKeyValue(row).value;
-    return value ? JSON.parse(value) : [];
+    const list = value ? JSON.parse(value) : [];
+    return filterUserCustomModels(list);
   }
   const rows = db
     .prepare("SELECT key, value FROM key_value WHERE namespace = 'customModels'")
@@ -62,7 +70,7 @@ export async function getCustomModels(providerId?: string) {
   for (const row of rows) {
     const { key, value } = getKeyValue(row);
     if (!key || value === null) continue;
-    result[key] = JSON.parse(value);
+    result[key] = filterUserCustomModels(JSON.parse(value));
   }
   return result;
 }
@@ -76,7 +84,7 @@ export async function getAllCustomModels() {
   for (const row of rows) {
     const { key, value } = getKeyValue(row);
     if (!key || value === null) continue;
-    result[key] = JSON.parse(value);
+    result[key] = filterUserCustomModels(JSON.parse(value));
   }
   return result;
 }

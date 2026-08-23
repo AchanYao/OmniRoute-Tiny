@@ -365,19 +365,36 @@ export function resolveRequestedModel(modelId: string): {
   modelId: string;
   parameters: Array<{ id: string; value: string }>;
 } {
-  const normalized = normalizeCursorModelId(modelId);
+  let normalized = normalizeCursorModelId(modelId);
   if (normalized === "auto") {
     return { modelId: "default", parameters: [] };
   }
-  // Strip the "-fast" suffix and surface it as a parameter — only the composer
-  // family observably needs this split today, but the protocol field is generic.
-  if (normalized.startsWith("composer-") && normalized.endsWith("-fast")) {
-    return {
-      modelId: normalized.slice(0, -"-fast".length),
-      parameters: [{ id: "fast", value: "true" }],
-    };
+  let isFast = false;
+  if (normalized.endsWith("-fast")) {
+    isFast = true;
+    normalized = normalized.slice(0, -"-fast".length);
   }
-  return { modelId: normalized, parameters: [] };
+
+  const parameters: Array<{ id: string; value: string }> = [];
+  if (isFast) {
+    parameters.push({ id: "fast", value: "true" });
+  }
+
+  if (normalized.startsWith("claude-")) {
+    const split = splitCursorEffortSuffix(normalized, "claude-", "effort");
+    if (split) {
+      return { modelId: split.modelId, parameters: [...split.parameters, ...parameters] };
+    }
+  }
+
+  if (normalized.startsWith("gpt-")) {
+    const split = splitCursorEffortSuffix(normalized, "gpt-", "reasoning");
+    if (split) {
+      return { modelId: split.modelId, parameters: [...split.parameters, ...parameters] };
+    }
+  }
+
+  return { modelId: normalized, parameters };
 }
 
 // ─── Request encoder ───────────────────────────────────────────────────────
