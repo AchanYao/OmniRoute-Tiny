@@ -1,4 +1,5 @@
 import { CURSOR_CONFIG } from "../constants/oauth";
+import { resolveCursorExpiresInSec } from "@omniroute/open-sse/services/tokenRefresh/providers/cursorExpiry.ts";
 
 export const cursor = {
   config: CURSOR_CONFIG,
@@ -9,10 +10,15 @@ export const cursor = {
       (typeof tokens.accessToken === "string" ? tokens.accessToken : "") ||
       "",
     refreshToken: null,
-    expiresIn:
-      (typeof tokens.expires_in === "number" ? tokens.expires_in : undefined) ||
-      (typeof tokens.expiresIn === "number" ? tokens.expiresIn : undefined) ||
-      86400,
+    expiresIn: resolveCursorExpiresInSec({
+      accessToken:
+        (typeof tokens.access_token === "string" ? tokens.access_token : undefined) ||
+        (typeof tokens.accessToken === "string" ? tokens.accessToken : undefined),
+      expiresIn: tokens.expiresIn,
+      expires_in: tokens.expires_in,
+      expiresAt: tokens.expiresAt,
+      expires_at: tokens.expires_at,
+    }),
     providerSpecificData: {
       machineId:
         (typeof tokens.machineId === "string" ? tokens.machineId : undefined) ||

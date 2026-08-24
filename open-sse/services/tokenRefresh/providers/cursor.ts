@@ -1,5 +1,6 @@
 import { runWithProxyContext } from "../../../utils/proxyFetch.ts";
 import { extractOAuthErrorCode } from "../shared.ts";
+import { resolveCursorExpiresInSec } from "./cursorExpiry.ts";
 
 /**
  * Specialized refresh for Cursor OAuth tokens (matching omp / Cursor API).
@@ -39,15 +40,30 @@ export async function refreshCursorToken(
     }
 
     const data = (await response.json()) as Record<string, unknown>;
+    const accessToken = typeof data?.accessToken === "string" ? data.accessToken : undefined;
+    const nextRefreshToken =
+      typeof data?.refreshToken === "string" ? data.refreshToken : refreshToken;
+    const expiresIn = resolveCursorExpiresInSec({
+      accessToken,
+      expiresIn: data?.expiresIn,
+      expires_in: data?.expires_in,
+      expiresAt: data?.expiresAt,
+      expires_at: data?.expires_at,
+    });
+    const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+
     log?.info?.("TOKEN_REFRESH", "Successfully refreshed Cursor token", {
-      hasNewAccessToken: !!data?.accessToken,
-      hasNewRefreshToken: !!data?.refreshToken,
+      hasNewAccessToken: !!accessToken,
+      hasNewRefreshToken: typeof data?.refreshToken === "string",
+      expiresIn,
+      expiresAt,
     });
 
     return {
-      accessToken: typeof data?.accessToken === "string" ? data.accessToken : undefined,
-      refreshToken: typeof data?.refreshToken === "string" ? data.refreshToken : refreshToken,
-      expiresIn: 86400,
+      accessToken,
+      refreshToken: nextRefreshToken,
+      expiresIn,
+      expiresAt,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

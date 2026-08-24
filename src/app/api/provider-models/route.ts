@@ -385,8 +385,21 @@ export async function PATCH(request) {
       );
     }
 
+    // User-visible custom rows (GET lists them) keep isHidden on the custom
+    // model itself. Listing-filtered imported/sync rows and catalog models
+    // must use modelCompatOverrides — GET filters imported custom rows out,
+    // so hiding them only on customModels looks like a no-op after refresh.
+    const listedModels = await getCustomModels(provider);
+    const listedIds = new Set(
+      (Array.isArray(listedModels) ? listedModels : []).flatMap((model) => {
+        if (!model || typeof model !== "object" || !("id" in model)) return [];
+        return typeof model.id === "string" && model.id.length > 0 ? [model.id] : [];
+      })
+    );
     for (const modelId of modelIds) {
-      const updatedModel = await updateCustomModel(provider, modelId, { isHidden: body.isHidden });
+      const updatedModel = listedIds.has(modelId)
+        ? await updateCustomModel(provider, modelId, { isHidden: body.isHidden })
+        : null;
       if (!updatedModel) {
         mergeModelCompatOverride(provider, modelId, { isHidden: body.isHidden });
       }

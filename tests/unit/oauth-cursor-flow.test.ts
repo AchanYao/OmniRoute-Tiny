@@ -104,6 +104,9 @@ describe("Cursor Provider Separation (IDE vs OAuth group)", () => {
       assert.equal(capturedAuthHeader, "Bearer existing-refresh-token");
       assert.equal(res?.accessToken, "new-access-token");
       assert.equal(res?.refreshToken, "new-refresh-token");
+      // Opaque non-JWT access tokens keep the historical 24h fallback.
+      assert.equal(res?.expiresIn, 86400);
+      assert.ok(typeof res?.expiresAt === "string");
     } finally {
       globalThis.fetch = originalFetch;
     }

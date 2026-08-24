@@ -75,6 +75,11 @@ import {
   visibleComposerContentFromThinking,
   composerReasoningRemainder,
 } from "./cursor/composer.ts";
+import {
+  ensureFreshCursorCredentials,
+  cursorCredentialsNeedRefresh,
+  refreshCursorExecutorCredentials,
+} from "./cursor/credentials.ts";
 // Composer helpers re-exported for external importers (tests).
 export {
   isComposerModel,
@@ -696,6 +701,11 @@ export class CursorExecutor extends BaseExecutor {
     super("cursor", PROVIDERS.cursor);
   }
 
+  needsRefresh(credentials) {
+    // Prefer JWT exp over a historical fake 24h expiresAt clock.
+    return cursorCredentialsNeedRefresh(credentials, this.provider);
+  }
+
   buildUrl(credentials?: { providerSpecificData?: Record<string, unknown> }) {
     const customUrl =
       typeof credentials?.providerSpecificData?.baseUrl === "string"
@@ -1156,9 +1166,28 @@ export class CursorExecutor extends BaseExecutor {
     });
   }
 
-  async execute({ model, body, stream, credentials, signal, log, upstreamExtraHeaders }) {
-    const url = this.buildUrl(credentials);
-    const headers = this.buildHeaders(credentials);
+  async execute({
+    model,
+    body,
+    stream,
+    credentials,
+    signal,
+    log,
+    upstreamExtraHeaders,
+    onCredentialsRefreshed,
+  }) {
+    // CursorExecutor overrides BaseExecutor.execute() for Connect-RPC/h2, so the
+    // base proactive-refresh gate never runs. Refresh near-expiry tokens here
+    // before building auth headers (parity with gitlab/grok-cli).
+    const activeCredentials = await ensureFreshCursorCredentials({
+      credentials,
+      log,
+      onCredentialsRefreshed,
+      needsRefresh: (creds) => this.needsRefresh(creds),
+      refreshCredentials: (creds, refreshLog) => this.refreshCredentials(creds, refreshLog),
+    });
+    const url = this.buildUrl(activeCredentials);
+    const headers = this.buildHeaders(activeCredentials);
     mergeUpstreamExtraHeaders(headers, upstreamExtraHeaders);
 
     const messages: ChatMessage[] = body.messages || [];
@@ -1567,8 +1596,8 @@ export class CursorExecutor extends BaseExecutor {
     );
   }
 
-  async refreshCredentials() {
-    return null;
+  async refreshCredentials(credentials, log) {
+    return refreshCursorExecutorCredentials(credentials, log);
   }
 }
 

@@ -68,18 +68,49 @@ describe("Cursor Usable Models Discovery (omp GetUsableModels RPC)", () => {
 
   it("resolveRequestedModel extracts reasoning/effort and fast parameters cleanly", () => {
     const gptHighFast = resolveRequestedModel("gpt-5.5-high-fast");
-    assert.equal(gptHighFast.modelId, "gpt-5.5");
-    assert.deepEqual(gptHighFast.parameters, [
-      { id: "reasoning", value: "high" },
-      { id: "fast", value: "true" },
-    ]);
+    assert.equal(gptHighFast.wireModelId, "gpt-5.5-fast");
+    assert.deepEqual(gptHighFast.parameters, [{ id: "reasoning", value: "high" }]);
 
     const claudeLow = resolveRequestedModel("cursor-oauth/claude-3-7-sonnet-low");
-    assert.equal(claudeLow.modelId, "claude-3-7-sonnet");
-    assert.deepEqual(claudeLow.parameters, [{ id: "effort", value: "low" }]);
+    assert.equal(claudeLow.wireModelId, "claude-3-7-sonnet-low");
+    assert.deepEqual(claudeLow.parameters, []);
 
     const composerFast = resolveRequestedModel("composer-2.5-fast");
-    assert.equal(composerFast.modelId, "composer-2.5");
+    assert.equal(composerFast.wireModelId, "composer-2.5");
     assert.deepEqual(composerFast.parameters, [{ id: "fast", value: "true" }]);
+  });
+
+  it("resolveRequestedModel keeps Cursor Kimi effort variants as first-class ids", () => {
+    // Cursor's GetUsableModels list includes kimi-k3-low/high/max as real model
+    // ids. Stripping the suffix and sending kimi-k3 + {reasoning:low} produces an
+    // empty turn (502 Provider returned empty content) — cid e4299bec.
+    assert.deepEqual(resolveRequestedModel("kimi-k3-low"), {
+      catalogModelId: "kimi-k3-low",
+      displayName: "kimi-k3-low",
+      modelId: "kimi-k3-low",
+      wireModelId: "kimi-k3-low",
+      parameters: [],
+    });
+    assert.deepEqual(resolveRequestedModel("cuo/kimi-k3-low"), {
+      catalogModelId: "kimi-k3-low",
+      displayName: "kimi-k3-low",
+      modelId: "kimi-k3-low",
+      wireModelId: "kimi-k3-low",
+      parameters: [],
+    });
+    assert.deepEqual(resolveRequestedModel("kimi-k3-high"), {
+      catalogModelId: "kimi-k3-high",
+      displayName: "kimi-k3-high",
+      modelId: "kimi-k3-high",
+      wireModelId: "kimi-k3-high",
+      parameters: [],
+    });
+    assert.deepEqual(resolveRequestedModel("kimi-k3-max"), {
+      catalogModelId: "kimi-k3-max",
+      displayName: "kimi-k3-max",
+      modelId: "kimi-k3-max",
+      wireModelId: "kimi-k3-max",
+      parameters: [],
+    });
   });
 });
