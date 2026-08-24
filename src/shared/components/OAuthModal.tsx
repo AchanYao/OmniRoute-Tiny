@@ -48,6 +48,7 @@ const DEVICE_CODE_PROVIDERS = new Set([
   "codebuddy-cn",
   "ghe-copilot",
   "grok-cli",
+  "cursor-oauth",
 ]);
 
 const TOKEN_PASTE_PROVIDERS = new Set(["windsurf", "devin-cli", "grok-cli"]);

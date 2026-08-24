@@ -91,6 +91,7 @@ export const USAGE_FETCHER_PROVIDERS = [
   "claude",
   "codex",
   "cursor",
+  "cursor-oauth",
   "kiro",
   "amazon-q",
   "kimi-coding",
@@ -159,6 +160,7 @@ export async function getUsageForProvider(
     case "codex":
       return await getCodexUsage(accessToken, providerSpecificData);
     case "cursor":
+    case "cursor-oauth":
       return await getCursorUsage(accessToken || "", providerSpecificData);
     case "kiro":
     case "amazon-q":

@@ -148,7 +148,7 @@ test("provider-models PATCH updates hidden flag for custom models", async () => 
       isHidden: true,
     })
   );
-  const body = (await response.json()) as any;
+  const body = (await response.json()) as { ok?: boolean };
 
   assert.equal(response.status, 200);
   assert.equal(body.ok, true);
@@ -164,7 +164,7 @@ test("provider-models PATCH persists visibility overrides for catalog models", a
       { isHidden: true }
     )
   );
-  const body = (await response.json()) as any;
+  const body = (await response.json()) as { ok?: boolean };
 
   assert.equal(response.status, 200);
   assert.equal(body.ok, true);
@@ -173,6 +173,94 @@ test("provider-models PATCH persists visibility overrides for catalog models", a
   assert.equal(overrides.find((model) => model.id === "claude-sonnet-4-6")?.isHidden, true);
 });
 
+test("provider-models PATCH hides auto-imported models via compat overrides", async () => {
+  // Cursor OAuth auto-import (and other live discovery) persists models as
+  // customModels rows with source=imported. GET /api/provider-models filters
+  // those rows out, so hiding must land on modelCompatOverrides — the store
+  // the dashboard refresh and /v1/models catalog actually read.
+  await modelsDb.addCustomModel(
+    "cursor-oauth",
+    "composer-1.5",
+    "Composer 1.5",
+    "imported",
+    "chat-completions",
+    ["chat"]
+  );
+
+  const response = await providerModelsRoute.PATCH(
+    buildPatchRequest(
+      "http://localhost/api/provider-models?provider=cursor-oauth&modelId=composer-1.5",
+      { isHidden: true }
+    )
+  );
+  const body = (await response.json()) as { ok?: boolean };
+
+  assert.equal(response.status, 200);
+  assert.equal(body.ok, true);
+
+  const listed = await modelsDb.getCustomModels("cursor-oauth");
+  assert.equal(
+    listed.find((model) => model.id === "composer-1.5"),
+    undefined,
+    "imported rows stay filtered out of getCustomModels"
+  );
+
+  const overrides = modelsDb.getModelCompatOverrides("cursor-oauth");
+  assert.equal(
+    overrides.find((model) => model.id === "composer-1.5")?.isHidden,
+    true,
+    "eye-hide of an imported model must persist on modelCompatOverrides"
+  );
+  assert.equal(modelsDb.getModelIsHidden("cursor-oauth", "composer-1.5"), true);
+
+  const getResponse = await providerModelsRoute.GET(
+    buildGetRequest("http://localhost/api/provider-models?provider=cursor-oauth")
+  );
+  const listedBody = await getBody(getResponse);
+  assert.ok(
+    listedBody.modelCompatOverrides!.some(
+      (override) => override.id === "composer-1.5" && override.isHidden
+    )
+  );
+  assert.deepEqual(listedBody.hiddenModelsByProvider, {
+    "cursor-oauth": ["composer-1.5"],
+  });
+});
+
+test("provider-models falls back to legacy custom model isHidden until overridden", async () => {
+  await modelsDb.addCustomModel("cursor-oauth", "legacy-imported", "Legacy Imported", "imported");
+  const db = core.getDbInstance();
+  db.prepare(
+    "UPDATE key_value SET value = ? WHERE namespace = 'customModels' AND key = 'cursor-oauth'"
+  ).run(
+    JSON.stringify([
+      { id: "legacy-imported", name: "Legacy Imported", source: "imported", isHidden: true },
+    ])
+  );
+
+  const getResponse = await providerModelsRoute.GET(
+    buildGetRequest("http://localhost/api/provider-models?provider=cursor-oauth")
+  );
+  const body = await getBody(getResponse);
+  assert.deepEqual(body.hiddenModelsByProvider, {
+    "cursor-oauth": ["legacy-imported"],
+  });
+
+  // Explicitly unhide — override layer must win over legacy imported value
+  const patchResponse = await providerModelsRoute.PATCH(
+    buildPatchRequest(
+      "http://localhost/api/provider-models?provider=cursor-oauth&modelId=legacy-imported",
+      { isHidden: false }
+    )
+  );
+  assert.strictEqual(patchResponse.status, 200);
+
+  const getResponseAfter = await providerModelsRoute.GET(
+    buildGetRequest("http://localhost/api/provider-models?provider=cursor-oauth")
+  );
+  const bodyAfter = await getBody(getResponseAfter);
+  assert.deepEqual(bodyAfter.hiddenModelsByProvider, {});
+});
 test("provider-models PATCH supports bulk visibility updates", async () => {
   await providerModelsRoute.PATCH(
     buildPatchRequest("http://localhost/api/provider-models?provider=claude", {
@@ -187,7 +275,7 @@ test("provider-models PATCH supports bulk visibility updates", async () => {
       modelIds: ["claude-opus-4-6", "claude-sonnet-4-6"],
     })
   );
-  const body = (await response.json()) as any;
+  const body = (await response.json()) as { updated?: number };
 
   assert.equal(response.status, 200);
   assert.equal(body.updated, 2);
@@ -248,7 +336,7 @@ test("provider-models PATCH validates required fields", async () => {
       modelIds: ["claude-sonnet-4-6"],
     })
   );
-  const body = (await response.json()) as any;
+  const body = (await response.json()) as { error?: { message?: string } };
 
   assert.equal(response.status, 400);
   assert.equal(body.error.message, "isHidden boolean is required");

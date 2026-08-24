@@ -2,49 +2,53 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { resolveRequestedModel } from "../../open-sse/utils/cursorAgentProtobuf";
 
-// Issue #7289: pinned Claude/GPT models carrying an effort/reasoning suffix
-// (e.g. "claude-opus-4-8-high") return an empty turn from cursor's server.
-//
-// Ground truth captured from the real cursor-agent 2026.07.09 (Node) client
-// via an http2/fetch preload hook: the wire request for a pinned model with
-// an effort suffix carries the BASE model id (suffix stripped) plus a
-// separate ModelParameter — "effort" for Claude models, "reasoning" for GPT
-// models — not the full suffixed id crammed into model_id.
-test("resolveRequestedModel splits the effort suffix off pinned Claude model ids (#7289)", () => {
+test("resolveRequestedModel passes model ids verbatim without effort suffix splitting", () => {
   assert.deepEqual(resolveRequestedModel("claude-opus-4-8-high"), {
-    modelId: "claude-opus-4-8",
-    parameters: [{ id: "effort", value: "high" }],
+    modelId: "claude-opus-4-8-high",
+    wireModelId: "claude-opus-4-8-high",
+    catalogModelId: "claude-opus-4-8-high",
+    displayName: "claude-opus-4-8-high",
+    parameters: [],
   });
-});
-
-test("resolveRequestedModel splits the effort suffix off pinned Claude sonnet model ids (#7289)", () => {
   assert.deepEqual(resolveRequestedModel("claude-sonnet-5-high"), {
-    modelId: "claude-sonnet-5",
-    parameters: [{ id: "effort", value: "high" }],
+    modelId: "claude-sonnet-5-high",
+    wireModelId: "claude-sonnet-5-high",
+    catalogModelId: "claude-sonnet-5-high",
+    displayName: "claude-sonnet-5-high",
+    parameters: [],
   });
-});
-
-test("resolveRequestedModel splits the reasoning suffix off pinned GPT model ids (#7289)", () => {
   assert.deepEqual(resolveRequestedModel("gpt-5.5-high"), {
     modelId: "gpt-5.5",
+    wireModelId: "gpt-5.5",
+    catalogModelId: "gpt-5.5-high",
+    displayName: "gpt-5.5-high",
     parameters: [{ id: "reasoning", value: "high" }],
   });
 });
 
-test("resolveRequestedModel does not touch the composer -fast toggle (#7289 regression guard)", () => {
+test("resolveRequestedModel handles composer -fast toggle", () => {
   assert.deepEqual(resolveRequestedModel("composer-2-fast"), {
     modelId: "composer-2",
+    wireModelId: "composer-2",
+    catalogModelId: "composer-2-fast",
+    displayName: "composer-2-fast",
     parameters: [{ id: "fast", value: "true" }],
   });
 });
 
-test("resolveRequestedModel does not rewrite ids with no recognized effort suffix (#7289 regression guard)", () => {
+test("resolveRequestedModel leaves standard ids untouched", () => {
   assert.deepEqual(resolveRequestedModel("claude-2.5"), {
     modelId: "claude-2.5",
+    wireModelId: "claude-2.5",
+    catalogModelId: "claude-2.5",
+    displayName: "claude-2.5",
     parameters: [],
   });
   assert.deepEqual(resolveRequestedModel("gpt-4o"), {
     modelId: "gpt-4o",
+    wireModelId: "gpt-4o",
+    catalogModelId: "gpt-4o",
+    displayName: "gpt-4o",
     parameters: [],
   });
 });

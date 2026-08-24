@@ -331,6 +331,9 @@ export const KIRO_CONFIG = {
 export const CURSOR_CONFIG = {
   // API endpoints
   apiEndpoint: "https://api2.cursor.sh",
+  loginUrl: "https://cursor.com/loginDeepControl",
+  pollUrl: "https://api2.cursor.sh/auth/poll",
+  refreshUrl: "https://api2.cursor.sh/auth/exchange_user_api_key",
   chatEndpoint: "/aiserver.v1.ChatService/StreamUnifiedChatWithTools",
   modelsEndpoint: "/aiserver.v1.AiService/GetDefaultModelNudgeData",
   // Additional endpoints
@@ -351,6 +354,16 @@ export const CURSOR_CONFIG = {
     accessToken: "cursorAuth/accessToken",
     machineId: "storage.serviceMachineId",
   },
+};
+
+// Cursor Browser OAuth Configuration (omp mode PKCE polling flow)
+export const CURSOR_OAUTH_CONFIG = {
+  ...CURSOR_CONFIG,
+  apiEndpoint: "https://api2.cursor.sh",
+  loginUrl: "https://cursor.com/loginDeepControl",
+  pollUrl: "https://api2.cursor.sh/auth/poll",
+  refreshUrl: "https://api2.cursor.sh/auth/exchange_user_api_key",
+  chatEndpoint: "/aiserver.v1.ChatService/StreamUnifiedChatWithTools",
 };
 
 // Trae IDE Configuration (#2658)
@@ -504,6 +517,7 @@ export const PROVIDERS = {
   KIRO: "kiro",
   AMAZON_Q: "amazon-q",
   CURSOR: "cursor",
+  CURSOR_OAUTH: "cursor-oauth",
   // #8895 — registered in src/lib/oauth/providers/index.ts but missing here, so
   // every consumer reading PROVIDERS (onboarding wizard, test-connection routing)
   // did not know Raycast Pro exists as an OAuth provider.

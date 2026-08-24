@@ -25,6 +25,17 @@
  * legacy-encrypted tokens back to static-salt encryption.
  */
 
+function getEncryptionSecret(): string | null {
+  const secret =
+    process.env.STORAGE_ENCRYPTION_KEY ||
+    process.env.API_KEY_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    process.env.OMNIROUTE_ENCRYPTION_KEY;
+  if (secret && typeof secret === "string" && secret.trim().length > 0) {
+    return secret.trim();
+  }
+  return null;
+}
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync, createHash } from "crypto";
 
 const ALGORITHM = "aes-256-gcm";
@@ -59,7 +70,7 @@ export interface ConnectionFields {
 function getStaticKey(): Buffer | null {
   if (_staticKey !== null) return _staticKey;
 
-  const secret = process.env.STORAGE_ENCRYPTION_KEY;
+  const secret = getEncryptionSecret();
   if (!secret || typeof secret !== "string" || secret.trim().length === 0) return null;
 
   try {
@@ -85,7 +96,7 @@ function getStaticKey(): Buffer | null {
 function getLegacyDynamicKey(): Buffer | null {
   if (_legacyDynamicKey !== null) return _legacyDynamicKey;
 
-  const secret = process.env.STORAGE_ENCRYPTION_KEY;
+  const secret = getEncryptionSecret();
   if (!secret || typeof secret !== "string" || secret.trim().length === 0) return null;
 
   const dynamicSalt = createHash("sha256").update(secret).digest().slice(0, 16);
@@ -99,7 +110,7 @@ function getLegacyDynamicKey(): Buffer | null {
 
 /** Check if encryption is enabled. */
 export function isEncryptionEnabled(): boolean {
-  return !!process.env.STORAGE_ENCRYPTION_KEY;
+  return !!getEncryptionSecret();
 }
 
 /**

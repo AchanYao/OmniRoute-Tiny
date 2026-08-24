@@ -2774,11 +2774,6 @@
       "count": 3
     }
   },
-  "tests/unit/provider-models-management-route.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 4
-    }
-  },
   "tests/unit/provider-models-route.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 54

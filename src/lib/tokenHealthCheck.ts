@@ -28,6 +28,10 @@ import {
 import { pickMaskedDisplayValue } from "@/shared/utils/maskEmail";
 import { isAutomatedTestProcess } from "@/shared/utils/testProcess";
 import { refreshGithubCopilotSubTokenIfNeeded } from "@/lib/tokenHealthCheckCopilot";
+import {
+  getEffectiveCursorExpiryMs,
+  isCursorFamilyProvider,
+} from "@omniroute/open-sse/services/tokenRefresh/providers/cursorExpiry.ts";
 
 const LOG_PREFIX = "[HealthCheck]";
 const TRUE_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
@@ -63,9 +67,15 @@ function getEffectiveTokenExpiryIso(conn: any): string | null {
 
 function getEffectiveTokenExpiryMs(conn: any): number {
   const effectiveExpiry = getEffectiveTokenExpiryIso(conn);
-  if (!effectiveExpiry) return 0;
-  const expiryMs = new Date(effectiveExpiry).getTime();
-  return Number.isFinite(expiryMs) ? expiryMs : 0;
+  const storedMs = effectiveExpiry ? new Date(effectiveExpiry).getTime() : 0;
+  const stored = Number.isFinite(storedMs) ? storedMs : 0;
+  // Cursor historically persisted a fake 24h expiresAt. Prefer the earlier of
+  // that clock and the real access-token JWT exp so proactive refresh still
+  // fires for already-imported connections.
+  if (isCursorFamilyProvider(conn?.provider)) {
+    return getEffectiveCursorExpiryMs(stored || effectiveExpiry, conn?.accessToken);
+  }
+  return stored;
 }
 
 const TOKEN_EXPIRY_BUFFER = 5 * 60 * 1000; // 5 minutes

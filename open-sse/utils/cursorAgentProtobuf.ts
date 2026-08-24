@@ -300,7 +300,14 @@ const CURSOR_MODEL_ALIASES: Record<string, string> = {
 };
 
 export function normalizeCursorModelId(modelId: string): string {
-  const id = (modelId ?? "").trim();
+  let id = (modelId ?? "").trim();
+  const slashIdx = id.indexOf("/");
+  if (slashIdx > 0) {
+    const prefix = id.slice(0, slashIdx).toLowerCase();
+    if (prefix === "cursor" || prefix === "cursor-oauth" || prefix === "cu" || prefix === "cuo") {
+      id = id.slice(slashIdx + 1);
+    }
+  }
   const alias = CURSOR_MODEL_ALIASES[id.toLowerCase()];
   return alias ?? id;
 }
@@ -341,48 +348,84 @@ function splitCursorEffortSuffix(
   return null;
 }
 
-/**
- * cursor-agent rewrites model ids before putting them on the wire:
- *   "auto"                 → RequestedModel { model_id: "default" }
- *   "composer-2-fast"      → RequestedModel { model_id: "composer-2",
- *                                             parameters: [{id: "fast", value: "true"}] }
- *   "claude-opus-4-8-high" → RequestedModel { model_id: "claude-opus-4-8",
- *                                             parameters: [{id: "effort", value: "high"}] }
- *   "gpt-5.5-high"         → RequestedModel { model_id: "gpt-5.5",
- *                                             parameters: [{id: "reasoning", value: "high"}] }
- *
- * Other ids are passed through verbatim after spelling-variant normalization
- * (see normalizeCursorModelId).
- */
-export function resolveRequestedModel(modelId: string): {
+export type ResolvedCursorModel = {
   modelId: string;
+  wireModelId: string;
+  catalogModelId: string;
+  displayName: string;
   parameters: Array<{ id: string; value: string }>;
-} {
-  const normalized = normalizeCursorModelId(modelId);
+};
+
+/**
+ * Resolves a model ID into wireModelId, catalogModelId, displayName, and parameters.
+ * Matching Oh My Pi (omp) behavior:
+ * - "auto" → wireModelId: "default"
+ * - OpenAI (gpt-*) models split effort suffixes into { id: "reasoning", value: effort },
+ *   preserving -fast on the wire model id when present (e.g. gpt-5.6-high-fast → gpt-5.6-fast).
+ * - Non-OpenAI models (Claude, Kimi, Cursor Grok, Gemini, GLM, etc.) send verbatim wireModelId
+ *   so distinct sibling models (e.g. kimi-k3-low, claude-opus-4-8-high) are not rejected with 502.
+ */
+export function resolveRequestedModel(modelId: string): ResolvedCursorModel {
+  const catalogModelId = normalizeCursorModelId(modelId);
+  let normalized = catalogModelId;
   if (normalized === "auto") {
-    return { modelId: "default", parameters: [] };
-  }
-  // Strip the "-fast" suffix and surface it as a parameter — only the composer
-  // family observably needs this split today, but the protocol field is generic.
-  if (normalized.startsWith("composer-") && normalized.endsWith("-fast")) {
     return {
-      modelId: normalized.slice(0, -"-fast".length),
+      modelId: "default",
+      wireModelId: "default",
+      catalogModelId: "auto",
+      displayName: "Auto (Server Picks)",
+      parameters: [],
+    };
+  }
+
+  if (normalized.startsWith("composer-") && normalized.endsWith("-fast")) {
+    const base = normalized.slice(0, -"-fast".length);
+    return {
+      modelId: base,
+      wireModelId: base,
+      catalogModelId,
+      displayName: catalogModelId,
       parameters: [{ id: "fast", value: "true" }],
     };
   }
-  const claudeSplit = splitCursorEffortSuffix(normalized, "claude-", "effort");
-  if (claudeSplit) {
-    return claudeSplit;
+
+  if (normalized.startsWith("gpt-")) {
+    let isFast = false;
+    if (normalized.endsWith("-fast")) {
+      isFast = true;
+      normalized = normalized.slice(0, -"-fast".length);
+    }
+
+    let wireBase = normalized;
+    const parameters: Array<{ id: string; value: string }> = [];
+    const match = /^(.+?)-(extra-high|none|minimal|low|medium|high|xhigh|max)$/.exec(normalized);
+    if (match) {
+      const rawEffort = match[2];
+      const effort = rawEffort === "extra-high" ? "xhigh" : rawEffort;
+      wireBase = match[1];
+      parameters.push({ id: "reasoning", value: effort });
+    }
+
+    const wireModelId = isFast ? `${wireBase}-fast` : wireBase;
+    return {
+      modelId: wireModelId,
+      wireModelId,
+      catalogModelId,
+      displayName: catalogModelId,
+      parameters,
+    };
   }
-  const gptSplit = splitCursorEffortSuffix(normalized, "gpt-", "reasoning");
-  if (gptSplit) {
-    return gptSplit;
-  }
-  return { modelId: normalized, parameters: [] };
+
+  return {
+    modelId: catalogModelId,
+    wireModelId: catalogModelId,
+    catalogModelId,
+    displayName: catalogModelId,
+    parameters: [],
+  };
 }
 
 // ─── Request encoder ───────────────────────────────────────────────────────
-
 /**
  * OpenAI tool shape (subset OmniRoute receives from clients). Cursor's
  * AgentRunRequest carries declared tools as McpToolDefinition entries; the
@@ -528,9 +571,11 @@ export function encodeAgentRunRequest(input: AgentRunInput): Buffer {
   }
   const conversationState = encodeMessage(ARR_CONVERSATION_STATE, cssParts);
 
+  const resolved = resolveRequestedModel(input.modelId);
+
   // RequestedModel { model_id, [parameters...] }
-  const rmParts: Buffer[] = [encodeString(RM_MODEL_ID, modelId)];
-  for (const param of parameters) {
+  const rmParts: Buffer[] = [encodeString(RM_MODEL_ID, resolved.wireModelId)];
+  for (const param of resolved.parameters) {
     rmParts.push(
       encodeMessage(RM_PARAMETERS, [
         encodeString(RMP_ID, param.id),
@@ -546,9 +591,9 @@ export function encodeAgentRunRequest(input: AgentRunInput): Buffer {
   // empty turn without this envelope. cursor-agent's working wire format sends both, so
   // we keep RequestedModel (preserves the -fast `parameters` it carries) and add this.
   const modelDetails = encodeMessage(ARR_MODEL_DETAILS, [
-    encodeString(MD_MODEL_ID, modelId),
-    encodeString(MD_DISPLAY_MODEL_ID, modelId),
-    encodeString(MD_DISPLAY_NAME, modelId),
+    encodeString(MD_MODEL_ID, resolved.wireModelId),
+    encodeString(MD_DISPLAY_MODEL_ID, resolved.catalogModelId),
+    encodeString(MD_DISPLAY_NAME, resolved.displayName),
   ]);
 
   // mcp_tools: McpTools envelope at field 4 of AgentRunRequest. Each tool

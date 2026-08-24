@@ -42,9 +42,21 @@ export {
 } from "./models/compat";
 export { getModelAliases, setModelAlias, deleteModelAlias } from "./models/aliases";
 export { getMitmAlias, setMitmAliasAll } from "./models/mitmAlias";
-export type { SyncedAvailableModel } from "./models/synced";
 
 // ──────────────── Custom Models ────────────────
+
+function isListingFilteredCustomSource(source: unknown): boolean {
+  const normalized = (source || "").toString().toLowerCase();
+  return normalized === "imported" || normalized === "api-sync" || normalized === "auto-sync";
+}
+
+function filterUserCustomModels(models: unknown): unknown[] {
+  if (!Array.isArray(models)) return [];
+  return models.filter((m) => {
+    const source = (m?.source || "").toString().toLowerCase();
+    return !isListingFilteredCustomSource(source);
+  });
+}
 
 export async function getCustomModels(providerId?: string) {
   const db = getDbInstance();
@@ -53,7 +65,8 @@ export async function getCustomModels(providerId?: string) {
       .prepare("SELECT value FROM key_value WHERE namespace = 'customModels' AND key = ?")
       .get(providerId);
     const value = getKeyValue(row).value;
-    return value ? JSON.parse(value) : [];
+    const list = value ? JSON.parse(value) : [];
+    return filterUserCustomModels(list);
   }
   const rows = db
     .prepare("SELECT key, value FROM key_value WHERE namespace = 'customModels'")
@@ -62,7 +75,7 @@ export async function getCustomModels(providerId?: string) {
   for (const row of rows) {
     const { key, value } = getKeyValue(row);
     if (!key || value === null) continue;
-    result[key] = JSON.parse(value);
+    result[key] = filterUserCustomModels(JSON.parse(value));
   }
   return result;
 }
@@ -76,7 +89,7 @@ export async function getAllCustomModels() {
   for (const row of rows) {
     const { key, value } = getKeyValue(row);
     if (!key || value === null) continue;
-    result[key] = JSON.parse(value);
+    result[key] = filterUserCustomModels(JSON.parse(value));
   }
   return result;
 }
@@ -838,11 +851,16 @@ export function getModelPreserveOpenAIDeveloperRole(
  */
 export function getModelIsHidden(providerId: string, modelId: string): boolean {
   const m = getCustomModelRow(providerId, modelId);
-  if (m && Object.prototype.hasOwnProperty.call(m, "isHidden")) {
+  const customHidden =
+    m && Object.prototype.hasOwnProperty.call(m, "isHidden") ? Boolean(m.isHidden) : undefined;
+  if (customHidden !== undefined && !isListingFilteredCustomSource(m.source)) {
     return Boolean(m.isHidden);
   }
   const co = readCompatList(providerId).find((e) => e.id === modelId);
-  return Boolean(co?.isHidden);
+  if (co && Object.prototype.hasOwnProperty.call(co, "isHidden")) {
+    return Boolean(co.isHidden);
+  }
+  return Boolean(customHidden);
 }
 
 /**
@@ -870,6 +888,18 @@ export function getHiddenModelsByProvider(): Map<string, Set<string>> {
           const modelId = (entry as { id?: unknown }).id;
           if (typeof modelId !== "string" || modelId.length === 0) continue;
           if (!Object.prototype.hasOwnProperty.call(entry, "isHidden")) continue;
+          const source = "source" in entry ? entry.source : undefined;
+          // Listing-filtered imported/sync rows are a fallback only: an explicit
+          // modelCompatOverrides flag (processed first) wins. Without this skip,
+          // a leftover imported custom isHidden would clobber the override; with
+          // a blanket skip, pre-fix hides stored only on the imported row vanish.
+          if (
+            namespace === "customModels" &&
+            isListingFilteredCustomSource(source) &&
+            visibilityByProvider.get(row.key)?.has(modelId)
+          ) {
+            continue;
+          }
           let visibility = visibilityByProvider.get(row.key);
           if (!visibility) {
             visibility = new Map<string, boolean>();
@@ -917,12 +947,14 @@ export function getModelIsDeleted(providerId: string, modelId: string): boolean 
 
 /**
  * Persist the hidden flag for a model. Stores the override on the custom-model
- * row when one exists, otherwise on the compat-override list. Setting
+ * row when a user-visible custom row exists; listing-filtered imported/sync
+ * rows (Cursor OAuth auto-import, live discovery) go on the compat-override
+ * list so GET /api/provider-models can still return the flag. Setting
  * `hidden = false` is a no-op when the model is already visible.
  */
 export function setModelIsHidden(providerId: string, modelId: string, hidden: boolean): void {
   const customRow = getCustomModelRow(providerId, modelId);
-  if (customRow) {
+  if (customRow && !isListingFilteredCustomSource(customRow.source)) {
     if (hidden) {
       updateCustomModel(providerId, modelId, { isHidden: true });
     } else if (Object.prototype.hasOwnProperty.call(customRow, "isHidden")) {

@@ -75,6 +75,11 @@ import {
   visibleComposerContentFromThinking,
   composerReasoningRemainder,
 } from "./cursor/composer.ts";
+import {
+  ensureFreshCursorCredentials,
+  cursorCredentialsNeedRefresh,
+  refreshCursorExecutorCredentials,
+} from "./cursor/credentials.ts";
 // Composer helpers re-exported for external importers (tests).
 export {
   isComposerModel,
@@ -696,14 +701,30 @@ export class CursorExecutor extends BaseExecutor {
     super("cursor", PROVIDERS.cursor);
   }
 
-  buildUrl() {
-    return CURSOR_AGENT_URL;
+  needsRefresh(credentials) {
+    // Prefer JWT exp over a historical fake 24h expiresAt clock.
+    return cursorCredentialsNeedRefresh(credentials, this.provider);
+  }
+
+  buildUrl(credentials?: { providerSpecificData?: Record<string, unknown> }) {
+    const customUrl =
+      typeof credentials?.providerSpecificData?.baseUrl === "string"
+        ? (credentials.providerSpecificData.baseUrl as string)
+        : null;
+    const base = customUrl || process.env.CURSOR_BASE_URL || "https://api2.cursor.sh";
+    const cleanBase = base.replace(/\/+$/, "");
+    return cleanBase.endsWith("/agent.v1.AgentService/Run")
+      ? cleanBase
+      : `${cleanBase}/agent.v1.AgentService/Run`;
   }
 
   buildHeaders(credentials) {
-    const accessToken = credentials.accessToken;
+    const accessToken = credentials?.accessToken || "";
     const ghostMode = credentials.providerSpecificData?.ghostMode !== false;
-    const cleanToken = accessToken.includes("::") ? accessToken.split("::")[1] : accessToken;
+    const cleanToken =
+      typeof accessToken === "string" && accessToken.includes("::")
+        ? accessToken.split("::")[1]
+        : accessToken;
     const requestId = crypto.randomUUID();
     const traceParent = `00-${crypto.randomBytes(16).toString("hex")}-${crypto.randomBytes(8).toString("hex")}-01`;
 
@@ -1145,9 +1166,28 @@ export class CursorExecutor extends BaseExecutor {
     });
   }
 
-  async execute({ model, body, stream, credentials, signal, log, upstreamExtraHeaders }) {
-    const url = this.buildUrl();
-    const headers = this.buildHeaders(credentials);
+  async execute({
+    model,
+    body,
+    stream,
+    credentials,
+    signal,
+    log,
+    upstreamExtraHeaders,
+    onCredentialsRefreshed,
+  }) {
+    // CursorExecutor overrides BaseExecutor.execute() for Connect-RPC/h2, so the
+    // base proactive-refresh gate never runs. Refresh near-expiry tokens here
+    // before building auth headers (parity with gitlab/grok-cli).
+    const activeCredentials = await ensureFreshCursorCredentials({
+      credentials,
+      log,
+      onCredentialsRefreshed,
+      needsRefresh: (creds) => this.needsRefresh(creds),
+      refreshCredentials: (creds, refreshLog) => this.refreshCredentials(creds, refreshLog),
+    });
+    const url = this.buildUrl(activeCredentials);
+    const headers = this.buildHeaders(activeCredentials);
     mergeUpstreamExtraHeaders(headers, upstreamExtraHeaders);
 
     const messages: ChatMessage[] = body.messages || [];
@@ -1220,8 +1260,10 @@ export class CursorExecutor extends BaseExecutor {
     if (isToolFollowUp) {
       session = cursorSessionManager.acquire(conversationId);
       // #9029: content-based session match when client lacks conversation_id.
-      if (!session && !body.conversation_id) session = cursorSessionManager.findByToolCallIds(
-        messages.filter(m => m.role === "tool" && m.tool_call_id).map(m => m.tool_call_id!));
+      if (!session && !body.conversation_id)
+        session = cursorSessionManager.findByToolCallIds(
+          messages.filter((m) => m.role === "tool" && m.tool_call_id).map((m) => m.tool_call_id!)
+        );
     }
 
     if (session) {
@@ -1554,8 +1596,8 @@ export class CursorExecutor extends BaseExecutor {
     );
   }
 
-  async refreshCredentials() {
-    return null;
+  async refreshCredentials(credentials, log) {
+    return refreshCursorExecutorCredentials(credentials, log);
   }
 }
 

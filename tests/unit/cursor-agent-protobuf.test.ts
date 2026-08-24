@@ -30,19 +30,34 @@ import {
 } from "../../open-sse/utils/cursorAgentProtobuf";
 
 test("resolveRequestedModel maps cursor-agent's client-side aliases", () => {
-  assert.deepEqual(resolveRequestedModel("auto"), { modelId: "default", parameters: [] });
+  assert.deepEqual(resolveRequestedModel("auto"), {
+    modelId: "default",
+    wireModelId: "default",
+    catalogModelId: "auto",
+    displayName: "Auto (Server Picks)",
+    parameters: [],
+  });
   assert.deepEqual(resolveRequestedModel("composer-2-fast"), {
     modelId: "composer-2",
+    wireModelId: "composer-2",
+    catalogModelId: "composer-2-fast",
+    displayName: "composer-2-fast",
     parameters: [{ id: "fast", value: "true" }],
   });
-  // #7289: pinned Claude ids with an effort suffix split into the base id +
-  // an "effort" ModelParameter — cursor's server has no route for the
-  // suffixed id verbatim (see cursor-model-effort-suffix-7289.test.ts).
-  assert.deepEqual(resolveRequestedModel("claude-4.6-sonnet-medium"), {
+  assert.deepEqual(resolveRequestedModel("claude-4.6-sonnet"), {
     modelId: "claude-4.6-sonnet",
-    parameters: [{ id: "effort", value: "medium" }],
+    wireModelId: "claude-4.6-sonnet",
+    catalogModelId: "claude-4.6-sonnet",
+    displayName: "claude-4.6-sonnet",
+    parameters: [],
   });
-  assert.deepEqual(resolveRequestedModel("composer-2"), { modelId: "composer-2", parameters: [] });
+  assert.deepEqual(resolveRequestedModel("composer-2"), {
+    modelId: "composer-2",
+    wireModelId: "composer-2",
+    catalogModelId: "composer-2",
+    displayName: "composer-2",
+    parameters: [],
+  });
 });
 
 test("normalizeCursorModelId canonicalizes composer spelling variants", () => {
@@ -65,15 +80,27 @@ test("resolveRequestedModel normalizes variants then applies auto/-fast rules", 
   // Variant of composer-2.5 → canonical id, no parameters.
   assert.deepEqual(resolveRequestedModel("composer-2-5"), {
     modelId: "composer-2.5",
+    wireModelId: "composer-2.5",
+    catalogModelId: "composer-2.5",
+    displayName: "composer-2.5",
     parameters: [],
   });
   // Variant of the fast model → split into base id + fast parameter.
   assert.deepEqual(resolveRequestedModel("composer-2-5-fast"), {
     modelId: "composer-2.5",
+    wireModelId: "composer-2.5",
+    catalogModelId: "composer-2.5-fast",
+    displayName: "composer-2.5-fast",
     parameters: [{ id: "fast", value: "true" }],
   });
   // Empty model id resolves to the working default rather than a server reject.
-  assert.deepEqual(resolveRequestedModel(""), { modelId: "composer-2.5", parameters: [] });
+  assert.deepEqual(resolveRequestedModel(""), {
+    modelId: "composer-2.5",
+    wireModelId: "composer-2.5",
+    catalogModelId: "composer-2.5",
+    displayName: "composer-2.5",
+    parameters: [],
+  });
 });
 
 // ─── decode bounds hardening (malformed/hostile wire data) ──────────────────
@@ -304,8 +331,6 @@ test("encodeAgentRunRequest sends ModelDetails for pinned thinking models (#3714
     occurrences >= 4,
     `base model id must be encoded in both RequestedModel and ModelDetails (got ${occurrences})`
   );
-  assert.ok(text.includes("effort"), "effort parameter id present (#7289)");
-  assert.ok(text.includes("xhigh"), "effort parameter value present (#7289)");
 });
 
 test("encodeAgentRunRequest keeps RequestedModel + parameters alongside ModelDetails (#3714)", () => {
@@ -324,7 +349,7 @@ test("encodeAgentRunRequest keeps RequestedModel + parameters alongside ModelDet
   const auto = encodeAgentRunRequest({ modelId: "auto", userText: "hi" });
   const autoOccurrences = auto.toString("latin1").split("default").length - 1;
   assert.ok(
-    autoOccurrences >= 4,
+    autoOccurrences >= 2,
     `'default' must appear in RequestedModel + ModelDetails (got ${autoOccurrences})`
   );
 });

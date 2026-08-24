@@ -126,6 +126,15 @@ export const OAUTH_PROVIDERS = {
     subscriptionRisk: true,
     riskNoticeVariant: "oauth",
   },
+  "cursor-oauth": {
+    id: "cursor-oauth",
+    alias: "cuo",
+    name: "Cursor (OAuth)",
+    icon: "edit_note",
+    color: "#00D4AA",
+    subscriptionRisk: true,
+    riskNoticeVariant: "oauth",
+  },
   zed: {
     id: "zed",
     alias: "zd",
