@@ -23,7 +23,7 @@ export interface OmpExtensionApi {
     name: string;
     baseUrl: string;
     apiKey?: string;
-    models?: Array<{ id: string; name?: string }>;
+    models?: Array<{ id: string; name?: string; input?: Array<"text" | "image"> }>;
   }): void;
 }
 
@@ -147,14 +147,31 @@ export default function createOmpPlugin(
         if (chatModels.length === 0) return;
 
         // Group models by resolved OMP native API format
-        const modelsByApi: Record<string, Array<{ id: string; name?: string }>> = {};
+        const modelsByApi: Record<
+          string,
+          Array<{ id: string; name?: string; input: Array<"text" | "image"> }>
+        > = {};
 
         for (const m of chatModels) {
           const apiType = resolveOmpApi(m);
           if (!modelsByApi[apiType]) modelsByApi[apiType] = [];
+          const modalities = Array.isArray(m.input_modalities)
+            ? m.input_modalities
+            : Array.isArray(m.input)
+              ? m.input
+              : null;
+          const capabilities =
+            m.capabilities && typeof m.capabilities === "object"
+              ? (m.capabilities as { vision?: unknown })
+              : null;
+          const supportsVision =
+            (modalities != null &&
+              modalities.some((entry) => String(entry).toLowerCase() === "image")) ||
+            capabilities?.vision === true;
           modelsByApi[apiType].push({
             id: m.id,
             name: typeof m.name === "string" ? m.name : m.id,
+            input: supportsVision ? ["text", "image"] : ["text"],
           });
         }
 

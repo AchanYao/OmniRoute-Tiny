@@ -119,7 +119,8 @@ export const MODELS_DEV_PROVIDER_MAP: Record<string, string[]> = {
   vertex_ai: ["gemini", "vertex"],
   deepseek: ["deepseek"],
   groq: ["groq"],
-  xai: ["xai"],
+  // grok-cli/gc and xai-oauth/xao share xAI model metadata from models.dev
+  xai: ["xai", "grok-cli", "gc", "xai-oauth", "xao"],
   mistral: ["mistral"],
   togetherai: ["together", "openrouter"],
   together_ai: ["together", "openrouter"],
