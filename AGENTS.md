@@ -318,6 +318,9 @@ Documentation must describe verified behavior, not plausible behavior.
 
 ### Adding a New Provider
 
+OmniRoute Tiny does **not** accept new web-cookie / website-session providers. See
+`docs/architecture/web-cookie-sunset.md`. Add API-key, OAuth, or compatible-node sources only.
+
 1. Register in `src/shared/constants/providers.ts` (Zod-validated at load)
 2. Add executor in `open-sse/executors/` if custom logic needed (extend `BaseExecutor`)
 3. Add translator in `open-sse/translator/` if non-OpenAI format
@@ -394,6 +397,7 @@ For any non-trivial change, read the matching deep-dive first:
 | --------------------------------------------- | ------------------------------------------------------- |
 | Repo navigation                               | `docs/architecture/REPOSITORY_MAP.md`                   |
 | Architecture                                  | `docs/architecture/ARCHITECTURE.md`                     |
+| Tiny: sunset web-cookie providers             | `docs/architecture/web-cookie-sunset.md`                |
 | Engineering reference                         | `docs/architecture/CODEBASE_DOCUMENTATION.md`           |
 | Auto-Combo (13-factor scoring, 19 strategies) | `docs/routing/AUTO-COMBO.md`                            |
 | Resilience (3 mechanisms)                     | `docs/architecture/RESILIENCE_GUIDE.md`                 |

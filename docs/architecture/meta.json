@@ -6,6 +6,7 @@
     "CODEBASE_DOCUMENTATION",
     "REPOSITORY_MAP",
     "RESILIENCE_GUIDE",
-    "QUALITY_GATES"
+    "QUALITY_GATES",
+    "web-cookie-sunset"
   ]
 }

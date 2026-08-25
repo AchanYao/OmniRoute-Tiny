@@ -26,7 +26,7 @@ LLM 网关。项目会逐步减少与网关无关的 Agent 平台模块、构建
 - Provider、OAuth 和 API Key 连接
 - OpenAI Chat Completions 与 Responses API 入口
 - Anthropic、Gemini 等客户端兼容入口
-- 流式输出、工具调用和 reasoning
+- 流式输出、官方 API/OAuth 上的原生工具调用和 reasoning
 - 模型发现、账号池、额度、健康状态、冷却和熔断
 - Combo 路由、重试与故障转移
 - 账号、模型、聚合组、日志和设置等核心 Dashboard
@@ -40,6 +40,7 @@ LLM 网关。项目会逐步减少与网关无关的 Agent 平台模块、构建
 - Prompt Compression 及其 LLMLingua、TensorFlow、Transformers、tiktoken 依赖
 - Evals、Chaos、Gamification、Local Corpus 等 Agent 平台功能
 - 与上述功能对应的 API、Dashboard 页面和后台启动任务
+- Web Cookie / 网页会话 Provider（抓站 Cookie 当模型源）。当前仍继承自上游，后续下线；见 `docs/architecture/web-cookie-sunset.md`
 
 这里的“排除”是指 Gateway 构建产物。部分源码目前仍保留在仓库中，后续会在核心网关契约测试
 覆盖后逐步删除。
@@ -88,6 +89,8 @@ Gateway 构建暂时保留 OmniRoute 原有的协议转换能力，因此现有�
 5. 可选的严格协议保持模式，避免隐式跨协议转换。
 
 以上为路线方向，不代表当前版本已经全部实现。
+
+Web Cookie Provider 不在上述协议方向里扩能力。Tiny 稳定后会从产品面和代码面下线该类源，不再用网页 Cookie 仿真 `tool_calls`。现有连接暂可继续工作；不要新增 cookie 源。细节：[`docs/architecture/web-cookie-sunset.md`](docs/architecture/web-cookie-sunset.md)。
 
 ## 与上游的关系
 

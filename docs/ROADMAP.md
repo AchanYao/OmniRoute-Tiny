@@ -1,11 +1,21 @@
 ---
 title: "OmniRoute Roadmap"
 version: 3.8.50
-lastUpdated: 2026-08-14
+lastUpdated: 2026-08-25
 ---
 
 > Version-gated, not date-gated: each milestone ships when its quality gates pass.
 > Current line: **v3.8.x** (this branch). Last updated: 2026-07-23.
+
+## OmniRoute Tiny
+
+This repository is **OmniRoute Tiny**, an independent gateway fork. The 3.8 → 4.0
+modular-platform rail below is inherited upstream history, not Tiny's delivery plan.
+
+Tiny direction: keep the aggregation gateway (OAuth / API key / compatible nodes),
+then **sunset web-cookie / website-session providers**. Do not add cookie sources.
+See [`docs/architecture/web-cookie-sunset.md`](architecture/web-cookie-sunset.md).
+Runtime removal is a later PR; this is the accepted product decision.
 
 OmniRoute is heading from a monolithic router to a **modular AI platform**: a lightweight
 core engine, a typed SDK, and everything else as installable modules and plugins. The path
@@ -82,6 +92,28 @@ and explicit prefixed and bare-ID routing independently from catalog publication
 | `codex`                 | Authenticated Codex API, official GitHub fallback, persisted cache | Migrated | Reference implementation                          |
 | `grok-cli` (Grok Build) | Authenticated Grok Build models endpoint                           | Migrated | Responses-only models normalized during discovery |
 | `xai-oauth`             | Authenticated `https://api.x.ai/v1/models`                         | Migrated | Connection-scoped OAuth discovery                 |
+| `antigravity`           | Per-connection Import / Sync (`syncedAvailableModels`)             | Partial  | Still falls back to `ANTIGRAVITY_PUBLIC_MODELS`   |
+
+### Known gap — static catalog as availability source
+
+Observed 2026-08-25 on a live Antigravity install (OMP key `/v1/models`):
+
+- Dashboard Import writes `syncedAvailableModels` per connection. `/v1/models` only
+  publishes the **active-connection** union (`getAllActiveSyncedModels()`).
+- If the active connection has no synced row, catalog emission falls back to the
+  static registry (`ANTIGRAVITY_PUBLIC_MODELS`). Models that exist upstream or were
+  imported on another connection — e.g. `gemini-3.7-flash-tiered` — never appear.
+- Catalog-driven clients (OMP discovery / role models) can only pick advertised
+  ids. A model missing from that static list is effectively unusable even when
+  `passthroughModels` would accept an explicit request.
+- Importing on the active account is a workaround, not a fix. The same class
+  applies to any provider that still treats the static registry as the source of
+  availability instead of last-successful live discovery.
+
+Follow-up: finish the catalog-migration contract for `antigravity` (and peers still
+on static fallback) so `/v1/models` publishes the active live catalog, not the
+source-controlled public list, and never hides an imported id just because it is
+absent from `ANTIGRAVITY_PUBLIC_MODELS`.
 
 ## Gateway settings backlog
 
