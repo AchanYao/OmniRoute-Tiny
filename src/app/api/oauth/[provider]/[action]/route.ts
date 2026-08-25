@@ -13,6 +13,7 @@ import {
   persistOAuthConnection,
   buildOAuthConnectionCreatePayload,
   findExistingOAuthConnectionMatch,
+  buildOAuthConnectionUpdatePayload,
 } from "@/lib/oauth/connectionPersistence";
 import { createDeviceFlowTicket, getDeviceFlowTicketStatus } from "@/lib/oauth/deviceFlowTickets";
 import {
@@ -531,12 +532,10 @@ export async function POST(
         const match = findExistingOAuthConnectionMatch(existing, provider, tokenData, connectionId);
         const matchId = typeof match?.id === "string" ? match.id : null;
         if (matchId) {
-          connection = await updateProviderConnection(matchId, {
-            ...tokenData,
-            expiresAt,
-            testStatus: "active",
-            isActive: true,
-          });
+          connection = await updateProviderConnection(
+            matchId,
+            buildOAuthConnectionUpdatePayload(tokenData, expiresAt)
+          );
         }
       }
       if (!connection) {
@@ -621,12 +620,10 @@ export async function POST(
           );
           const matchId = typeof match?.id === "string" ? match.id : null;
           if (matchId) {
-            connection = await updateProviderConnection(matchId, {
-              ...result.tokens,
-              expiresAt,
-              testStatus: "active",
-              isActive: true,
-            });
+            connection = await updateProviderConnection(
+              matchId,
+              buildOAuthConnectionUpdatePayload(result.tokens, expiresAt)
+            );
           }
         }
         if (!connection) {
@@ -754,12 +751,10 @@ export async function POST(
           );
           const matchId = typeof match?.id === "string" ? match.id : null;
           if (matchId) {
-            connection = await updateProviderConnection(matchId, {
-              ...tokenData,
-              expiresAt,
-              testStatus: "active",
-              isActive: true,
-            });
+            connection = await updateProviderConnection(
+              matchId,
+              buildOAuthConnectionUpdatePayload(tokenData, expiresAt)
+            );
           }
         }
         if (!connection) {
@@ -824,12 +819,10 @@ export async function POST(
           });
           const matchId = typeof match?.id === "string" ? match.id : null;
           if (matchId) {
-            connection = await updateProviderConnection(matchId, {
-              ...tokenData,
-              expiresAt,
-              testStatus: "active",
-              isActive: true,
-            });
+            connection = await updateProviderConnection(
+              matchId,
+              buildOAuthConnectionUpdatePayload(tokenData, expiresAt)
+            );
           }
         }
         if (!connection) {

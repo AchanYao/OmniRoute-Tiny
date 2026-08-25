@@ -108,6 +108,25 @@ export function buildOAuthConnectionCreatePayload(
   };
 }
 
+/**
+ * Re-auth / refresh of an existing connection. Must keep `tokenExpiresAt` in
+ * lockstep with `expiresAt` — the dashboard badge prefers `tokenExpiresAt`,
+ * and omitting it on UPDATE left a stale grant clock after Cursor OAuth
+ * re-login of an existing row.
+ */
+export function buildOAuthConnectionUpdatePayload(
+  tokenData: Record<string, any>,
+  expiresAt: string | null
+) {
+  return {
+    ...tokenData,
+    expiresAt,
+    tokenExpiresAt: expiresAt,
+    testStatus: "active" as const,
+    isActive: true,
+  };
+}
+
 async function syncToCloudIfEnabled(): Promise<void> {
   try {
     const cloudEnabled = await isCloudEnabled();
@@ -144,12 +163,10 @@ export async function persistOAuthConnection(
     const match = findExistingOAuthConnectionMatch(existing, provider, tokenData, connectionId);
     const matchId = typeof match?.id === "string" ? match.id : null;
     if (matchId) {
-      connection = await updateProviderConnection(matchId, {
-        ...tokenData,
-        expiresAt,
-        testStatus: "active",
-        isActive: true,
-      });
+      connection = await updateProviderConnection(
+        matchId,
+        buildOAuthConnectionUpdatePayload(tokenData, expiresAt)
+      );
     }
   }
   if (!connection) {

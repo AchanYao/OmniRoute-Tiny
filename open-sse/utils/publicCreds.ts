@@ -177,6 +177,11 @@ const EMBEDDED_DEFAULTS = {
     13, 92, 15, 89, 66, 91, 76, 70, 72, 29, 71, 70, 3, 65, 93, 84, 72, 23, 28, 87, 92, 88, 15, 95,
     91, 22, 71, 87, 20, 66, 67, 86, 13, 81, 81, 21,
   ],
+  // Cursor CLI — public PKCE oauth client (loginDeepControl / /oauth/token).
+  cursor_id: [
+    36, 15, 52, 60, 32, 91, 68, 23, 60, 26, 39, 67, 24, 62, 58, 7, 93, 37, 100, 37, 90, 39, 94, 31,
+    35, 44, 54, 46, 98, 51, 24, 32,
+  ],
   // Trae Cloud IDE — public oauth client id
   trae_id: [10, 3, 95, 6, 10, 22, 66, 3, 11, 90, 72, 31, 91, 2],
   // Microsoft Designer web app — public ClientId header sent by the

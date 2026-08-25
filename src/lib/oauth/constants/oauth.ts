@@ -362,7 +362,9 @@ export const CURSOR_OAUTH_CONFIG = {
   apiEndpoint: "https://api2.cursor.sh",
   loginUrl: "https://cursor.com/loginDeepControl",
   pollUrl: "https://api2.cursor.sh/auth/poll",
-  refreshUrl: "https://api2.cursor.sh/auth/exchange_user_api_key",
+  // PKCE session refresh — not the user-API-key exchange.
+  refreshUrl: "https://api2.cursor.sh/oauth/token",
+  clientId: resolvePublicCred("cursor_id", "CURSOR_OAUTH_CLIENT_ID"),
   chatEndpoint: "/aiserver.v1.ChatService/StreamUnifiedChatWithTools",
 };
 

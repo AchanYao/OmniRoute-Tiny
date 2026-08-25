@@ -2,7 +2,12 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { getProvider } from "../../src/lib/oauth/providers";
 import { CURSOR_OAUTH_CONFIG } from "../../src/lib/oauth/constants/oauth";
-import { refreshCursorToken } from "../../open-sse/services/tokenRefresh/providers/cursor";
+import {
+  CURSOR_API_KEY_EXCHANGE_URL,
+  CURSOR_OAUTH_CLIENT_ID,
+  CURSOR_OAUTH_TOKEN_URL,
+  refreshCursorToken,
+} from "../../open-sse/services/tokenRefresh/providers/cursor";
 import { supportsTokenRefresh } from "../../open-sse/services/tokenRefresh";
 import { getStaticModelsForProvider } from "../../src/lib/providers/staticModels";
 
@@ -78,21 +83,19 @@ describe("Cursor Provider Separation (IDE vs OAuth group)", () => {
     }
   });
 
-  it("refreshCursorToken calls exchange_user_api_key endpoint and returns new tokens", async () => {
+  it("refreshCursorToken posts grant_type refresh_token to /oauth/token and reads snake_case", async () => {
     const originalFetch = globalThis.fetch;
     let capturedUrl = "";
-    let capturedAuthHeader = "";
+    let capturedBody = "";
 
     try {
       globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
         capturedUrl = String(url);
-        capturedAuthHeader = String(
-          (init?.headers as Record<string, string>)?.["Authorization"] || ""
-        );
+        capturedBody = String(init?.body || "");
         return new Response(
           JSON.stringify({
-            accessToken: "new-access-token",
-            refreshToken: "new-refresh-token",
+            access_token: "new-access-token",
+            refresh_token: "new-refresh-token",
           }),
           { status: 200 }
         );
@@ -100,13 +103,122 @@ describe("Cursor Provider Separation (IDE vs OAuth group)", () => {
 
       const res = await refreshCursorToken("existing-refresh-token");
 
-      assert.equal(capturedUrl, "https://api2.cursor.sh/auth/exchange_user_api_key");
-      assert.equal(capturedAuthHeader, "Bearer existing-refresh-token");
+      assert.equal(capturedUrl, CURSOR_OAUTH_TOKEN_URL);
+      const body = JSON.parse(capturedBody) as Record<string, string>;
+      assert.equal(body.grant_type, "refresh_token");
+      assert.equal(body.client_id, CURSOR_OAUTH_CLIENT_ID);
+      assert.equal(body.refresh_token, "existing-refresh-token");
       assert.equal(res?.accessToken, "new-access-token");
       assert.equal(res?.refreshToken, "new-refresh-token");
       // Opaque non-JWT access tokens keep the historical 24h fallback.
       assert.equal(res?.expiresIn, 86400);
       assert.ok(typeof res?.expiresAt === "string");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("refreshCursorToken treats shouldLogout as unrecoverable without API-key fallback", async () => {
+    const originalFetch = globalThis.fetch;
+    const urls: string[] = [];
+
+    try {
+      globalThis.fetch = (async (url: string | URL | Request) => {
+        urls.push(String(url));
+        return new Response(JSON.stringify({ access_token: "", shouldLogout: true }), {
+          status: 200,
+        });
+      }) as typeof fetch;
+
+      const res = await refreshCursorToken("dead-refresh-token");
+      assert.equal(urls.length, 1);
+      assert.equal(urls[0], CURSOR_OAUTH_TOKEN_URL);
+      assert.equal(res?.error, "unrecoverable_refresh_error");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("refreshCursorToken falls back to API-key exchange when /oauth/token rejects", async () => {
+    const originalFetch = globalThis.fetch;
+    const urls: string[] = [];
+
+    try {
+      globalThis.fetch = (async (url: string | URL | Request) => {
+        urls.push(String(url));
+        if (String(url) === CURSOR_OAUTH_TOKEN_URL) {
+          return new Response("invalid_grant", { status: 401 });
+        }
+        return new Response(
+          JSON.stringify({
+            accessToken: "exchanged-access-token",
+            refreshToken: "exchanged-refresh-token",
+          }),
+          { status: 200 }
+        );
+      }) as typeof fetch;
+
+      const res = await refreshCursorToken("user-api-key");
+      assert.deepEqual(urls, [CURSOR_OAUTH_TOKEN_URL, CURSOR_API_KEY_EXCHANGE_URL]);
+      assert.equal(res?.accessToken, "exchanged-access-token");
+      assert.equal(res?.refreshToken, "exchanged-refresh-token");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("refreshCursorToken does not fall back on transient /oauth/token failures", async () => {
+    const originalFetch = globalThis.fetch;
+    const urls: string[] = [];
+
+    try {
+      globalThis.fetch = (async (url: string | URL | Request) => {
+        urls.push(String(url));
+        return new Response("rate limited", { status: 429 });
+      }) as typeof fetch;
+
+      const res = await refreshCursorToken("pkce-refresh-token");
+      assert.deepEqual(urls, [CURSOR_OAUTH_TOKEN_URL]);
+      assert.equal(res, null);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("refreshCursorToken does not fall back on /oauth/token 5xx", async () => {
+    const originalFetch = globalThis.fetch;
+    const urls: string[] = [];
+
+    try {
+      globalThis.fetch = (async (url: string | URL | Request) => {
+        urls.push(String(url));
+        return new Response("upstream unavailable", { status: 503 });
+      }) as typeof fetch;
+
+      const res = await refreshCursorToken("pkce-refresh-token");
+      assert.deepEqual(urls, [CURSOR_OAUTH_TOKEN_URL]);
+      assert.equal(res, null);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("refreshCursorToken empty /oauth/token 200 does not treat API-key 401 as unrecoverable", async () => {
+    const originalFetch = globalThis.fetch;
+    const urls: string[] = [];
+
+    try {
+      globalThis.fetch = (async (url: string | URL | Request) => {
+        urls.push(String(url));
+        if (String(url) === CURSOR_OAUTH_TOKEN_URL) {
+          return new Response(JSON.stringify({ access_token: "" }), { status: 200 });
+        }
+        return new Response("unauthorized", { status: 401 });
+      }) as typeof fetch;
+
+      const res = await refreshCursorToken("pkce-refresh-token");
+      assert.deepEqual(urls, [CURSOR_OAUTH_TOKEN_URL, CURSOR_API_KEY_EXCHANGE_URL]);
+      assert.equal(res, null);
     } finally {
       globalThis.fetch = originalFetch;
     }

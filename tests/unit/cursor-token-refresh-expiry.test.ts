@@ -105,6 +105,32 @@ describe("Cursor token expiry + refresh", () => {
     }
   });
 
+  it("refreshCursorToken reads JWT exp from snake_case /oauth/token payloads", async () => {
+    const originalFetch = globalThis.fetch;
+    const nowSec = Math.floor(Date.now() / 1000);
+    const expSec = nowSec + 1800;
+    const freshAccess = makeJwt({ exp: expSec, sub: "user_oauth" });
+
+    try {
+      globalThis.fetch = (async () =>
+        new Response(
+          JSON.stringify({
+            access_token: freshAccess,
+            shouldLogout: false,
+          }),
+          { status: 200 }
+        )) as typeof fetch;
+
+      const res = await refreshCursorToken("pkce-refresh-token");
+      assert.equal(res?.accessToken, freshAccess);
+      assert.equal(res?.refreshToken, "pkce-refresh-token");
+      assert.ok((res?.expiresIn ?? 0) <= 1800);
+      assert.ok((res?.expiresIn ?? 0) >= 1790);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("refreshCursorExecutorCredentials returns null without a refresh token", async () => {
     const result = await refreshCursorExecutorCredentials({ accessToken: "a" });
     assert.equal(result, null);

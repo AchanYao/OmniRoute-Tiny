@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildOAuthConnectionCreatePayload } from "../../src/lib/oauth/connectionPersistence.ts";
+import {
+  buildOAuthConnectionCreatePayload,
+  buildOAuthConnectionUpdatePayload,
+} from "../../src/lib/oauth/connectionPersistence.ts";
 
 // Regression for #5326: a freshly created OAuth connection (e.g. antigravity) used
 // to persist only `expiresAt`, leaving `tokenExpiresAt` null. The dashboard token
@@ -32,12 +35,22 @@ test("buildOAuthConnectionCreatePayload mirrors expiresAt into tokenExpiresAt (#
 });
 
 test("buildOAuthConnectionCreatePayload keeps tokenExpiresAt null when expiry is unknown", () => {
-  const payload = buildOAuthConnectionCreatePayload(
-    "antigravity",
-    { accessToken: "at-456" },
-    null
-  );
+  const payload = buildOAuthConnectionCreatePayload("antigravity", { accessToken: "at-456" }, null);
 
   assert.equal(payload.expiresAt, null);
   assert.equal(payload.tokenExpiresAt, null);
+});
+
+test("buildOAuthConnectionUpdatePayload mirrors expiresAt into tokenExpiresAt on re-auth", () => {
+  const expiresAt = new Date(Date.now() + 1800 * 1000).toISOString();
+  const payload = buildOAuthConnectionUpdatePayload(
+    { accessToken: "at-new", refreshToken: "rt-new", email: "user@example.com" },
+    expiresAt
+  );
+
+  assert.equal(payload.expiresAt, expiresAt);
+  assert.equal(payload.tokenExpiresAt, expiresAt);
+  assert.equal(payload.testStatus, "active");
+  assert.equal(payload.isActive, true);
+  assert.equal(payload.accessToken, "at-new");
 });
