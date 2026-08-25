@@ -34,6 +34,8 @@ const core = await import("../../../src/lib/db/core.ts");
 core.resetDbInstance();
 
 const scheduler = await import("../../../src/lib/db/vacuumScheduler.ts");
+const maintenance = await import("../../../src/lib/db/maintenance.ts");
+const databaseSettings = await import("../../../src/lib/db/databaseSettings.ts");
 
 function setOptimizationSettings(values: { scheduledVacuum?: string; vacuumHour?: number }) {
   const db = core.getDbInstance();
@@ -164,6 +166,81 @@ test("runNow() succeeds on a healthy DB and persists lastRunAt", async () => {
   } finally {
     scheduler.stop();
   }
+});
+
+test("native maintenance work uses a connection distinct from the request singleton", () => {
+  const requestDb = core.getDbInstance();
+  const maintenanceDb = maintenance.getMaintenanceDbInstance();
+
+  if (requestDb.driver !== "sql.js") {
+    assert.notEqual(maintenanceDb, requestDb);
+  }
+});
+
+test("runNow executes VACUUM through the maintenance handle", async () => {
+  const maintenanceDb = maintenance.getMaintenanceDbInstance();
+  const vacuumStatements: string[] = [];
+  const proxy = new Proxy(maintenanceDb, {
+    get(target, property) {
+      if (property === "exec") {
+        return (sql: string) => {
+          vacuumStatements.push(sql);
+          return target.exec(sql);
+        };
+      }
+      const value = Reflect.get(target, property);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  globalThis.__omnirouteMaintenanceDb = proxy;
+
+  try {
+    const result = await scheduler.runNow();
+    assert.equal(result.success, true);
+    assert.deepEqual(vacuumStatements, ["VACUUM"]);
+  } finally {
+    globalThis.__omnirouteMaintenanceDb = maintenanceDb;
+  }
+});
+
+test("database settings and managed health checks run quick_check on maintenance", () => {
+  const maintenanceDb = maintenance.getMaintenanceDbInstance();
+  let quickCheckCalls = 0;
+  const proxy = new Proxy(maintenanceDb, {
+    get(target, property) {
+      if (property === "pragma") {
+        return (source: string, options?: { simple?: boolean }) => {
+          if (source === "quick_check") quickCheckCalls++;
+          return target.pragma(source, options);
+        };
+      }
+      const value = Reflect.get(target, property);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  globalThis.__omnirouteMaintenanceDb = proxy;
+
+  try {
+    assert.equal(databaseSettings.getDatabaseSettings().stats.integrityCheck, "ok");
+    assert.equal(core.runManagedDbHealthCheck().isHealthy, true);
+    assert.equal(quickCheckCalls, 2);
+  } finally {
+    globalThis.__omnirouteMaintenanceDb = maintenanceDb;
+  }
+});
+
+test("page-size maintenance closes the WAL request handle before exclusive VACUUM", () => {
+  const requestDb = core.getDbInstance();
+  if (requestDb.driver === "sql.js") return;
+
+  const currentPageSize = requestDb.pragma("page_size", { simple: true }) as number;
+  const targetPageSize = currentPageSize === 4096 ? 8192 : 4096;
+  core.setPageSize(targetPageSize);
+
+  const reopenedRequestDb = core.getDbInstance();
+  assert.equal(requestDb.open, false);
+  assert.notEqual(reopenedRequestDb, requestDb);
+  assert.equal(reopenedRequestDb.pragma("page_size", { simple: true }), targetPageSize);
 });
 
 test("runNow() can be called repeatedly; each run succeeds and refreshes lastRunAt", async () => {

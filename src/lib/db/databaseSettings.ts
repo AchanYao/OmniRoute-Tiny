@@ -3,7 +3,8 @@ import fs from "node:fs";
 import { DEFAULT_DATABASE_SETTINGS, type DatabaseSettings } from "@/types/databaseSettings";
 
 import { backupDbFile } from "./backup";
-import { DATA_DIR, SQLITE_FILE, applyDatabaseOptimizationSettings, getDbInstance } from "./core";
+import { DATA_DIR, SQLITE_FILE, getDbInstance } from "./core";
+import { applyMaintenanceOptimizationSettings, runMaintenanceQuickCheck } from "./maintenance";
 import { invalidateDbCache } from "./readCache";
 import { getDatabaseStats } from "./stats";
 import { getState as getVacuumSchedulerState, refreshVacuumScheduler } from "./vacuumScheduler";
@@ -214,12 +215,7 @@ function getFreelistCount(): number {
 }
 
 function getIntegrityCheck(): "ok" | "error" | null {
-  try {
-    const result = getDbInstance().pragma("quick_check", { simple: true }) as string;
-    return result === "ok" ? "ok" : "error";
-  } catch {
-    return null;
-  }
+  return runMaintenanceQuickCheck();
 }
 
 export function getUserDatabaseSettings(): UserDatabaseSettings {
@@ -306,7 +302,7 @@ export function updateDatabaseSettings(
   backupDbFile("pre-write");
   invalidateDbCache("settings");
   if (optimizationUpdated) {
-    applyDatabaseOptimizationSettings(nextSettings.optimization);
+    applyMaintenanceOptimizationSettings(nextSettings.optimization);
     refreshVacuumScheduler();
   }
 
