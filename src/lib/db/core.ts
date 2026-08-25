@@ -21,14 +21,16 @@ import { runDbHealthCheck } from "./healthCheck";
 import { resetAllDbModuleState } from "./stateReset";
 import { parseStoredPayload } from "../logPayloads";
 import { DEFAULT_DATABASE_SETTINGS, type DatabaseSettings } from "@/types/databaseSettings";
+import { applyStoredDatabaseOptimizationSettings, setCacheSizeForDb } from "./optimizationSettings";
 import {
-  applyDatabaseOptimizationSettingsForDb,
-  applyStoredDatabaseOptimizationSettings,
-  getAutoVacuumModeForDb,
-  setAutoVacuumForDb,
-  setCacheSizeForDb,
-  setPageSizeForDb,
-} from "./optimizationSettings";
+  applyMaintenanceOptimizationSettings,
+  getMaintenanceDbInstance,
+  runMaintenanceVacuum,
+  setMaintenanceAutoVacuum,
+  setMaintenancePageSize,
+  closeMaintenanceDbInstance,
+} from "./maintenance";
+import { flushAllSyncBatchWriters } from "../usage/sqliteWriteBatch";
 import {
   buildArtifactRelativePath,
   writeCallArtifact,
@@ -826,8 +828,9 @@ function offloadLegacyCallLogDetails(db: SqliteDatabase) {
 
   db.exec("DROP TABLE IF EXISTS call_logs_v1_legacy");
   try {
-    db.pragma("wal_checkpoint(TRUNCATE)");
-    db.exec("VACUUM");
+    const maintenanceDb = getMaintenanceDbInstance(db);
+    maintenanceDb.pragma("wal_checkpoint(TRUNCATE)");
+    maintenanceDb.exec("VACUUM");
     console.log(`[DB] Offloaded ${pendingRows.length} legacy call log detail row(s) to artifacts.`);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -854,7 +857,7 @@ function createManagedDbBackup(db: SqliteDatabase, reason: string): boolean {
     const backupPath = path.join(backupDir, `db_${timestamp}_${reason}.sqlite`);
     const escapedBackupPath = backupPath.replace(/'/g, "''");
 
-    db.exec(`VACUUM INTO '${escapedBackupPath}'`);
+    getMaintenanceDbInstance(db).exec(`VACUUM INTO '${escapedBackupPath}'`);
     console.log(`[DB] Backup created (${reason}): ${backupPath}`);
     return true;
   } catch (error: unknown) {
@@ -947,11 +950,12 @@ function startDbHealthCheckScheduler(db: SqliteDatabase) {
   dbHealthCheckTimer = setInterval(() => {
     try {
       if (!db.open) return;
-      runDbHealthCheck(db, {
+      const maintenanceDb = getMaintenanceDbInstance(db);
+      runDbHealthCheck(maintenanceDb, {
         autoRepair: true,
         skipIntegrityCheck: process.env.OMNIROUTE_SKIP_DB_HEALTHCHECK === "1",
         expectedSchemaVersion: "1",
-        createBackupBeforeRepair: () => createHealthCheckBackup(db),
+        createBackupBeforeRepair: () => createHealthCheckBackup(maintenanceDb),
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
@@ -962,7 +966,7 @@ function startDbHealthCheckScheduler(db: SqliteDatabase) {
 }
 
 export function runManagedDbHealthCheck(options?: { autoRepair?: boolean }) {
-  const db = getDbInstance();
+  const db = getMaintenanceDbInstance();
   return runDbHealthCheck(db, {
     autoRepair: options?.autoRepair === true,
     expectedSchemaVersion: "1",
@@ -1266,11 +1270,12 @@ export function getDbInstance(): SqliteDatabase {
     if (skipIntegrityCheck) {
       console.log("[DB] Health check skipped (OMNIROUTE_SKIP_DB_HEALTHCHECK=1)");
     }
-    runDbHealthCheck(db, {
+    const maintenanceDb = getMaintenanceDbInstance(db);
+    runDbHealthCheck(maintenanceDb, {
       autoRepair: true,
       expectedSchemaVersion: "1",
       skipIntegrityCheck,
-      createBackupBeforeRepair: () => createHealthCheckBackup(db),
+      createBackupBeforeRepair: () => createHealthCheckBackup(maintenanceDb),
     });
   }
 
@@ -1314,10 +1319,12 @@ export function closeDbInstance(options?: { checkpointMode?: CheckpointMode | nu
   clearDbHealthCheckScheduler();
   const db = getDb();
   if (!db) return false;
+  flushAllSyncBatchWriters();
 
   const checkpointMode = options?.checkpointMode ?? "TRUNCATE";
 
   try {
+    closeMaintenanceDbInstance();
     if (checkpointMode) {
       try {
         if (checkpointDb(db, checkpointMode)) {
@@ -1600,37 +1607,24 @@ function migrateFromJson(db: SqliteDatabase, jsonPath: string) {
 // ──────────────── Auto-Vacuum Management ────────────────
 
 export function applyDatabaseOptimizationSettings(settings: DatabaseOptimizationSettings): void {
-  applyDatabaseOptimizationSettingsForDb(getDbInstance(), settings, { applyPersistent: true });
+  applyMaintenanceOptimizationSettings(settings);
 }
 
 export function setAutoVacuum(mode: "NONE" | "FULL" | "INCREMENTAL"): void {
-  setAutoVacuumForDb(getDbInstance(), mode);
+  setMaintenanceAutoVacuum(mode);
 }
 
 export function getAutoVacuumMode(): "NONE" | "FULL" | "INCREMENTAL" {
-  return getAutoVacuumModeForDb(getDbInstance());
+  const mode = getMaintenanceDbInstance().pragma("auto_vacuum", { simple: true }) as number;
+  return mode === 1 ? "FULL" : mode === 2 ? "INCREMENTAL" : "NONE";
 }
 
 export function runManualVacuum(): { success: boolean; duration: number; error?: string } {
-  const db = getDbInstance();
-  const startTime = Date.now();
-
-  try {
-    console.log("[DB] Starting manual VACUUM...");
-    db.exec("VACUUM");
-    const duration = Date.now() - startTime;
-    console.log(`[DB] Manual VACUUM completed in ${duration}ms`);
-    return { success: true, duration };
-  } catch (err: unknown) {
-    const duration = Date.now() - startTime;
-    console.error("[DB] Manual VACUUM failed:", err);
-    const message = err instanceof Error ? err.message : String(err);
-    return { success: false, duration, error: message };
-  }
+  return runMaintenanceVacuum();
 }
 
 export function setPageSize(pageSize: number): void {
-  setPageSizeForDb(getDbInstance(), pageSize);
+  setMaintenancePageSize(pageSize);
 }
 
 export function setCacheSize(cacheSizeKb: number): void {

@@ -2,6 +2,7 @@ import { DEFAULT_DATABASE_SETTINGS } from "@/types/databaseSettings";
 import { MAX_TIMER_TIMEOUT_MS } from "@/shared/utils/runtimeTimeouts";
 
 import { getDbInstance } from "./core";
+import { runMaintenanceVacuum } from "./maintenance";
 // Direct `key_value` access — the existing `keyValueStore` helpers only exist
 // in test fixtures; the 3 production call sites (pricingSync, jsonMigration,
 // serviceModels) all use `getDbInstance().prepare(...).run()` directly. We
@@ -261,9 +262,11 @@ export async function runNow(): Promise<{ success: boolean; durationMs: number; 
 
   const start = Date.now();
   try {
-    const db = getDbInstance();
-    db.exec("VACUUM");
-    const duration = Date.now() - start;
+    const result = runMaintenanceVacuum();
+    if (!result.success) {
+      throw new Error(result.error || "VACUUM failed");
+    }
+    const duration = result.duration;
     currentState.lastRunAt = start;
     currentState.lastError = null;
     currentState.lastDurationMs = duration;

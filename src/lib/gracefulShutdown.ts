@@ -20,8 +20,7 @@ const SHUTDOWN_TIMEOUT_MS = parseInt(process.env.SHUTDOWN_TIMEOUT_MS || "30000",
 
 declare global {
   var __omnirouteShutdown:
-    | { init: boolean; shuttingDown: boolean; activeRequests: number }
-    | undefined;
+    { init: boolean; shuttingDown: boolean; activeRequests: number } | undefined;
 }
 
 function getShutdownState() {
@@ -100,13 +99,32 @@ async function waitForDrain(): Promise<void> {
 async function cleanup(): Promise<void> {
   try {
     const buildCapabilities = getBuildCapabilities(resolveBuildProfile(process.env));
-    const [{ closeDbInstance }, { flushSpendBatchWriter }, { closeLogRotation }] =
-      await Promise.all([
-        import("@/lib/db/core"),
-        import("@/lib/spend/batchWriter"),
-        import("@/lib/logRotation"),
-      ]);
+    const [
+      { closeDbInstance },
+      { flushSpendBatchWriter },
+      { flushCallLogBatchWriter },
+      { flushUsageHistoryBatchWriter },
+      { closeLogRotation },
+    ] = await Promise.all([
+      import("@/lib/db/core"),
+      import("@/lib/spend/batchWriter"),
+      import("@/lib/usage/callLogs"),
+      import("@/lib/usage/usageHistory"),
+      import("@/lib/logRotation"),
+    ]);
+    const callLogFlushResult = flushCallLogBatchWriter();
+    const usageHistoryFlushResult = flushUsageHistoryBatchWriter();
     const flushResult = await flushSpendBatchWriter();
+    if (callLogFlushResult.flushedEntries > 0) {
+      console.log(
+        `[Shutdown] Call log batch writer flushed ${callLogFlushResult.flushedEntries} pending entry(ies).`
+      );
+    }
+    if (usageHistoryFlushResult.flushedEntries > 0) {
+      console.log(
+        `[Shutdown] Usage history batch writer flushed ${usageHistoryFlushResult.flushedEntries} pending entry(ies).`
+      );
+    }
     if (flushResult.flushedEntries > 0) {
       console.log(
         `[Shutdown] Spend batch writer flushed ${flushResult.flushedEntries} pending entry(ies).`

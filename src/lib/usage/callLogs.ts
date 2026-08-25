@@ -25,6 +25,7 @@ import { isNoLog } from "../compliance/noLog";
 import { protectPayloadForLog, parseStoredPayload } from "../logPayloads";
 import { getCallLogMaxEntries, getCallLogRetentionDays, getCallLogsTableMaxRows } from "../logEnv";
 import { pickDisplayValue } from "@/shared/utils/maskEmail";
+import { isAutomatedTestProcess } from "@/shared/utils/testProcess";
 import {
   CALL_LOGS_DIR,
   cleanupEmptyCallLogDirs,
@@ -45,10 +46,37 @@ import {
   protectPipelinePayloads,
   buildRequestSummary,
 } from "./callLogs/format";
+import { registerProcessExitBatchWriter, SyncBatchWriter } from "./sqliteWriteBatch";
 
 type JsonRecord = Record<string, unknown>;
 
 const CALL_LOG_ROTATE_THROTTLE_MS = 60_000;
+const isBatchWriterTestProcess =
+  isAutomatedTestProcess() || process.env.NODE_TEST_CONTEXT !== undefined;
+const INSERT_CALL_LOG_SQL = `
+  INSERT INTO call_logs (
+    id, timestamp, method, path, status, model, requested_model, provider,
+    account, connection_id, duration, tokens_in, tokens_out,
+    tokens_cache_read, tokens_cache_creation, tokens_reasoning, tokens_compressed,
+    reasoning_source, reasoning_chars,
+    cache_source, request_type, source_format, target_format, api_key_id, api_key_name,
+    combo_name, combo_step_id, combo_execution_key, error_summary, detail_state,
+    artifact_relpath, artifact_size_bytes, artifact_sha256,
+    has_request_body, has_response_body, has_pipeline_details, request_summary,
+    correlation_id, model_pinned, session_tag
+  )
+  VALUES (
+    @id, @timestamp, @method, @path, @status, @model, @requestedModel, @provider,
+    @account, @connectionId, @duration, @tokensIn, @tokensOut,
+    @tokensCacheRead, @tokensCacheCreation, @tokensReasoning, @tokensCompressed,
+    @reasoningSource, @reasoningChars,
+    @cacheSource, @requestType, @sourceFormat, @targetFormat, @apiKeyId, @apiKeyName,
+    @comboName, @comboStepId, @comboExecutionKey, @errorSummary, @detailState,
+    @artifactRelPath, @artifactSizeBytes, @artifactSha256,
+    @hasRequestBody, @hasResponseBody, @hasPipelineDetails, @requestSummary,
+    @correlationId, @modelPinned, @sessionTag
+  )
+`;
 let lastCallLogRotationScheduledAt = 0;
 let callLogRotateInFlight = false;
 let callLogRotateScheduled = false;
@@ -111,6 +139,41 @@ type DeleteResult = {
 };
 
 let logIdCounter = 0;
+
+function persistCallLogBatch(entries: Array<Record<string, unknown>>): void {
+  const db = getDbInstance();
+  const insert = db.prepare(INSERT_CALL_LOG_SQL);
+  db.transaction(() => {
+    for (const entry of entries) insert.run(entry);
+  })();
+  scheduleCallLogRotation();
+}
+
+const callLogBatchWriter = new SyncBatchWriter<Record<string, unknown>>({
+  persistEntries: persistCallLogBatch,
+  requeueOnError: !isBatchWriterTestProcess,
+  flushOnProcessExit: !isBatchWriterTestProcess,
+});
+registerProcessExitBatchWriter(callLogBatchWriter);
+
+export function flushCallLogBatchWriter() {
+  return callLogBatchWriter.flush();
+}
+
+export function getUnflushedCallLogArtifactPaths(): Set<string> {
+  const paths = new Set<string>();
+  for (const entry of callLogBatchWriter.getBufferedEntries()) {
+    const artifactRelPath = entry.artifactRelPath;
+    if (typeof artifactRelPath === "string" && artifactRelPath.length > 0) {
+      paths.add(artifactRelPath);
+    }
+  }
+  return paths;
+}
+
+export function resetCallLogBatchWriterForTests(): void {
+  callLogBatchWriter.resetForTests();
+}
 
 function generateLogId() {
   logIdCounter++;
@@ -388,6 +451,9 @@ export function cleanupOrphanCallLogFiles(baseDir = CALL_LOGS_DIR) {
 
   try {
     const referenced = listReferencedArtifacts();
+    for (const artifactRelPath of getUnflushedCallLogArtifactPaths()) {
+      referenced.add(artifactRelPath);
+    }
     let deleted = 0;
     for (const file of listCallLogArtifactFiles(baseDir)) {
       if (referenced.has(file.relativePath)) continue;
@@ -669,33 +735,7 @@ export async function saveCallLog(entry: any) {
       }
     }
 
-    const db = getDbInstance();
-    db.prepare(
-      `
-      INSERT INTO call_logs (
-        id, timestamp, method, path, status, model, requested_model, provider,
-        account, connection_id, duration, tokens_in, tokens_out,
-        tokens_cache_read, tokens_cache_creation, tokens_reasoning, tokens_compressed,
-        reasoning_source, reasoning_chars,
-        cache_source, request_type, source_format, target_format, api_key_id, api_key_name,
-        combo_name, combo_step_id, combo_execution_key, error_summary, detail_state,
-        artifact_relpath, artifact_size_bytes, artifact_sha256,
-        has_request_body, has_response_body, has_pipeline_details, request_summary,
-        correlation_id, model_pinned, session_tag
-      )
-      VALUES (
-        @id, @timestamp, @method, @path, @status, @model, @requestedModel, @provider,
-        @account, @connectionId, @duration, @tokensIn, @tokensOut,
-        @tokensCacheRead, @tokensCacheCreation, @tokensReasoning, @tokensCompressed,
-        @reasoningSource, @reasoningChars,
-        @cacheSource, @requestType, @sourceFormat, @targetFormat, @apiKeyId, @apiKeyName,
-        @comboName, @comboStepId, @comboExecutionKey, @errorSummary, @detailState,
-        @artifactRelPath, @artifactSizeBytes, @artifactSha256,
-        @hasRequestBody, @hasResponseBody, @hasPipelineDetails, @requestSummary,
-        @correlationId, @modelPinned, @sessionTag
-      )
-    `
-    ).run({
+    callLogBatchWriter.enqueue({
       ...logEntry,
       errorSummary: toStoredErrorSummary(protectedError),
       detailState,
@@ -707,8 +747,8 @@ export async function saveCallLog(entry: any) {
       hasPipelineDetails: protectedPipelinePayloads ? 1 : 0,
       requestSummary,
     });
-
-    scheduleCallLogRotation();
+    if (detailState === "ready") flushCallLogBatchWriter();
+    if (isBatchWriterTestProcess) flushCallLogBatchWriter();
   } catch (error) {
     console.error("[callLogs] Failed to save call log:", (error as Error).message);
   }
@@ -717,6 +757,8 @@ export async function saveCallLog(entry: any) {
 export function rotateCallLogs() {
   try {
     if (!CALL_LOGS_DIR || !fs.existsSync(CALL_LOGS_DIR)) return;
+
+    flushCallLogBatchWriter();
 
     const retentionMs = getCallLogRetentionDays() * 24 * 60 * 60 * 1000;
     const cutoff = new Date(Date.now() - retentionMs).toISOString();
