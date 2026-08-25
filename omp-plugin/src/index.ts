@@ -35,30 +35,6 @@ const EXCLUDED_TYPES: Record<string, true> = {
   video: true,
 };
 
-const EXCLUDED_OWNERS: Record<string, true> = {
-  comfyui: true,
-  recraft: true,
-  topaz: true,
-  suno: true,
-  udio: true,
-  midjourney: true,
-  "black-forest-labs": true,
-  stability: true,
-};
-
-const NON_CHAT_ID_PATTERNS: RegExp[] = [
-  /-image/i,
-  /midjourney/i,
-  /flux-/i,
-  /stable-diffusion/i,
-  /dall-e/i,
-  /tts-/i,
-  /whisper-/i,
-  /sora-/i,
-  /imagen-/i,
-  /bge-reranker/i,
-];
-
 const ANTHROPIC_KEYS: Record<string, true> = {
   anthropic: true,
   claude: true,
@@ -87,16 +63,6 @@ export function filterModels(models: RawModel[]): RawModel[] {
     if (!m || typeof m.id !== "string") return false;
     if (m.type && EXCLUDED_TYPES[m.type.toLowerCase()]) {
       return false;
-    }
-    const lowerId = m.id.toLowerCase();
-    if (NON_CHAT_ID_PATTERNS.some((pattern) => pattern.test(lowerId))) {
-      return false;
-    }
-    if (m.owned_by) {
-      const lowerOwner = m.owned_by.toLowerCase();
-      if (EXCLUDED_OWNERS[lowerOwner]) {
-        return false;
-      }
     }
     return true;
   });

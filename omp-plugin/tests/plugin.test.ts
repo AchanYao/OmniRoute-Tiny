@@ -20,39 +20,6 @@ describe("OMP Plugin Model Filter & API Resolver", () => {
     );
   });
 
-  it("filters by model ID heuristic when type is absent or standard chat", () => {
-    const rawModels = [
-      { id: "claude-3-5-sonnet", owned_by: "anthropic" },
-      { id: "midjourney-v6-image", owned_by: "midjourney" },
-      { id: "flux-1-schnell", owned_by: "black-forest-labs" },
-      { id: "stable-diffusion-3", owned_by: "stability" },
-      { id: "tts-1-hd", owned_by: "openai" },
-    ];
-
-    const filtered = filterModels(rawModels);
-    assert.deepEqual(
-      filtered.map((m) => m.id),
-      ["claude-3-5-sonnet"]
-    );
-  });
-
-  it("filters out owned_by image/media providers when type is untyped", () => {
-    const rawModels = [
-      { id: "custom-model-1", owned_by: "comfyui" },
-      { id: "custom-model-2", owned_by: "recraft" },
-      { id: "custom-model-3", owned_by: "topaz" },
-      { id: "custom-model-4", owned_by: "suno" },
-      { id: "custom-model-5", owned_by: "udio" },
-      { id: "valid-chat-model", owned_by: "openai" },
-    ];
-
-    const filtered = filterModels(rawModels);
-    assert.deepEqual(
-      filtered.map((m) => m.id),
-      ["valid-chat-model"]
-    );
-  });
-
   it("maps catalog api_format / targetFormat to OMP native API endpoints", () => {
     assert.equal(
       resolveOmpApi({ id: "claude-sonnet", api_format: "anthropic" }),
@@ -86,5 +53,21 @@ describe("OMP Plugin Model Filter & API Resolver", () => {
     );
     assert.equal(resolveOmpApi({ id: "gemini-2.5-pro", owned_by: "google" }), "openai-completions");
     assert.equal(resolveOmpApi({ id: "unknown-model" }), "openai-completions");
+  });
+
+  it("keeps untyped models even when id or owned_by looks like media", () => {
+    const rawModels = [
+      { id: "claude-3-5-sonnet", owned_by: "anthropic" },
+      { id: "midjourney-v6-image", owned_by: "midjourney" },
+      { id: "flux-1-schnell", owned_by: "black-forest-labs" },
+      { id: "tts-1-hd", owned_by: "openai" },
+      { id: "custom-model-1", owned_by: "comfyui" },
+    ];
+
+    const filtered = filterModels(rawModels);
+    assert.deepEqual(
+      filtered.map((m) => m.id),
+      ["claude-3-5-sonnet", "midjourney-v6-image", "flux-1-schnell", "tts-1-hd", "custom-model-1"]
+    );
   });
 });

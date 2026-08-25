@@ -11,8 +11,6 @@ export function generateOmpPluginExtensionCode({ baseUrl, apiKey, providerName =
   const normalizedUrl = baseUrl.replace(/\/$/, "");
   return `// Bundled omniroute-omp-plugin for Oh My Pi
 const EXCLUDED_TYPES = { image: true, embedding: true, audio: true, rerank: true, video: true };
-const EXCLUDED_OWNERS = { comfyui: true, recraft: true, topaz: true, suno: true, udio: true, midjourney: true, "black-forest-labs": true, stability: true };
-const NON_CHAT_ID_PATTERNS = [/-image/i, /midjourney/i, /flux-/i, /stable-diffusion/i, /dall-e/i, /tts-/i, /whisper-/i, /sora-/i, /imagen-/i, /bge-reranker/i];
 
 const ANTHROPIC_KEYS = { anthropic: true, claude: true, cc: true };
 const GOOGLE_KEYS = { google: true, gemini: true };
@@ -23,9 +21,6 @@ export function filterModels(models) {
   return models.filter((m) => {
     if (!m || typeof m.id !== "string") return false;
     if (m.type && EXCLUDED_TYPES[m.type.toLowerCase()]) return false;
-    const lowerId = m.id.toLowerCase();
-    if (NON_CHAT_ID_PATTERNS.some((p) => p.test(lowerId))) return false;
-    if (m.owned_by && EXCLUDED_OWNERS[m.owned_by.toLowerCase()]) return false;
     return true;
   });
 }
