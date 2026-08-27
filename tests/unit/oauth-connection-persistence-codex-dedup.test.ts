@@ -7,6 +7,10 @@ import path from "node:path";
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-7737-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
 
+const originalFetch = globalThis.fetch;
+globalThis.fetch = (async () =>
+  new Response(JSON.stringify({ syncedModels: 0 }), { status: 200 })) as typeof fetch;
+
 const core = await import("../../src/lib/db/core.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");
 const { persistOAuthConnection } = await import("../../src/lib/oauth/connectionPersistence.ts");
@@ -35,6 +39,7 @@ test.beforeEach(async () => {
   await resetStorage();
 });
 test.after(async () => {
+  globalThis.fetch = originalFetch;
   core.resetDbInstance();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
@@ -90,9 +95,17 @@ test("persistOAuthConnection still merges a re-login for the SAME Codex chatgptU
     providerSpecificData: { chatgptUserId: "user-solo" },
   });
 
-  assert.equal(second.id, first.id, "re-authenticating the same Codex user must update the same row");
+  assert.equal(
+    second.id,
+    first.id,
+    "re-authenticating the same Codex user must update the same row"
+  );
 
   const rows = await providersDb.getProviderConnections({ provider: "codex" });
-  assert.equal(rows.length, 1, "no duplicate connection should be created for the same chatgptUserId");
+  assert.equal(
+    rows.length,
+    1,
+    "no duplicate connection should be created for the same chatgptUserId"
+  );
   assert.equal(rows[0]?.accessToken, "token-second", "the row must reflect the latest tokens");
 });

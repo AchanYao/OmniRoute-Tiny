@@ -21,6 +21,10 @@ const routeSrc = readFileSync(
   join(import.meta.dirname, "../../src/app/api/providers/route.ts"),
   "utf8"
 );
+const schedulerSrc = readFileSync(
+  join(import.meta.dirname, "../../src/shared/services/modelSyncScheduler.ts"),
+  "utf8"
+);
 const syncInitializeRouteSrc = readFileSync(
   join(import.meta.dirname, "../../src/app/api/sync/initialize/route.ts"),
   "utf8"
@@ -40,8 +44,8 @@ const claudeProfileSyncSrc = readFileSync(
 
 test("POST /api/providers auto-sync uses the trusted internal origin (not request.url) — #323", () => {
   assert.ok(
-    routeSrc.includes("getModelSyncInternalBaseUrl()"),
-    "auto-sync self-fetch must derive its origin from getModelSyncInternalBaseUrl()"
+    routeSrc.includes("scheduleConnectionModelImport("),
+    "API-key create must reuse the shared model-import helper"
   );
   assert.doesNotMatch(
     routeSrc,
@@ -49,9 +53,19 @@ test("POST /api/providers auto-sync uses the trusted internal origin (not reques
     "auto-sync origin must NOT be derived from the client-controlled request.url/Host (SSRF, CodeQL js/request-forgery #323)"
   );
   assert.match(
-    routeSrc,
+    schedulerSrc,
+    /getModelSyncInternalBaseUrl\(\)/,
+    "auto-sync self-fetch must derive its origin from getModelSyncInternalBaseUrl()"
+  );
+  assert.match(
+    schedulerSrc,
     /fetchModelSyncInternal\(syncUrl,\s*\{[^}]*redirect:\s*["']error["']/s,
     "credential-bearing auto-sync self-fetch must reject redirects"
+  );
+  assert.doesNotMatch(
+    schedulerSrc,
+    /new URL\(request\.url\)\.origin/,
+    "shared import helper must not read the client-controlled request origin"
   );
 });
 

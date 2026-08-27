@@ -144,6 +144,49 @@ export function isModelSyncInternalRequest(request: { headers: Headers }): boole
 }
 
 /**
+ * Fire-and-forget model import for a newly created connection.
+ *
+ * Uses the trusted loopback origin and internal auth header — never
+ * `request.url` / Host. Failures are logged; they must not block persistence.
+ */
+export function scheduleConnectionModelImport(
+  connectionId: string,
+  options: { cookieHeader?: string; logLabel?: string } = {}
+): void {
+  const logLabel = options.logLabel ?? "model-import";
+  try {
+    const internalOrigin = getModelSyncInternalBaseUrl();
+    const syncHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Internal-Auto-Sync": "true",
+      ...buildModelSyncInternalHeaders(),
+    };
+    if (options.cookieHeader) {
+      syncHeaders.cookie = options.cookieHeader;
+    }
+    const syncUrl = `${internalOrigin}/api/providers/${encodeURIComponent(connectionId)}/sync-models?mode=import`;
+    void fetchModelSyncInternal(syncUrl, {
+      method: "POST",
+      headers: syncHeaders,
+      redirect: "error",
+    })
+      .then((syncRes) => {
+        if (!syncRes.ok) {
+          console.log(`[${logLabel}] Auto-sync failed for ${connectionId}: ${syncRes.status}`);
+        }
+      })
+      .catch((err) => {
+        console.log(`[${logLabel}] Auto-sync error for ${connectionId}:`, err?.message || err);
+      });
+  } catch (syncSetupError) {
+    console.log(
+      `[${logLabel}] Auto-sync setup failed for ${connectionId}:`,
+      (syncSetupError as Error)?.message || syncSetupError
+    );
+  }
+}
+
+/**
  * Fetch all provider connections that have autoSync enabled.
  */
 async function getAutoSyncConnections(): Promise<

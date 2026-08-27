@@ -12,6 +12,8 @@
  *   - honor explicit caller intent verbatim
  */
 
+// TECH DEBT (docs/TECH_DEBT.md): hardcoded wire set. `xhigh`/`max` collapse to
+// `high`; catalog-advertised tiers outside this Set are omitted.
 const VALID_EFFORTS = new Set(["minimal", "low", "medium", "high"]);
 
 export type ReasoningEffort = "minimal" | "low" | "medium" | "high";

@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- **oauth:** Newly created OAuth connections now fire-and-forget `/sync-models?mode=import` the same way API-key creates do, so live catalog ids (e.g. Antigravity `gemini-3.7-flash-tiered`) appear without a manual sync. Re-auth / token refresh still skips import.
 - **oauth (cursor):** PKCE Cursor refresh now posts `grant_type=refresh_token` to `/oauth/token` and reads snake_case `access_token`, instead of treating the session refresh token as a user API key at `exchange_user_api_key` (which 401s and marks the connection expired). API-key imports still fall back to the exchange endpoint. Re-auth of an existing row also writes `tokenExpiresAt` in lockstep with `expiresAt`.
 - **oauth (cursor):** Transient `/oauth/token` failures (429/5xx) no longer fall through to `exchange_user_api_key`; an empty 200 plus API-key 401 is also no longer treated as a dead grant. Cursor's public PKCE `clientId` now resolves through `resolvePublicCred("cursor_id")`.
 - **executors**: fix internal timeout misclassified as client disconnect (499) for 7 niche executors — pass TimeoutError reason to controller.abort() (#8197 side-finding)

@@ -2,10 +2,7 @@ import { BaseExecutor, type ExecutorLog, type ProviderCredentials } from "./base
 import { PROVIDERS } from "../config/constants.ts";
 import { getModelTargetFormat } from "../config/providerModels.ts";
 import { isResponsesEndpointPath } from "../utils/responsesEndpoint.ts";
-import {
-  getXaiRequestDefaults,
-  normalizeXaiServiceTier,
-} from "@/lib/providers/requestDefaults";
+import { getXaiRequestDefaults, normalizeXaiServiceTier } from "@/lib/providers/requestDefaults";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -20,6 +17,9 @@ type JsonRecord = Record<string, unknown>;
  * nor deny): its reasoning support is not documented in the local catalog, so
  * we pass it through unchanged rather than guess.
  */
+// TECH DEBT (docs/TECH_DEBT.md): static ids, not discovered capabilities.
+// Suffix effort is only copied onto `reasoning_effort` for these models;
+// newly discovered grok ids lose the suffix mapping.
 const REASONING_ALLOWED = ["grok-4.3", "grok-4.20-0309-reasoning"];
 
 /**

@@ -16,12 +16,12 @@ import {
 } from "../config/grokBuild.ts";
 import { resolvePublicCred } from "../utils/publicCreds.ts";
 import { BaseExecutor, type ExecutorLog, type ProviderCredentials } from "./base.ts";
-import {
-  getXaiRequestDefaults,
-  normalizeXaiServiceTier,
-} from "@/lib/providers/requestDefaults";
+import { getXaiRequestDefaults, normalizeXaiServiceTier } from "@/lib/providers/requestDefaults";
 
 const GROK_BUILD_MAX_TOOLS = 200;
+// TECH DEBT (docs/TECH_DEBT.md): allowlist ignores discovered Grok Build
+// `reasoning_efforts` / `defaultThinkingEffort`. Catalog advertises xhigh/none/minimal;
+// values outside this Set are dropped. Drive from last-successful discovery instead.
 const GROK_BUILD_SUPPORTED_REASONING_EFFORTS = new Set(["low", "medium", "high"]);
 const GROK_BUILD_REFRESH_MAX_ATTEMPTS = 3;
 const GROK_BUILD_REFRESH_MIN_DELAY_MS = 200;
@@ -36,7 +36,6 @@ const GROK_BUILD_UNSUPPORTED_PARAMS = [
   "top_logprobs",
   "reasoning_effort",
 ];
-
 
 /**
  * Grok Build's cli-chat-proxy is stricter about Responses `function_call_output.output`

@@ -90,6 +90,9 @@ export function getThinkingCapabilityFields(
 ): Record<string, boolean | string[]> {
   const supportsThinking = resolvedThinking;
   if (typeof supportsThinking !== "boolean") return {};
+  // TECH DEBT (docs/TECH_DEBT.md): provider-id denylist hides `effort_tiers`
+  // for every antigravity model, including thinking Gemini SKUs. Use discovered
+  // capabilities instead of `providerId !== "antigravity"`.
   const exposesConfigurableEffort = providerId !== "antigravity";
   const defaultEfforts = supportsXHighEffort(providerId, modelId)
     ? CANONICAL_EFFORT_VALUES

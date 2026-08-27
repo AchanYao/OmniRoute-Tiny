@@ -19,6 +19,10 @@ const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-oauth-ref
 process.env.DATA_DIR = TEST_DATA_DIR;
 process.env.API_KEY_SECRET = process.env.API_KEY_SECRET || "oauth-refresh-dedup-test-secret";
 
+const originalFetch = globalThis.fetch;
+globalThis.fetch = (async () =>
+  new Response(JSON.stringify({ syncedModels: 0 }), { status: 200 })) as typeof fetch;
+
 const core = await import("../../src/lib/db/core.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");
 const { persistOAuthConnection, findExistingOAuthConnectionMatch } =
@@ -32,6 +36,7 @@ async function resetStorage() {
 
 test.beforeEach(resetStorage);
 test.after(() => {
+  globalThis.fetch = originalFetch;
   core.resetDbInstance();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });

@@ -1,9 +1,10 @@
 /**
  * Shared upsert for OAuth provider connections, used by both the authenticated
  * OAuth route (`device-complete`) and the public Codex device-flow completion
- * endpoint. Mirrors the exchange/poll/poll-callback persistence: normalize the
+ * endpoint, plus exchange/poll/poll-callback/import-token. Normalize the
  * display name, compute expiry, match an existing connection by id or email
  * (+ Codex workspaceId) and update it, else create a new one, then sync to Cloud.
+ * New rows fire-and-forget `/sync-models?mode=import`; updates do not.
  */
 import { timingSafeEqual } from "crypto";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/models";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { syncToCloud } from "@/lib/cloudSync";
+import { scheduleConnectionModelImport } from "@/shared/services/modelSyncScheduler";
 
 /**
  * Constant-time string comparison to prevent timing-oracle attacks (CWE-208).
@@ -173,6 +175,7 @@ export async function persistOAuthConnection(
     connection = await createProviderConnection(
       buildOAuthConnectionCreatePayload(provider, tokenData, expiresAt)
     );
+    scheduleConnectionModelImport(connection.id, { logLabel: "oauth" });
   }
 
   await syncToCloudIfEnabled();

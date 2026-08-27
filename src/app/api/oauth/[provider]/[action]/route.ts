@@ -9,23 +9,10 @@ import {
   pollForToken,
   resolveBrowserOAuthRedirectUri,
 } from "@/lib/oauth/providers";
-import {
-  persistOAuthConnection,
-  buildOAuthConnectionCreatePayload,
-  findExistingOAuthConnectionMatch,
-  buildOAuthConnectionUpdatePayload,
-} from "@/lib/oauth/connectionPersistence";
+import { persistOAuthConnection } from "@/lib/oauth/connectionPersistence";
 import { createDeviceFlowTicket, getDeviceFlowTicketStatus } from "@/lib/oauth/deviceFlowTickets";
-import {
-  createProviderConnection,
-  updateProviderConnection,
-  getProviderConnections,
-  isCloudEnabled,
-  resolveProxyForProvider,
-} from "@/models";
-import { getConsistentMachineId } from "@/shared/utils/machineId";
+import { resolveProxyForProvider } from "@/models";
 import { isValidGheUrl } from "@/shared/validation/providerSpecificData";
-import { syncToCloud } from "@/lib/cloudSync";
 import { startLocalServer } from "@/lib/oauth/utils/server";
 import { runWithProxyContextOrDirect } from "@omniroute/open-sse/utils/proxyFetch.ts";
 import {
@@ -519,33 +506,7 @@ export async function POST(
         tokenData.name = tokenData.email || tokenData.displayName;
       }
 
-      // Upsert: update existing connection if same provider+email, else create new
-      const expiresAt = tokenData.expiresIn
-        ? new Date(Date.now() + tokenData.expiresIn * 1000).toISOString()
-        : null;
-
-      let connection: any;
-      if (tokenData.email) {
-        const existing = await getProviderConnections({ provider });
-        // Codex accounts sharing an email require workspaceId/chatgptUserId
-        // agreement to be treated as the same account (#7737).
-        const match = findExistingOAuthConnectionMatch(existing, provider, tokenData, connectionId);
-        const matchId = typeof match?.id === "string" ? match.id : null;
-        if (matchId) {
-          connection = await updateProviderConnection(
-            matchId,
-            buildOAuthConnectionUpdatePayload(tokenData, expiresAt)
-          );
-        }
-      }
-      if (!connection) {
-        connection = await createProviderConnection(
-          buildOAuthConnectionCreatePayload(provider, tokenData, expiresAt)
-        );
-      }
-
-      // Auto sync to Cloud if enabled
-      await syncToCloudIfEnabled();
+      const connection = await persistOAuthConnection(provider, tokenData, connectionId);
 
       return NextResponse.json({
         success: true,
@@ -602,38 +563,7 @@ export async function POST(
           result.tokens.name = result.tokens.email || result.tokens.displayName;
         }
 
-        // Upsert: update existing connection if same provider+email, else create new
-        const expiresAt = result.tokens.expiresIn
-          ? new Date(Date.now() + result.tokens.expiresIn * 1000).toISOString()
-          : null;
-
-        let connection: any;
-        if (result.tokens.email) {
-          const existing = await getProviderConnections({ provider });
-          // Codex accounts sharing an email require workspaceId/chatgptUserId
-          // agreement to be treated as the same account (#7737).
-          const match = findExistingOAuthConnectionMatch(
-            existing,
-            provider,
-            result.tokens,
-            connectionId
-          );
-          const matchId = typeof match?.id === "string" ? match.id : null;
-          if (matchId) {
-            connection = await updateProviderConnection(
-              matchId,
-              buildOAuthConnectionUpdatePayload(result.tokens, expiresAt)
-            );
-          }
-        }
-        if (!connection) {
-          connection = await createProviderConnection(
-            buildOAuthConnectionCreatePayload(provider, result.tokens, expiresAt)
-          );
-        }
-
-        // Auto sync to Cloud if enabled
-        await syncToCloudIfEnabled();
+        const connection = await persistOAuthConnection(provider, result.tokens, connectionId);
 
         return NextResponse.json({
           success: true,
@@ -733,37 +663,7 @@ export async function POST(
           tokenData.name = tokenData.email || tokenData.displayName;
         }
 
-        // Upsert: update existing connection if same provider+email, else create new
-        const expiresAt = tokenData.expiresIn
-          ? new Date(Date.now() + tokenData.expiresIn * 1000).toISOString()
-          : null;
-
-        let connection: any;
-        if (tokenData.email) {
-          const existing = await getProviderConnections({ provider });
-          // Codex accounts sharing an email require workspaceId/chatgptUserId
-          // agreement to be treated as the same account (#7737).
-          const match = findExistingOAuthConnectionMatch(
-            existing,
-            provider,
-            tokenData,
-            connectionId
-          );
-          const matchId = typeof match?.id === "string" ? match.id : null;
-          if (matchId) {
-            connection = await updateProviderConnection(
-              matchId,
-              buildOAuthConnectionUpdatePayload(tokenData, expiresAt)
-            );
-          }
-        }
-        if (!connection) {
-          connection = await createProviderConnection(
-            buildOAuthConnectionCreatePayload(provider, tokenData, expiresAt)
-          );
-        }
-
-        await syncToCloudIfEnabled();
+        const connection = await persistOAuthConnection(provider, tokenData, connectionId);
 
         return NextResponse.json({
           success: true,
@@ -805,33 +705,7 @@ export async function POST(
           tokenData.name = tokenData.email || tokenData.displayName;
         }
 
-        const expiresAt = tokenData.expiresIn
-          ? new Date(Date.now() + tokenData.expiresIn * 1000).toISOString()
-          : null;
-
-        let connection: any;
-        if (tokenData.email) {
-          const existing = await getProviderConnections({ provider });
-          const match = existing.find((c: any) => {
-            if (c.id && safeEqual(connectionId, c.id)) return true;
-            if (!safeEqual(c.email, tokenData.email) || c.authType !== "oauth") return false;
-            return true;
-          });
-          const matchId = typeof match?.id === "string" ? match.id : null;
-          if (matchId) {
-            connection = await updateProviderConnection(
-              matchId,
-              buildOAuthConnectionUpdatePayload(tokenData, expiresAt)
-            );
-          }
-        }
-        if (!connection) {
-          connection = await createProviderConnection(
-            buildOAuthConnectionCreatePayload(provider, tokenData, expiresAt)
-          );
-        }
-
-        await syncToCloudIfEnabled();
+        const connection = await persistOAuthConnection(provider, tokenData, connectionId);
 
         return NextResponse.json({
           success: true,
@@ -930,20 +804,5 @@ export async function POST(
   } catch (error) {
     console.error("OAuth POST error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
-
-/**
- * Sync to Cloud if enabled
- */
-async function syncToCloudIfEnabled() {
-  try {
-    const cloudEnabled = await isCloudEnabled();
-    if (!cloudEnabled) return;
-
-    const machineId = await getConsistentMachineId();
-    await syncToCloud(machineId);
-  } catch (error) {
-    console.log("Error syncing to cloud after OAuth:", error);
   }
 }
