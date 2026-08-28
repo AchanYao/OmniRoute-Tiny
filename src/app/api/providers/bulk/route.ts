@@ -26,6 +26,11 @@ import {
 } from "@/lib/providers/requestDefaults";
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 import { isManagedProviderConnectionId } from "@/lib/providers/catalog";
+import {
+  isSunsetWebCookieProviderId,
+  WEB_COOKIE_SUNSET_ERROR,
+  WEB_COOKIE_SUNSET_STATUS,
+} from "@/shared/providers/webCookieSunset";
 import { sanitizeErrorMessage } from "@omniroute/open-sse/utils/error";
 import { validateProviderApiKey } from "@/lib/providers/validation";
 import { getProxyForLevel, resolveProxyForProvider } from "@/lib/localDb";
@@ -61,6 +66,13 @@ export async function POST(request: Request) {
     providerSpecificData: incomingPsd,
     validateKeys,
   } = validation.data;
+
+  if (isSunsetWebCookieProviderId(provider)) {
+    return NextResponse.json(
+      { error: WEB_COOKIE_SUNSET_ERROR },
+      { status: WEB_COOKIE_SUNSET_STATUS }
+    );
+  }
 
   const isManagedOrCompatible =
     isManagedProviderConnectionId(provider) ||

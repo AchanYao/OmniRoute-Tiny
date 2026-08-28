@@ -5,7 +5,6 @@
  * Each provider has its own request format and endpoint.
  */
 
-import { LMARENA_DIRECT_IMAGE_MODELS } from "./providers/registry/lmarena/directModels.ts";
 import { SEGMIND_IMAGE_PROVIDER } from "./providers/registry/segmind/imageModels.ts";
 import { KIE_IMAGE_MODELS } from "./providers/registry/kie/imageModels.ts";
 import { FREEPIK_IMAGE_PROVIDER } from "./providers/registry/freepik/index.ts";
@@ -195,29 +194,6 @@ export const IMAGE_PROVIDERS: Record<string, ImageProviderConfig> = {
       { id: "gpt-5.6-luna", name: "GPT 5.6 Luna (Codex Image)" },
     ],
     supportedSizes: ["1024x1024", "1024x1536", "1536x1024"],
-  },
-
-  "chatgpt-web": {
-    id: "chatgpt-web",
-    alias: "cgpt-web",
-    baseUrl: "https://chatgpt.com/backend-api/f/conversation",
-    authType: "apikey",
-    authHeader: "cookie",
-    format: "chatgpt-web",
-    models: [{ id: "gpt-5.5", name: "GPT-5.5 Instant (ChatGPT Web Image)" }],
-    supportedSizes: ["1024x1024", "1024x1536", "1536x1024"],
-  },
-
-  "microsoft-designer-web": {
-    id: "microsoft-designer-web",
-    alias: "msdesigner",
-    baseUrl:
-      "https://designerapp.officeapps.live.com/designerapp/DallE.ashx?action=GetDallEImagesCogSci",
-    authType: "apikey",
-    authHeader: "bearer",
-    format: "designer-web",
-    models: [{ id: "dall-e-3", name: "DALL-E 3 (Microsoft Designer Web)" }],
-    supportedSizes: ["1024x1024", "1792x1024", "1024x1792"],
   },
 
   xai: {
@@ -651,87 +627,8 @@ export const IMAGE_PROVIDERS: Record<string, ImageProviderConfig> = {
     supportedSizes: ["1024x1024"],
   },
 
-  // Arena (formerly LMArena) Direct-chat Image category (static scrape 2026-07-09).
-  // Not listed in the chat registry — image catalog only. Generation path still
-  // uses cookie session auth via the lmarena provider connection (stable wire id).
-  lmarena: {
-    id: "lmarena",
-    alias: "lma",
-    baseUrl: "https://arena.ai/nextjs-api/stream/create-evaluation",
-    authType: "apikey",
-    authHeader: "cookie",
-    format: "openai",
-    models: LMARENA_DIRECT_IMAGE_MODELS,
-    supportedSizes: ["1024x1024", "1024x1792", "1792x1024"],
-  },
-
-  // Adobe Firefly (unofficial) — IMS access_token (clio-playground-web) or browser
-  // Cookie from firefly.adobe.com. Async 3P image generate + poll.
-  // Model list = static fallback from models/discovery capture; live discovery
-  // refreshes via resolveAdobeFireflyCatalog when credentials work.
-  "adobe-firefly": {
-    id: "adobe-firefly",
-    alias: "firefly",
-    baseUrl: "https://firefly-3p.ff.adobe.io/v2/3p-images/generate-async",
-    authType: "apikey",
-    authHeader: "bearer",
-    format: "adobe-firefly-image",
-    models: [
-      {
-        id: "nano-banana-pro",
-        name: "Firefly Gemini 3.0 (Nano Banana Pro)",
-        inputModalities: ["text", "image"],
-      },
-      {
-        id: "nano-banana",
-        name: "Firefly Gemini 2.5 (Nano Banana)",
-        inputModalities: ["text", "image"],
-      },
-      {
-        id: "nano-banana-2",
-        name: "Firefly Gemini 3.1 (Nano Banana 2)",
-        inputModalities: ["text", "image"],
-      },
-      { id: "gpt-image-2", name: "Firefly GPT Image 2", inputModalities: ["text", "image"] },
-      { id: "gpt-image", name: "Firefly GPT Image 2", inputModalities: ["text", "image"] },
-      { id: "gpt-image-1.5", name: "Firefly GPT Image 1.5", inputModalities: ["text", "image"] },
-      { id: "flux-2", name: "Firefly Flux 2", inputModalities: ["text", "image"] },
-      { id: "flux-pro", name: "Firefly Flux 1.1 Pro", inputModalities: ["text", "image"] },
-      { id: "flux-ultra", name: "Firefly Flux 1.1 Ultra", inputModalities: ["text", "image"] },
-      { id: "seedream-4", name: "Firefly Seedream 4.0", inputModalities: ["text", "image"] },
-      {
-        id: "seedream-5-lite",
-        name: "Firefly Seedream 5.0 Lite",
-        inputModalities: ["text", "image"],
-      },
-      {
-        id: "runway-gen4-image",
-        name: "Firefly Runway Gen-4 Image",
-        inputModalities: ["text", "image"],
-      },
-      // Topaz Labs upscalers (inputMediaUseCase: ["upscaling"]).
-      // Served by firefly-3p /v2/3p-images/upsample — see config/upscaleRegistry.ts.
-      {
-        id: "topaz-standard",
-        name: "Firefly Topaz Upscale (Standard)",
-        inputModalities: ["image"],
-        imageRequired: true,
-      },
-      {
-        id: "topaz-bloom",
-        name: "Firefly Topaz Bloom (Creative Upscale)",
-        inputModalities: ["image"],
-        imageRequired: true,
-      },
-    ],
-    supportedSizes: ["1:1", "16:9", "9:16", "4:3", "3:4", "1024x1024", "1792x1024", "1024x1792"],
-  },
-
-  // Cheaper Inference (OSS-sponsor gateway). Declared AFTER adobe-firefly on
-  // purpose: it shares the nano-banana-pro / nano-banana-2 ids, and parseImageModel
-  // resolves a bare id by first-match over this object's iteration order, so
-  // Firefly keeps the bare ids and these are prefix-only. See the module for the
-  // full collision note.
+  // Cheaper Inference (OSS-sponsor gateway). Bare nano-banana ids are
+  // prefix-only (`cheaperinference/<id>` / `cinf/<id>`).
   cheaperinference: CHEAPERINFERENCE_IMAGE_PROVIDER,
 
   // Keep Bailian Coding Plan after existing duplicate model owners so adding

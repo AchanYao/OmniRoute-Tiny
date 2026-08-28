@@ -17,8 +17,6 @@
  * @module lib/usage/flatRateProviders
  */
 
-import { WEB_COOKIE_PROVIDERS } from "@/shared/constants/providers/web-cookie";
-
 /**
  * Dedicated subscription / coding-plan provider ids whose identity IS a
  * flat-rate plan. Kept explicit (not derived) because these entries sit in the
@@ -55,6 +53,5 @@ export function isFlatRateProvider(providerId: string | null | undefined): boole
   if (!providerId || typeof providerId !== "string") return false;
   const id = providerId.trim().toLowerCase();
   if (!id) return false;
-  if (FLAT_RATE_SUBSCRIPTION_PROVIDER_IDS.has(id)) return true;
-  return Object.prototype.hasOwnProperty.call(WEB_COOKIE_PROVIDERS, id);
+  return FLAT_RATE_SUBSCRIPTION_PROVIDER_IDS.has(id);
 }

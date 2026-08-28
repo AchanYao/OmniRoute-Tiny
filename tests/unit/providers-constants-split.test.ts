@@ -1,23 +1,10 @@
 // Characterization of the providers.ts catalog split (god-file decomposition): the host became a
-// barrel that re-exports 10 data catalogs now living under constants/providers/*, and APIKEY is
+// barrel that re-exports data catalogs now living under constants/providers/*, and APIKEY is
 // merged from 6 semantic family files (apikey/<family>.ts). Locks: the public surface (every catalog
-// + helpers still exported), the spread-merge integrity (198 APIKEY entries, no loss/dup), and that
-// load-time Zod validation still runs. Pure-data move → behavior must be identical.
-// Count was 171 before obsolete provider removals (PR #6675: glhf/kluster/cablyai/inclusionai etc.,
-// 171->167) plus #6126 (ClinePass dual-auth): the API-key-only APIKEY_PROVIDERS_GATEWAYS entry was
-// removed as a duplicate now that clinepass is OAuth-primary (OAUTH_PROVIDERS.clinepass) with its
-// BYOK path admitted through the DUAL_AUTH_APIKEY_PROVIDER_IDS gate instead (167->166), then the
-// OpenVecta inference-gateway addition brought it back to 167, then #7246 (Chenzk API gateway)
-// brought it to 168, then more additions brought it to 172, then #6650 (g4f.space no-key gateway:
-// 5 new sub-path entries — g4f-groq/g4f-gemini/g4f-pollinations/g4f-ollama/g4f-nvidia) brought it
-// to 177, then 2 more provider additions in the v3.8.49 cycle brought it to 179, the free-catalog
-// expansion (#7840, navy) to 180, the Alibaba/Qwen Cloud regional additions (#7882) to 182, and
-// #7887 (5 free-tier providers: ainative/aion/sealion/routeway/nara) to 187, then #8077 (clova-studio/
-// internlm/ant-ling, all regional) to 190, then #8161 (sarvam/writer/plamo — writer in frontier-labs,
-// sarvam+plamo in regional) to 193, then #8170 (inception/typhoon — inception in frontier-labs,
-// typhoon in regional) to 195, then Firecrawl dual search+fetch under SEARCH_PROVIDERS.firecrawl
-// (removed specialty-media duplicate) to 194, #8861 (Xiaomi MiMo Token Plan, regional) to 195, and
-// the Cheaper Inference gateway (OSS-sponsor reseller, gateways family) to 198 (UnoRouter #9009, Raycast Pro #8895).
+// + helpers still exported), the spread-merge integrity (196 APIKEY entries after suno/udio specialty
+// removals, no loss/dup), and that load-time Zod validation still runs. Pure-data move → behavior
+// must be identical. WEB_COOKIE_PROVIDERS / web-cookie.ts were deleted in the Tiny website-session
+// sunset and are intentionally absent from the barrel.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
@@ -27,7 +14,6 @@ test("barrel still exports every catalog + key helpers", () => {
   for (const name of [
     "NOAUTH_PROVIDERS",
     "OAUTH_PROVIDERS",
-    "WEB_COOKIE_PROVIDERS",
     "APIKEY_PROVIDERS",
     "LOCAL_PROVIDERS",
     "SEARCH_PROVIDERS",
@@ -44,14 +30,19 @@ test("barrel still exports every catalog + key helpers", () => {
   ]) {
     assert.ok(name in P, `missing export: ${name}`);
   }
+  assert.equal(
+    "WEB_COOKIE_PROVIDERS" in P,
+    false,
+    "WEB_COOKIE_PROVIDERS must stay deleted after Tiny website-session sunset"
+  );
 });
 
-test("APIKEY_PROVIDERS merges the 6 family files into 198 entries (no loss / no dup)", async () => {
+test("APIKEY_PROVIDERS merges the 6 family files into 196 entries (no loss / no dup)", async () => {
   const keys = Object.keys((P as Record<string, object>).APIKEY_PROVIDERS);
-  assert.equal(keys.length, 198);
-  assert.equal(new Set(keys).size, 198, "duplicate keys after spread-merge");
+  assert.equal(keys.length, 196);
+  assert.equal(new Set(keys).size, 196, "duplicate keys after spread-merge");
   // the merged object's entry-count equals the sum of the 6 semantic family files; families are a
-  // strict partition (every provider in exactly one), so the sum must be exactly 198.
+  // strict partition (every provider in exactly one), so the sum must be exactly 196.
   const families: [string, string][] = [
     ["gateways", "APIKEY_PROVIDERS_GATEWAYS"],
     ["frontier-labs", "APIKEY_PROVIDERS_FRONTIER"],
@@ -71,7 +62,9 @@ test("APIKEY_PROVIDERS merges the 6 family files into 198 entries (no loss / no 
       seen.add(k);
     }
   }
-  assert.equal(famTotal, 198, "families must partition all 198 providers");
+  assert.equal(famTotal, 196, "families must partition all 196 providers");
+  assert.equal(keys.includes("suno"), false, "suno specialty-media entry was removed");
+  assert.equal(keys.includes("udio"), false, "udio specialty-media entry was removed");
 });
 
 test("AI_PROVIDERS Proxy aggregates all sections; lookups resolve", () => {
@@ -87,7 +80,6 @@ test("each extracted data module is importable on its own", async () => {
   const mods = [
     ["noauth", "NOAUTH_PROVIDERS"],
     ["oauth", "OAUTH_PROVIDERS"],
-    ["web-cookie", "WEB_COOKIE_PROVIDERS"],
     ["local", "LOCAL_PROVIDERS"],
     ["search", "SEARCH_PROVIDERS"],
     ["audio", "AUDIO_ONLY_PROVIDERS"],
@@ -99,4 +91,10 @@ test("each extracted data module is importable on its own", async () => {
     const m = await import(`../../src/shared/constants/providers/${file}.ts`);
     assert.ok(m[name] && typeof m[name] === "object", `${file}.ts must export ${name}`);
   }
+
+  await assert.rejects(
+    () => import("../../src/shared/constants/providers/web-cookie.ts"),
+    /Cannot find module|ENOENT|Failed to load|error/i,
+    "web-cookie.ts must remain deleted"
+  );
 });

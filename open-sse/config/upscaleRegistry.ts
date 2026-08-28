@@ -7,13 +7,10 @@
  * scale factor and (for generative upscalers) a creativity level.
  *
  * Only providers whose upscale API is already implemented here are listed:
- *   - adobe-firefly  → Topaz models on firefly-3p `/v2/3p-images/upsample`
  *   - stability-ai   → `/v2beta/stable-image/upscale/{fast,conservative,creative}`
  *   - topaz          → Topaz Labs `/image/v1/enhance` (native API key)
  *
- * Credentials/proxy resolution reuses each provider's existing connection, so a
- * configured Adobe Firefly / Stability AI / Topaz Labs account works with no
- * extra setup.
+ * Credentials/proxy resolution reuses each provider's existing connection.
  */
 
 import { parseModelFromRegistry, getAllModelsFromRegistry } from "./registryUtils.ts";
@@ -41,46 +38,11 @@ export interface UpscaleProviderConfig {
   baseUrl: string;
   authType: "apikey" | "none";
   authHeader: string;
-  format: "adobe-firefly-upscale" | "stability-upscale" | "topaz-upscale";
+  format: "stability-upscale" | "topaz-upscale";
   models: UpscaleModelEntry[];
 }
 
 export const UPSCALE_PROVIDERS: Record<string, UpscaleProviderConfig> = {
-  // Adobe Firefly (unofficial) — Topaz Labs models exposed through the Firefly 3P
-  // async upsample job API. Live capture: web_providers/upsample.txt.
-  // Discovery (web_providers/upscale.txt) lists modelId "topaz" with the image
-  // modelVersions default/standard/reimagine carrying inputMediaUseCase ["upscaling"];
-  // starlight-*/astra-2 are video upscalers and intentionally excluded here.
-  "adobe-firefly": {
-    id: "adobe-firefly",
-    alias: "firefly",
-    baseUrl: "https://firefly-3p.ff.adobe.io/v2/3p-images/upsample",
-    authType: "apikey",
-    authHeader: "bearer",
-    format: "adobe-firefly-upscale",
-    models: [
-      {
-        id: "topaz",
-        name: "Firefly Topaz Upscale",
-        factors: [2, 4],
-        description: "Topaz Labs detail-preserving upscale (standard).",
-      },
-      {
-        id: "topaz-standard",
-        name: "Firefly Topaz Upscale (Standard)",
-        factors: [2, 4],
-        description: "Topaz Labs detail-preserving upscale — no invented detail.",
-      },
-      {
-        id: "topaz-bloom",
-        name: "Firefly Topaz Bloom (Creative)",
-        factors: [2, 4],
-        supportsCreativity: true,
-        description: "Topaz Bloom generative upscale — creativity adds synthesized detail.",
-      },
-    ],
-  },
-
   // Stability AI stable-image upscale family. `fast` is a 4x deterministic pass;
   // `conservative` and `creative` are prompt-guided (creative is an async job).
   "stability-ai": {
@@ -134,7 +96,9 @@ export const UPSCALE_PROVIDERS: Record<string, UpscaleProviderConfig> = {
   },
 };
 
-export function getUpscaleProvider(providerId: string | null | undefined): UpscaleProviderConfig | null {
+export function getUpscaleProvider(
+  providerId: string | null | undefined
+): UpscaleProviderConfig | null {
   if (!providerId) return null;
   return UPSCALE_PROVIDERS[providerId] || null;
 }

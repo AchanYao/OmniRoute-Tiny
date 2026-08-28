@@ -17,8 +17,6 @@ import { handleDashscopeVideoGeneration } from "./videoGeneration/dashscopeHandl
 import { handleNovitaVideoGeneration } from "./videoGeneration/novitaHandler.ts";
 import { handleXaiVideoGeneration } from "./videoGeneration/xaiGrokImagineHandler.ts";
 import { handleSegmindVideoGeneration } from "./videoGeneration/providers/segmind.ts";
-import { handleAdobeFireflyVideoGeneration } from "./videoGeneration/adobeFireflyHandler.ts";
-import { getExecutor } from "../executors/index.ts";
 import { getKieTaskId, isJsonObject, parseKieResultJson } from "../utils/kieTask.ts";
 import {
   buildRunwayApiUrl,
@@ -34,11 +32,20 @@ import {
 } from "../utils/comfyuiClient.ts";
 import { saveCallLog } from "@/lib/usageDb";
 import { sanitizeErrorMessage } from "../utils/error.ts";
+import {
+  isSunsetWebCookieChatTarget,
+  sunsetProviderFromModelString,
+  webCookieSunsetHandlerResult,
+} from "@/shared/providers/webCookieSunset.ts";
 
 /**
  * Handle video generation request
  */
 export async function handleVideoGeneration({ body, credentials, log }) {
+  if (sunsetProviderFromModelString(body?.model)) {
+    return webCookieSunsetHandlerResult();
+  }
+
   const { provider, model } = parseVideoModel(body.model);
 
   if (!provider) {
@@ -47,6 +54,10 @@ export async function handleVideoGeneration({ body, credentials, log }) {
       status: 400,
       error: `Invalid video model: ${body.model}. Use format: provider/model`,
     };
+  }
+
+  if (isSunsetWebCookieChatTarget(provider)) {
+    return webCookieSunsetHandlerResult();
   }
 
   const providerConfig = getVideoProvider(provider);
@@ -93,10 +104,6 @@ export async function handleVideoGeneration({ body, credentials, log }) {
 
   if (providerConfig.format === "haiper-video") {
     return handleHaiperVideoGeneration({ model, provider, providerConfig, body, credentials, log });
-  }
-
-  if (providerConfig.format === "veoaifree-web") {
-    return handleVeoAiFreeVideoGeneration({ model, provider, body, credentials, log });
   }
 
   if (providerConfig.format === "leonardo-video") {
@@ -147,16 +154,6 @@ export async function handleVideoGeneration({ body, credentials, log }) {
   }
   if (providerConfig.format === "xai-video") {
     return handleXaiVideoGeneration({ model, provider, providerConfig, body, credentials, log });
-  }
-  if (providerConfig.format === "adobe-firefly-video") {
-    return handleAdobeFireflyVideoGeneration({
-      model,
-      provider,
-      providerConfig,
-      body,
-      credentials,
-      log,
-    });
   }
 
   return {
@@ -217,73 +214,6 @@ async function handleVertexVeoGeneration({ model, body, credentials, log }) {
  * Handle ComfyUI video generation
  * Submits an AnimateDiff or SVD workflow, polls for completion, fetches output video
  */
-async function handleVeoAiFreeVideoGeneration({ model, provider, body, credentials, log }) {
-  const executor = getExecutor(provider);
-  if (!executor) {
-    return { success: false, status: 400, error: `Unknown video provider: ${provider}` };
-  }
-
-  const prompt = String(body.prompt ?? "");
-  const systemParts = [];
-  if (body.size) systemParts.push(`aspect_ratio: ${body.size}`);
-  if (body.aspect_ratio) systemParts.push(`aspect_ratio: ${body.aspect_ratio}`);
-
-  const response = await executor.execute({
-    model,
-    body: {
-      ...body,
-      model: `${provider}/${model}`,
-      messages: [
-        ...(systemParts.length > 0 ? [{ role: "system", content: systemParts.join("\n") }] : []),
-        { role: "user", content: prompt },
-      ],
-    },
-    stream: false,
-    credentials: credentials || { connectionId: "noauth" },
-    signal: null,
-    log,
-  });
-
-  const upstreamResponse = response instanceof Response ? response : response.response;
-  if (!upstreamResponse.ok) {
-    return {
-      success: false,
-      status: upstreamResponse.status || 502,
-      error: await upstreamResponse.text().catch(() => "Video provider error"),
-    };
-  }
-
-  const payload = await upstreamResponse.json().catch(() => null);
-  const item = Array.isArray(payload?.data) ? payload.data[0] : null;
-  if (
-    !payload ||
-    !Array.isArray(payload.data) ||
-    payload.data.length !== 1 ||
-    !item ||
-    typeof item.b64_json !== "string" ||
-    item.b64_json.trim().length === 0 ||
-    item.format !== "mp4" ||
-    typeof item.url === "string"
-  ) {
-    return {
-      success: false,
-      status: 502,
-      error: {
-        error: {
-          message: "Veo AI Free did not return a valid MP4 artifact",
-          type: "upstream_error",
-          code: "VIDEO_ARTIFACT_UNAVAILABLE",
-        },
-      },
-    };
-  }
-
-  return {
-    success: true,
-    data: payload,
-  };
-}
-
 async function handleComfyUIVideoGeneration({ model, provider, providerConfig, body, log }) {
   const startTime = Date.now();
   const [width, height] = (body.size || "512x512").split("x").map(Number);

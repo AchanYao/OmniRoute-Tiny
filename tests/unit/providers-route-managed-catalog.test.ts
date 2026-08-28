@@ -29,7 +29,7 @@ test.after(() => {
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
-test("providers route accepts managed local, audio, web-cookie and search providers", async () => {
+test("providers route accepts managed local, audio, and search providers", async () => {
   const cases = [
     {
       provider: "synthetic",
@@ -337,38 +337,6 @@ test("providers route accepts managed local, audio, web-cookie and search provid
       },
     },
     {
-      provider: "grok-web",
-      body: {
-        provider: "grok-web",
-        apiKey: "sso=grok-cookie",
-        name: "Grok Web Session",
-      },
-    },
-    {
-      provider: "perplexity-web",
-      body: {
-        provider: "perplexity-web",
-        apiKey: "__Secure-next-auth.session-token=pplx-cookie",
-        name: "Perplexity Web Session",
-      },
-    },
-    {
-      provider: "blackbox-web",
-      body: {
-        provider: "blackbox-web",
-        apiKey: "__Secure-authjs.session-token=bb-cookie",
-        name: "Blackbox Web Session",
-      },
-    },
-    {
-      provider: "muse-spark-web",
-      body: {
-        provider: "muse-spark-web",
-        apiKey: "abra_sess=meta-cookie",
-        name: "Muse Spark Web Session",
-      },
-    },
-    {
       provider: "google-pse-search",
       body: {
         provider: "google-pse-search",
@@ -441,6 +409,24 @@ test("providers route rejects upstream proxy tools as direct provider connection
   assert.deepEqual(await response.json(), { error: "Invalid provider" });
 });
 
+test("providers route rejects sunset web-cookie creates with 410", async () => {
+  for (const provider of ["chatgpt-web", "grok-web", "perplexity-web", "kimi-web"]) {
+    const response = await providersRoute.POST(
+      await makeManagementSessionRequest("http://localhost/api/providers", {
+        method: "POST",
+        body: {
+          provider,
+          apiKey: "session-cookie",
+          name: `${provider} leftover`,
+        },
+      })
+    );
+    assert.equal(response.status, 410, `${provider} must be sunset`);
+    const payload = (await response.json()) as { error?: string };
+    assert.match(String(payload.error), /sunset/i);
+  }
+});
+
 test("DELETE /api/providers batch deletes connections", async () => {
   const createReq = async (provider, name, apiKey) =>
     providersRoute.POST(
@@ -480,7 +466,7 @@ test("DELETE /api/providers batch deletes connections", async () => {
   assert.equal(remainingIds.includes(id2), true);
   assert.deepEqual(
     (await modelsDb.getCustomModels("synthetic")).map((model: { id: string }) => model.id),
-    ["manual-model", "imported-model"]
+    ["manual-model"]
   );
 
   const deleteLastRes = await providersRoute.DELETE(

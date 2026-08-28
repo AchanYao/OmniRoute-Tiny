@@ -13,9 +13,6 @@ export interface ProviderRiskNoticeFields {
 import { NOAUTH_PROVIDERS } from "./providers/noauth";
 export { supportsNoAuthProviderProxy } from "./providers/noauth";
 import { OAUTH_PROVIDERS } from "./providers/oauth";
-import { WEB_COOKIE_PROVIDERS, resolveWebProviderHost } from "./providers/web-cookie";
-export { resolveWebProviderHost };
-export type { WebProviderHostLink } from "./providers/web-cookie";
 import { APIKEY_PROVIDERS } from "./providers/apikey";
 import { LOCAL_PROVIDERS } from "./providers/local";
 import { SEARCH_PROVIDERS } from "./providers/search";
@@ -29,7 +26,6 @@ export const FREE_PROVIDERS = {};
 // No-auth Providers
 
 export const FREE_APIKEY_PROVIDER_IDS = new Set([
-  "mimocode",
   "opencode",
   "dahl",
   // auggie is a fully local, credential-less CLI passthrough (auth handled by
@@ -50,8 +46,6 @@ const DUAL_AUTH_PROVIDER_IDS = new Set(["clinepass", "codebuddy-cn"]);
 export function supportsDualAuthProvider(providerId: unknown): boolean {
   return typeof providerId === "string" && DUAL_AUTH_PROVIDER_IDS.has(providerId);
 }
-
-// Web / Cookie Providers
 
 // API Key Providers
 
@@ -112,7 +106,6 @@ export const ENTERPRISE_CLOUD_PROVIDER_IDS = new Set([
 
 export const VIDEO_PROVIDER_IDS = new Set([
   "runwayml",
-  "veoaifree-web",
   "pollinations",
   "minimax",
   "together",
@@ -184,14 +177,12 @@ const EXPLICIT_OPTIONAL_APIKEY_PROVIDER_IDS = new Set([
   "searxng-search",
   "firecrawl",
   "pollinations",
-  "copilot-web",
   "hackclub",
   "g4f-groq",
   "g4f-gemini",
   "g4f-pollinations",
   "g4f-ollama",
   "g4f-nvidia",
-  "huggingchat",
   "gitlawb",
   "gitlawb-gmi",
 ]);
@@ -242,7 +233,6 @@ const _PROVIDER_SECTIONS = [
   NOAUTH_PROVIDERS,
   OAUTH_PROVIDERS,
   APIKEY_PROVIDERS,
-  WEB_COOKIE_PROVIDERS,
   LOCAL_PROVIDERS,
   SEARCH_PROVIDERS,
   AUDIO_ONLY_PROVIDERS,
@@ -296,7 +286,6 @@ export function getProviderById(id: string) {
     (NOAUTH_PROVIDERS as Record<string, any>)[id] ??
     (OAUTH_PROVIDERS as Record<string, any>)[id] ??
     (APIKEY_PROVIDERS as Record<string, any>)[id] ??
-    (WEB_COOKIE_PROVIDERS as Record<string, any>)[id] ??
     (LOCAL_PROVIDERS as Record<string, any>)[id] ??
     (SEARCH_PROVIDERS as Record<string, any>)[id] ??
     (AUDIO_ONLY_PROVIDERS as Record<string, any>)[id] ??
@@ -331,7 +320,6 @@ export type AiProviderId =
   | keyof typeof NOAUTH_PROVIDERS
   | keyof typeof OAUTH_PROVIDERS
   | keyof typeof APIKEY_PROVIDERS
-  | keyof typeof WEB_COOKIE_PROVIDERS
   | keyof typeof LOCAL_PROVIDERS
   | keyof typeof SEARCH_PROVIDERS
   | keyof typeof AUDIO_ONLY_PROVIDERS
@@ -343,7 +331,6 @@ export type AiProviderDefinition =
   | (typeof NOAUTH_PROVIDERS)[keyof typeof NOAUTH_PROVIDERS]
   | (typeof OAUTH_PROVIDERS)[keyof typeof OAUTH_PROVIDERS]
   | (typeof APIKEY_PROVIDERS)[keyof typeof APIKEY_PROVIDERS]
-  | (typeof WEB_COOKIE_PROVIDERS)[keyof typeof WEB_COOKIE_PROVIDERS]
   | (typeof LOCAL_PROVIDERS)[keyof typeof LOCAL_PROVIDERS]
   | (typeof SEARCH_PROVIDERS)[keyof typeof SEARCH_PROVIDERS]
   | (typeof AUDIO_ONLY_PROVIDERS)[keyof typeof AUDIO_ONLY_PROVIDERS]
@@ -446,14 +433,6 @@ export const USAGE_SUPPORTED_PROVIDERS = [
   "vertex",
   "vertex-partner",
   "codebuddy-cn",
-  // PromptQL playground credits (getCreditSummary → USD micros)
-  "promptql",
-  "pql",
-  // Adobe Firefly web (cookie/JWT as apikey) — GET firefly.adobe.io/v1/credits/balance
-  "adobe-firefly",
-  "firefly",
-  "hyperagent",
-  "ha",
   // xAI OAuth (Grok) weekly quota (id + public alias, same pattern as ha/agy)
   "xai-oauth",
   "xao",
@@ -469,7 +448,6 @@ export const USAGE_SUPPORTED_PROVIDERS = [
 export {
   NOAUTH_PROVIDERS,
   OAUTH_PROVIDERS,
-  WEB_COOKIE_PROVIDERS,
   APIKEY_PROVIDERS,
   LOCAL_PROVIDERS,
   SEARCH_PROVIDERS,
@@ -484,7 +462,6 @@ import { validateProviders } from "../validation/providerSchema";
 validateProviders(NOAUTH_PROVIDERS, "NOAUTH_PROVIDERS");
 validateProviders(OAUTH_PROVIDERS, "OAUTH_PROVIDERS");
 validateProviders(APIKEY_PROVIDERS, "APIKEY_PROVIDERS");
-validateProviders(WEB_COOKIE_PROVIDERS, "WEB_COOKIE_PROVIDERS");
 validateProviders(LOCAL_PROVIDERS, "LOCAL_PROVIDERS");
 validateProviders(SEARCH_PROVIDERS, "SEARCH_PROVIDERS");
 validateProviders(AUDIO_ONLY_PROVIDERS, "AUDIO_ONLY_PROVIDERS");

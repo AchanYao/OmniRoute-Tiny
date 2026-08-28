@@ -90,7 +90,6 @@ describe("responseSanitizer/reasoning — Kimi Code K3 textual reasoning-tag rou
 describe("responseSanitizer/reasoning — MiniMax M3 textual reasoning-tag route", () => {
   const affectedRoutes: Array<[string, string]> = [
     ["trae", "minimax-m3"],
-    ["huggingchat", "minimaxai/minimax-m3"],
     ["bazaarlink", "minimax-m3"],
     ["ollama-cloud", "minimax-m3"],
     ["opencode", "minimax-m3-free"],
@@ -105,8 +104,8 @@ describe("responseSanitizer/reasoning — MiniMax M3 textual reasoning-tag route
     });
   }
 
-  it("shouldParseTextualReasoningTags is true for a mixed-case MiniMax M3 model id (huggingchat)", () => {
-    assert.equal(shouldParseTextualReasoningTags("huggingchat", "MiniMaxAI/MiniMax-M3"), true);
+  it("shouldParseTextualReasoningTags is true for a mixed-case MiniMax M3 model id (trae)", () => {
+    assert.equal(shouldParseTextualReasoningTags("trae", "MiniMaxAI/MiniMax-M3"), true);
   });
 
   it("extracts <think>...</think> from delta.content into reasoning_content on an affected route", () => {

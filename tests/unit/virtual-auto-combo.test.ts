@@ -81,115 +81,6 @@ test("createVirtualAutoCombo includes OAuth accessToken connections with real ex
   assert.ok(combo.autoConfig.candidatePool.includes("anthropic"));
 });
 
-test("createVirtualAutoCombo includes configured web-session providers without apiKey fields", async () => {
-  await providersDb.createProviderConnection({
-    provider: "qwen-web",
-    authType: "apikey",
-    name: "Qwen Web Session",
-    providerSpecificData: { token: "qwen-web-session-token" },
-    defaultModel: "qwen3-coder-plus",
-  });
-
-  const combo: VirtualComboResult = await virtualFactory.createVirtualAutoCombo("coding");
-
-  const qwenWeb = combo.models.find(
-    (model) => model.providerId === "qwen-web" && model.model === "qwen-web/qwen3-coder-plus"
-  );
-  assert.ok(qwenWeb, "the configured web-session model should be an auto candidate");
-  assert.ok(combo.autoConfig.candidatePool.includes("qwen-web"));
-});
-
-test("createVirtualAutoCombo excludes web-session providers with empty required token data", async () => {
-  await providersDb.createProviderConnection({
-    provider: "qwen-web",
-    authType: "apikey",
-    name: "Qwen Web Empty Session",
-    providerSpecificData: { token: "   " },
-    defaultModel: "qwen3-coder-plus",
-  });
-
-  const combo: VirtualComboResult = await virtualFactory.createVirtualAutoCombo("coding");
-
-  assert.equal(
-    combo.models.some((model) => model.providerId === "qwen-web"),
-    false,
-    "web-session providers with empty required token data must not be auto-combo candidates"
-  );
-  assert.equal(combo.autoConfig.candidatePool.includes("qwen-web"), false);
-});
-
-test("createVirtualAutoCombo excludes web-session providers with irrelevant providerSpecificData", async () => {
-  await providersDb.createProviderConnection({
-    provider: "chatgpt-web",
-    authType: "apikey",
-    name: "ChatGPT Web Invalid Session",
-    providerSpecificData: { unrelated: "value" },
-    defaultModel: "gpt-4o",
-  });
-
-  const combo: VirtualComboResult = await virtualFactory.createVirtualAutoCombo("coding");
-
-  assert.equal(
-    combo.models.some((model) => model.providerId === "chatgpt-web"),
-    false,
-    "web-session providers with irrelevant providerSpecificData must not be auto-combo candidates"
-  );
-  assert.equal(combo.autoConfig.candidatePool.includes("chatgpt-web"), false);
-});
-
-test("createVirtualAutoCombo groups same-provider web sessions behind one logical model", async () => {
-  const connA = await providersDb.createProviderConnection({
-    provider: "qwen-web",
-    authType: "apikey",
-    name: "Qwen Web Session A",
-    providerSpecificData: { token: "qwen-web-session-token-a" },
-    defaultModel: "qwen3-coder-plus",
-  });
-  const connB = await providersDb.createProviderConnection({
-    provider: "qwen-web",
-    authType: "apikey",
-    name: "Qwen Web Session B",
-    providerSpecificData: { token: "qwen-web-session-token-b" },
-    defaultModel: "qwen3-coder-plus",
-  });
-
-  const combo: VirtualComboResult = await virtualFactory.createVirtualAutoCombo("coding");
-
-  const qwenWebModel = combo.models.find(
-    (model) => model.providerId === "qwen-web" && model.model === "qwen-web/qwen3-coder-plus"
-  );
-  assert.ok(qwenWebModel, "the provider model should remain in the candidate pool");
-  assert.equal(qwenWebModel.connectionId, null);
-  assert.deepEqual(
-    new Set(qwenWebModel.allowedConnectionIds),
-    new Set([connA.id, connB.id]),
-    "same-provider web sessions should remain available as account fallbacks"
-  );
-  assert.equal(
-    combo.autoConfig.candidatePool.filter((provider) => provider === "qwen-web").length,
-    1,
-    "provider pool remains provider-scoped while model entries preserve connection identity"
-  );
-});
-
-test("createVirtualAutoCombo includes cookie web-session providers with required cookie data", async () => {
-  await providersDb.createProviderConnection({
-    provider: "chatgpt-web",
-    authType: "apikey",
-    name: "ChatGPT Web Session",
-    providerSpecificData: { cookie: "__Secure-next-auth.session-token=chatgpt-session" },
-    defaultModel: "gpt-4o",
-  });
-
-  const combo: VirtualComboResult = await virtualFactory.createVirtualAutoCombo("coding");
-
-  const chatgptWeb = combo.models.find(
-    (model) => model.providerId === "chatgpt-web" && model.model === "chatgpt-web/gpt-4o"
-  );
-  assert.ok(chatgptWeb, "the configured cookie web-session model should be a candidate");
-  assert.ok(combo.autoConfig.candidatePool.includes("chatgpt-web"));
-});
-
 test("createVirtualAutoCombo includes no-auth OpenCode Free without provider_connections rows", async () => {
   const combo: VirtualComboResult = await virtualFactory.createVirtualAutoCombo("fast");
 
@@ -204,15 +95,10 @@ test("createVirtualAutoCombo includes no-auth OpenCode Free without provider_con
 });
 
 test("createVirtualAutoCombo restricts the no-auth pool to the allowlist", async () => {
-  // Policy: the no-auth (keyless) auto-combo allowlist is narrowed to `opencode`
-  // and `felo-web` (open-sse/services/autoCombo/virtualFactory.ts::AUTO_COMBO_NOAUTH_ALLOWLIST) —
-  // the keyless backends verified to work without configuration on our reference
-  // egress. The others stay usable via direct `<alias>/<model>` calls but must
-  // NOT be auto-routed to. Dedicated guard:
-  // tests/unit/noauth-autocombo-allowlist.test.ts.
+  // Official OpenCode Free is the remaining no-auth HTTP backend in the auto pool.
   const combo: VirtualComboResult = await virtualFactory.createVirtualAutoCombo("fast");
 
-  for (const allowed of ["opencode", "felo-web"]) {
+  for (const allowed of ["opencode"]) {
     const models = combo.models.filter((m) => m.providerId === allowed);
     assert.ok(models.length >= 1, `${allowed} should have at least one model`);
     assert.ok(
@@ -221,19 +107,13 @@ test("createVirtualAutoCombo restricts the no-auth pool to the allowlist", async
     );
   }
 
-  for (const excluded of ["duckduckgo-web", "theoldllm", "chipotle", "aihorde"]) {
+  for (const excluded of ["auggie", "aihorde", "devin-cli-agentic"]) {
     assert.equal(
       combo.models.some((model) => model.providerId === excluded),
       false,
       `no-auth provider "${excluded}" must be excluded from the auto-combo pool (not in allowlist)`
     );
   }
-
-  assert.equal(
-    combo.models.some((model) => model.providerId === "veoaifree-web"),
-    false,
-    "video-only no-auth providers must not be inserted into chat auto-combos"
-  );
 });
 
 test("createVirtualAutoCombo keeps credential-required providers out when disconnected", async () => {

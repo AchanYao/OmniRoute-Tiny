@@ -6,7 +6,6 @@ import { getSettings } from "@/lib/db/settings";
 import { getProviderRegistry } from "./providerRegistryAccessor";
 import type { ConnectionFields } from "@/lib/db/encryption";
 import { NOAUTH_PROVIDERS } from "@/shared/constants/providers";
-import { hasUsableWebSessionCredential } from "@/shared/providers/webSessionCredentials";
 import { defaultLogger as log } from "@omniroute/open-sse/utils/logger";
 import { getTokenLimit } from "../contextManager";
 import { getResolvedModelCapabilities } from "@/lib/modelCapabilities";
@@ -137,7 +136,7 @@ function hasUsableOAuthToken(conn: VirtualFactoryConn): boolean {
 }
 
 function hasProviderSpecificSessionData(conn: VirtualFactoryConn): boolean {
-  return hasUsableWebSessionCredential(conn.provider, conn.providerSpecificData);
+  return false;
 }
 
 function hasUsableConnectionCredential(conn: VirtualFactoryConn): boolean {
@@ -148,13 +147,7 @@ function hasUsableConnectionCredential(conn: VirtualFactoryConn): boolean {
 const SYNTHETIC_NOAUTH_CONNECTION_ID = RESILIENCE_NOAUTH_CONNECTION_ID;
 
 // Allowlist of no-auth (keyless) providers permitted to enter the `auto`/`auto-*`
-// candidate pool. Narrowed to the backends verified to answer without any
-// configuration on our reference egress (VPS .15): `opencode` and `felo-web`
-// both return 200 there, while duckduckgo-web (429/VQD rate limit), theoldllm
-// (403 Vercel egress block), chipotle (502), aihorde (401, anon key rejected)
-// and the others are unreliable. The excluded providers stay fully usable via
-// direct `<alias>/<model>` calls — they are just kept OUT of auto-routing until
-// re-verified. Re-add an id here to bring it back into every auto/* pool.
+// candidate pool. Official OpenCode Free is the remaining no-auth HTTP backend.
 //
 // Scope (operator decision 2026-07-24, refs #8183/#6453/#7032): this allowlist
 // targets public-HTTP-egress reliability for the category/tier and flat-variant
@@ -164,7 +157,7 @@ const SYNTHETIC_NOAUTH_CONNECTION_ID = RESILIENCE_NOAUTH_CONNECTION_ID;
 // pool, so it admits any no-auth backend that genuinely serves the family (e.g.
 // auggie, a local CLI subprocess with zero HTTP egress, belongs in auto/glm
 // regardless of this list). See the `bypassAllowlist` param below.
-const AUTO_COMBO_NOAUTH_ALLOWLIST = new Set<string>(["opencode", "felo-web"]);
+const AUTO_COMBO_NOAUTH_ALLOWLIST = new Set<string>(["opencode"]);
 
 function isChatAutoComboNoAuthProvider(
   providerDef: NoAuthProviderDefinition,
@@ -427,10 +420,7 @@ export async function createVirtualAutoCombo(
   for (const conn of [...connections, ...disabledNoAuthConnections]) {
     connectionsById.set(conn.id, conn);
   }
-  const resilienceFilteredPool = filterResilienceBlockedCandidates(
-    candidatePool,
-    connectionsById
-  );
+  const resilienceFilteredPool = filterResilienceBlockedCandidates(candidatePool, connectionsById);
   if (resilienceFilteredPool !== candidatePool) {
     candidatePool.length = 0;
     candidatePool.push(...resilienceFilteredPool);

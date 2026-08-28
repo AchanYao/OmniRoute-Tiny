@@ -16,12 +16,15 @@
  * before registerGenericQuotaFetchers() — because the generic path doesn't
  * know how to resolve grok OIDC auth from a cookie-based connection.
  *
+ * Tiny no longer ships grok-web. The billing helpers below remain for
+ * `xai-oauth`. `registerGrokWebQuotaFetcher()` is a no-op so leftover
+ * cookie connections cannot re-enter quota routing.
+ *
  * Shared billing helper: `fetchGrokBillingWithToken` / `grokBillingSnapshotToQuotaInfo`
  * are also used by `xaiOauthQuotaFetcher.ts` (connection OAuth token path).
  */
 
-import { registerQuotaFetcher, registerQuotaWindows, type QuotaInfo } from "./quotaPreflight.ts";
-import { registerMonitorFetcher } from "./quotaMonitor.ts";
+import type { QuotaInfo } from "./quotaPreflight.ts";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -491,12 +494,8 @@ export function invalidateGrokWebQuotaCache(connectionId: string): void {
 // ─── Registration ────────────────────────────────────────────────────────────
 
 /**
- * Register the grok-web quota fetcher with the preflight and monitor systems.
- * Call this once at server startup (in chat.ts), before registerGenericQuotaFetchers()
- * so the generic path doesn't try to override this bespoke fetcher.
+ * Leftover grok-web quota registration. Tiny no longer ships the cookie
+ * provider; keep this export so old callers compile, but do not wire a
+ * fetcher that leftover SQLite rows could still hit.
  */
-export function registerGrokWebQuotaFetcher(): void {
-  registerQuotaFetcher("grok-web", fetchGrokWebQuota);
-  registerMonitorFetcher("grok-web", fetchGrokWebQuota);
-  registerQuotaWindows("grok-web", [GROK_WINDOW_WEEKLY]);
-}
+export function registerGrokWebQuotaFetcher(): void {}

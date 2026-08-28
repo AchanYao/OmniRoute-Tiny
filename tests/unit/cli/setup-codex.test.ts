@@ -36,9 +36,10 @@ test("fallbackCodexProfile skips media and non-text models", () => {
     false
   );
   assert.equal(
-    fallbackCodexProfile("veo-free/seedance", {
-      id: "veo-free/seedance",
+    fallbackCodexProfile("runwayml/gen4.5", {
+      id: "runwayml/gen4.5",
       name: "Seedance",
+      type: "video",
       context_length: 128000,
     }),
     null

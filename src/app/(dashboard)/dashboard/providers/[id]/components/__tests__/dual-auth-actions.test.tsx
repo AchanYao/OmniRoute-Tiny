@@ -193,7 +193,7 @@ describe("dual-auth provider actions (#8882)", () => {
 
   it("preserves an ordinary free API-key provider PAT-primary action", () => {
     const { container } = renderEmptyProvider({
-      providerId: "mimocode",
+      providerId: "opencode",
       supportsDualAuth: false,
       providerSupportsPat: true,
     });

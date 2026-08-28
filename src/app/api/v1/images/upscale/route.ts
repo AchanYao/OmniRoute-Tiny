@@ -33,7 +33,6 @@ export const dynamic = "force-dynamic";
  * factor, creativity level) do not exist on the generation contract.
  *
  * Providers are declared in `open-sse/config/upscaleRegistry.ts`:
- *   - `adobe-firefly/topaz-standard` · `adobe-firefly/topaz-bloom` (Topaz via Firefly 3P)
  *   - `stability-ai/fast` · `stability-ai/conservative` · `stability-ai/creative`
  *   - `topaz/topaz-enhance` (Topaz Labs native API)
  *
@@ -102,7 +101,10 @@ async function readUpscaleBody(request: Request): Promise<Record<string, unknown
       }
       return body;
     } catch (err) {
-      log.warn("IMAGE", `Invalid multipart upscale body: ${err instanceof Error ? err.message : err}`);
+      log.warn(
+        "IMAGE",
+        `Invalid multipart upscale body: ${err instanceof Error ? err.message : err}`
+      );
       return null;
     }
   }
@@ -146,7 +148,7 @@ async function postHandler(request: Request) {
     return errorResponse(
       HTTP_STATUS.BAD_REQUEST,
       `Invalid upscale model: ${body.model}. Use format: provider/model ` +
-        `(e.g. adobe-firefly/topaz-bloom).`
+        `(e.g. stability-ai/fast).`
     );
   }
 
@@ -226,7 +228,9 @@ async function postHandler(request: Request) {
   let proxyInfo: { proxy?: unknown } | null = null;
   if (creds.connectionId) {
     try {
-      proxyInfo = (await resolveProxyForConnection(creds.connectionId)) as { proxy?: unknown } | null;
+      proxyInfo = (await resolveProxyForConnection(creds.connectionId)) as {
+        proxy?: unknown;
+      } | null;
     } catch {
       log.debug("PROXY", `Failed to resolve proxy for upscale provider: ${provider}`);
     }

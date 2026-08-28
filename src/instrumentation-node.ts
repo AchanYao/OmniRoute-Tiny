@@ -514,14 +514,6 @@ export async function registerNodejs(): Promise<void> {
           const msg = err instanceof Error ? err.message : String(err);
           console.warn("[STARTUP] Embed WS proxy failed to start (non-fatal):", msg);
         }),
-
-      import("@omniroute/open-sse/services/autoRefreshDaemon")
-        .then((m) => m.autoRefreshDaemon.start())
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn("[STARTUP] Auto-refresh daemon failed to start (non-fatal):", msg);
-        }),
-
       // Proactive connection-cooldown recovery (#8): re-validate connections whose
       // transient `rate_limited_until` window has elapsed OUTSIDE the request hot path,
       // so the first request after a cooldown does not pay the probe latency.

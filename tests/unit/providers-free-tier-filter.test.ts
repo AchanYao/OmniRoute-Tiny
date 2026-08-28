@@ -11,7 +11,6 @@ import * as providerCatalog from "@/lib/providers/catalog";
 const CATALOG_CATEGORIES = [
   "no-auth",
   "oauth",
-  "web-cookie",
   "local",
   "search",
   "audio",
@@ -80,7 +79,6 @@ function countByCategory(entries: ProviderFilterEntry[]) {
     free: filterByCategory(entries, "free").length,
     oauth: filterByCategory(entries, "oauth").length,
     apikey: filterByCategory(entries, "apikey").length,
-    webcookie: filterByCategory(entries, "web-cookie").length,
     search: filterByCategory(entries, "search").length,
     audio: filterByCategory(entries, "audio").length,
     local: filterByCategory(entries, "local").length,
@@ -127,7 +125,6 @@ test("summaryStats.free counts the aggregate overlap without subtracting native 
   const nativeCategoryTotal =
     summaryStats.oauth +
     summaryStats.apikey +
-    summaryStats.webcookie +
     summaryStats.search +
     summaryStats.audio +
     summaryStats.local +

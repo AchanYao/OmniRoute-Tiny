@@ -48,4 +48,9 @@ Tracked capability mismatches and catalog-vs-executor drift. P0 < 30 d, P1 < 90 
 
 ## Closed
 
-_None yet._
+### P1 — Web-cookie / website-session sources vs Tiny thin-gateway positioning
+
+- **Opened:** 2026-08-27
+- **Closed:** 2026-08-28
+- **Providers:** `WEB_COOKIE_PROVIDERS` (`chatgpt-web`, `claude-web`, `grok-web`, …)
+- **Resolution:** Product surface is fail-closed and unofficial website-backed source is deleted. Cookie sources are not listed or creatable, omitted from `/v1/models`, and leftover chat/image/video/upscale/music traffic returns 410. SQLite leftover rows are not wiped. Official `poe` / `v0-vercel` / `hackclub` stay live. See `docs/architecture/web-cookie-sunset.md`.

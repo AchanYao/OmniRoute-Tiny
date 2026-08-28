@@ -12,17 +12,6 @@ import {
   parseUpscaleModel,
 } from "../../open-sse/config/upscaleRegistry.ts";
 import {
-  ADOBE_FIREFLY_IMAGE_UPSAMPLE_URL,
-  ADOBE_FIREFLY_MAX_CREATIVITY_LEVEL,
-  ADOBE_FIREFLY_UPSCALE_MODELS,
-  adobeFireflyUpscaleImage,
-  buildAdobeUpsampleHeaders,
-  buildAdobeUpsamplePayload,
-  isAdobeFireflyUpscaleModel,
-  resolveAdobeCreativityLevel,
-  resolveAdobeUpscaleModel,
-} from "../../open-sse/services/adobeFireflyUpscale.ts";
-import {
   extractUpscaleSourceImage,
   readImageDimensions,
   scaleDimensions,
@@ -31,7 +20,6 @@ import {
 import { handleImageUpscale } from "../../open-sse/handlers/imageUpscale.ts";
 import { handleStabilityImageUpscale } from "../../open-sse/handlers/imageUpscale/stability.ts";
 import { handleTopazImageUpscale } from "../../open-sse/handlers/imageUpscale/topaz.ts";
-import { IMAGE_PROVIDERS } from "../../open-sse/config/imageRegistry.ts";
 
 // ── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -64,14 +52,6 @@ function jpegHeader(width: number, height: number): Buffer {
   return Buffer.concat([Buffer.from([0xff, 0xd8]), sof, Buffer.alloc(4)]);
 }
 
-const FAKE_JWT = (() => {
-  const header = Buffer.from(JSON.stringify({ alg: "RS256" })).toString("base64url");
-  const payload = Buffer.from(
-    JSON.stringify({ user_id: "TESTUSER@AdobeID", type: "access_token", created_at: "1", expires_in: "86400000" })
-  ).toString("base64url");
-  return `${header}.${payload}.sig`;
-})();
-
 /** `new Response(buffer)` does not typecheck (Buffer<ArrayBufferLike>); copy to an ArrayBuffer. */
 function bytes(buffer: Buffer): ArrayBuffer {
   const out = new ArrayBuffer(buffer.byteLength);
@@ -88,85 +68,52 @@ function jsonResponse(body: unknown, status = 200, headers: Record<string, strin
 
 // ── Registry ───────────────────────────────────────────────────────────────
 
-test("upscale registry exposes adobe-firefly, stability-ai and topaz", () => {
-  assert.deepEqual(Object.keys(UPSCALE_PROVIDERS).sort(), [
-    "adobe-firefly",
-    "stability-ai",
-    "topaz",
-  ]);
-  assert.equal(getUpscaleProvider("adobe-firefly")?.format, "adobe-firefly-upscale");
+test("upscale registry exposes stability-ai and topaz (adobe-firefly sunset)", () => {
+  assert.deepEqual(Object.keys(UPSCALE_PROVIDERS).sort(), ["stability-ai", "topaz"]);
+  assert.equal(getUpscaleProvider("adobe-firefly"), null);
   assert.equal(getUpscaleProvider("stability-ai")?.format, "stability-upscale");
   assert.equal(getUpscaleProvider("topaz")?.format, "topaz-upscale");
   assert.equal(getUpscaleProvider("nope"), null);
 });
 
-test("adobe-firefly upscale models are Topaz only (video starlight/astra excluded)", () => {
-  const ids = UPSCALE_PROVIDERS["adobe-firefly"]!.models.map((m) => m.id);
-  assert.deepEqual(ids, ["topaz", "topaz-standard", "topaz-bloom"]);
-  for (const id of ids) assert.ok(id.startsWith("topaz"), `${id} must be a Topaz model`);
-  for (const forbidden of ["starlight-quality", "starlight-creative", "starlight-fast", "astra-2"]) {
-    assert.ok(!ids.includes(forbidden), `${forbidden} is a video upscaler and must not be listed`);
-  }
-});
-
-test("only topaz-bloom advertises creativity; stability creative/conservative take prompts", () => {
-  const firefly = UPSCALE_PROVIDERS["adobe-firefly"]!.models;
-  assert.equal(firefly.find((m) => m.id === "topaz-bloom")?.supportsCreativity, true);
-  assert.notEqual(firefly.find((m) => m.id === "topaz-standard")?.supportsCreativity, true);
-
+test("stability creative/conservative take prompts; creative supports creativity", () => {
   const stability = UPSCALE_PROVIDERS["stability-ai"]!.models;
   assert.equal(stability.find((m) => m.id === "creative")?.promptRequired, true);
   assert.equal(stability.find((m) => m.id === "conservative")?.promptRequired, true);
   assert.notEqual(stability.find((m) => m.id === "fast")?.promptRequired, true);
+  assert.equal(stability.find((m) => m.id === "creative")?.supportsCreativity, true);
 });
 
-test("parseUpscaleModel accepts provider prefix, alias and bare model ids", () => {
+test("parseUpscaleModel accepts provider prefix and bare model ids", () => {
   assert.deepEqual(parseUpscaleModel("adobe-firefly/topaz-bloom"), {
-    provider: "adobe-firefly",
-    model: "topaz-bloom",
-  });
-  assert.deepEqual(parseUpscaleModel("firefly/topaz-standard"), {
-    provider: "adobe-firefly",
-    model: "topaz-standard",
+    provider: null,
+    model: "adobe-firefly/topaz-bloom",
   });
   assert.deepEqual(parseUpscaleModel("stability-ai/creative"), {
     provider: "stability-ai",
     model: "creative",
   });
-  assert.deepEqual(parseUpscaleModel("topaz-enhance"), { provider: "topaz", model: "topaz-enhance" });
+  assert.deepEqual(parseUpscaleModel("topaz-enhance"), {
+    provider: "topaz",
+    model: "topaz-enhance",
+  });
   assert.equal(parseUpscaleModel("openai/gpt-image-2").provider, null);
   assert.deepEqual(parseUpscaleModel(null), { provider: null, model: null });
 });
 
 test("getUpscaleModelEntry / isRegisteredUpscaleModel resolve registry rows", () => {
-  const hit = getUpscaleModelEntry("adobe-firefly/topaz-bloom");
-  assert.ok(hit);
-  assert.equal(hit.provider, "adobe-firefly");
-  assert.equal(hit.entry.supportsCreativity, true);
-  assert.equal(getUpscaleModelEntry("adobe-firefly/nope"), null);
+  assert.equal(getUpscaleModelEntry("adobe-firefly/topaz-bloom"), null);
   assert.equal(isRegisteredUpscaleModel("stability-ai/fast"), true);
   assert.equal(isRegisteredUpscaleModel("stability-ai/ultra"), false);
+  assert.equal(isRegisteredUpscaleModel("topaz/topaz-enhance"), true);
 });
 
-test("getAllUpscaleModels lists prefixed ids for every provider and alias", () => {
+test("getAllUpscaleModels lists prefixed ids for every live provider", () => {
   const ids = getAllUpscaleModels().map((m) => m.id);
-  assert.ok(ids.includes("adobe-firefly/topaz-bloom"));
-  assert.ok(ids.includes("firefly/topaz-bloom"), "alias-prefixed id must be listed too");
+  assert.equal(ids.includes("adobe-firefly/topaz-bloom"), false);
+  assert.equal(ids.includes("firefly/topaz-bloom"), false);
   assert.ok(ids.includes("stability-ai/fast"));
   assert.ok(ids.includes("topaz/topaz-enhance"));
-});
-
-test("adobe-firefly image registry now carries the Topaz upscale models as image-only", () => {
-  const models = IMAGE_PROVIDERS["adobe-firefly"]!.models as unknown as Array<
-    Record<string, unknown>
-  >;
-  const bloom = models.find((m) => m.id === "topaz-bloom");
-  assert.ok(bloom, "topaz-bloom must be registered on the adobe-firefly image provider");
-  assert.deepEqual(bloom.inputModalities, ["image"]);
-  assert.equal(bloom.imageRequired, true);
-  const standard = models.find((m) => m.id === "topaz-standard");
-  assert.ok(standard);
-  assert.deepEqual(standard.inputModalities, ["image"]);
 });
 
 // ── Factor / creativity normalization ──────────────────────────────────────
@@ -201,167 +148,18 @@ test("normalizeCreativityPercent clamps and distinguishes fractions from percent
   assert.equal(normalizeCreativityPercent("abc", 25), 25);
 });
 
-// ── Adobe Firefly upsample wire contract ───────────────────────────────────
-
-test("resolveAdobeUpscaleModel maps ids to upstream topaz versions and rejects others", () => {
-  assert.equal(resolveAdobeUpscaleModel("topaz-bloom")?.spec.upstreamModelVersion, "reimagine");
-  assert.equal(resolveAdobeUpscaleModel("topaz-standard")?.spec.upstreamModelVersion, "standard");
-  assert.equal(resolveAdobeUpscaleModel("topaz")?.spec.upstreamModelVersion, "standard");
-  assert.equal(
-    resolveAdobeUpscaleModel("adobe-firefly/topaz-bloom")?.spec.upstreamModelId,
-    "topaz"
-  );
-  assert.equal(resolveAdobeUpscaleModel("firefly/reimagine")?.spec.upstreamModelVersion, "reimagine");
-  assert.equal(resolveAdobeUpscaleModel("nano-banana-pro"), null);
-  assert.equal(resolveAdobeUpscaleModel(""), null);
-  assert.equal(isAdobeFireflyUpscaleModel("topaz-bloom"), true);
-  assert.equal(isAdobeFireflyUpscaleModel("gpt-image-2"), false);
-  // Every registered spec targets the image family (never topaz-video).
-  for (const spec of Object.values(ADOBE_FIREFLY_UPSCALE_MODELS)) {
-    assert.equal(spec.upstreamModelId, "topaz");
-    assert.deepEqual(spec.factors, [2, 4]);
-  }
-});
-
-test("resolveAdobeCreativityLevel maps 0-100 % onto the 0-1 upsample wire float", () => {
-  // Live colligo on /v2/3p-images/upsample rejects creativityLevel > 1.
-  assert.equal(ADOBE_FIREFLY_MAX_CREATIVITY_LEVEL, 1);
-  assert.equal(resolveAdobeCreativityLevel({ creativityPercent: 0 }), 0);
-  assert.equal(resolveAdobeCreativityLevel({ creativityPercent: 100 }), 1);
-  assert.equal(resolveAdobeCreativityLevel({ creativityPercent: 50 }), 0.5);
-  assert.equal(resolveAdobeCreativityLevel({ creativityPercent: 40 }), 0.4);
-  assert.equal(resolveAdobeCreativityLevel({}), 0);
-  // Explicit 0-1 wins over percent.
-  assert.equal(resolveAdobeCreativityLevel({ creativityPercent: 100, creativityLevel: 0.25 }), 0.25);
-  // Legacy 1-5 integer scale (discovery docs) is mapped onto 0-1.
-  assert.equal(resolveAdobeCreativityLevel({ creativityLevel: "4" }), 0.8);
-  assert.equal(resolveAdobeCreativityLevel({ creativityLevel: 5 }), 1);
-  assert.equal(resolveAdobeCreativityLevel({ creativityLevel: 99 }), 1);
-  assert.equal(resolveAdobeCreativityLevel({ creativityLevel: -3 }), 0);
-});
-
-test("buildAdobeUpsamplePayload matches the live upsample capture", () => {
-  const payload = buildAdobeUpsamplePayload({
-    modelSpec: ADOBE_FIREFLY_UPSCALE_MODELS["topaz-bloom"],
-    blobId: "a99ffe89-ba67-478e-bd22-bb686506006e",
-    upsamplerFactor: 2,
-    creativityLevel: 0,
-  });
-
-  assert.equal(payload.modelId, "topaz");
-  assert.equal(payload.modelVersion, "reimagine");
-  assert.equal(payload.upsamplerFactor, 2);
-  assert.equal(payload.creativityLevel, 0);
-  assert.deepEqual(payload.referenceBlobs, [
-    { id: "a99ffe89-ba67-478e-bd22-bb686506006e", usage: "general" },
-  ]);
-  assert.deepEqual(payload.generationMetadata, {
-    module: "image-editing",
-    submodule: "ff-image-editor",
-    sourceDocumentId: null,
-    originalPrompt: null,
-    filterString: null,
-    subPrompts: null,
-    canvasImageReference: null,
-  });
-  // No prompt / size / n keys — the upsample contract has none.
-  assert.ok(!("prompt" in payload));
-  assert.ok(!("n" in payload));
-});
-
-test("buildAdobeUpsamplePayload omits creativityLevel for the non-generative version", () => {
-  const payload = buildAdobeUpsamplePayload({
-    modelSpec: ADOBE_FIREFLY_UPSCALE_MODELS["topaz-standard"],
-    blobId: "blob-1",
-    upsamplerFactor: 4,
-    creativityLevel: 3,
-  });
-  assert.equal(payload.upsamplerFactor, 4);
-  assert.ok(!("creativityLevel" in payload), "standard upscale must not send creativityLevel");
-});
-
-test("buildAdobeUpsampleHeaders mirrors the capture (ARP present, x-nonce absent)", () => {
-  const headers = buildAdobeUpsampleHeaders(FAKE_JWT, { arpSessionId: "arp-test-1" });
-  assert.equal(headers.Authorization, `Bearer ${FAKE_JWT}`);
-  assert.equal(headers["x-arp-session-id"], "arp-test-1");
-  assert.equal(headers["content-type"], "application/json");
-  assert.ok(headers["x-api-key"], "x-api-key must be sent");
-  assert.equal(headers["x-nonce"], undefined, "upsample capture sends no x-nonce");
-  assert.equal(headers.Cookie, undefined, "page cookies never go to firefly-3p");
-});
-
-test("adobeFireflyUpscaleImage submits to /v2/3p-images/upsample and polls the result link", async () => {
-  const calls: Array<{ url: string; init?: RequestInit }> = [];
-  const fetchImpl = (async (url: string | URL | Request, init?: RequestInit) => {
-    const href = String(url);
-    calls.push({ url: href, init });
-    if (href === ADOBE_FIREFLY_IMAGE_UPSAMPLE_URL) {
-      return jsonResponse({
-        links: {
-          result: { href: "https://firefly-epo855232.adobe.io/jobs/result/job-42" },
-        },
-      });
-    }
-    return jsonResponse({
-      status: "COMPLETED",
-      outputs: [{ image: { presignedUrl: "https://s3.example/upscaled.png?X-Amz=1" } }],
-    });
-  }) as unknown as typeof fetch;
-
-  const result = await adobeFireflyUpscaleImage({
-    accessToken: FAKE_JWT,
-    model: "adobe-firefly/topaz-bloom",
-    blobId: "blob-9",
-    upsamplerFactor: 4,
-    creativityPercent: 100,
-    fetchImpl,
-  });
-
-  assert.equal(result.url, "https://s3.example/upscaled.png?X-Amz=1");
-  assert.equal(result.factor, 4);
-  assert.equal(result.creativityLevel, 1);
-
-  assert.equal(calls[0]!.url, ADOBE_FIREFLY_IMAGE_UPSAMPLE_URL);
-  const submitted = JSON.parse(String(calls[0]!.init?.body));
-  assert.equal(submitted.modelVersion, "reimagine");
-  assert.equal(submitted.upsamplerFactor, 4);
-  assert.equal(submitted.creativityLevel, 1);
-  assert.deepEqual(submitted.referenceBlobs, [{ id: "blob-9", usage: "general" }]);
-
-  // Poll URL is rewritten to the BKS host, exactly like generate-async.
-  assert.equal(
-    calls[1]!.url,
-    "https://bks-epo8552.adobe.io/v2/jobs/result/job-42?host=firefly-epo855232.adobe.io"
-  );
-});
-
-test("adobeFireflyUpscaleImage rejects a non-upscale model and a missing blob", async () => {
-  await assert.rejects(
-    () =>
-      adobeFireflyUpscaleImage({
-        accessToken: FAKE_JWT,
-        model: "nano-banana-pro",
-        blobId: "blob-1",
-      }),
-    /Unsupported Adobe Firefly upscale model/
-  );
-  await assert.rejects(
-    () =>
-      adobeFireflyUpscaleImage({
-        accessToken: FAKE_JWT,
-        model: "topaz-bloom",
-        blobId: "   ",
-      }),
-    /requires a source image/
-  );
-});
-
 // ── Shared helpers ─────────────────────────────────────────────────────────
 
 test("extractUpscaleSourceImage finds the first image across every alias", () => {
-  assert.equal(extractUpscaleSourceImage({ image: "data:image/png;base64,AAA" }), "data:image/png;base64,AAA");
+  assert.equal(
+    extractUpscaleSourceImage({ image: "data:image/png;base64,AAA" }),
+    "data:image/png;base64,AAA"
+  );
   assert.equal(extractUpscaleSourceImage({ image_url: "https://x/y.png" }), "https://x/y.png");
-  assert.equal(extractUpscaleSourceImage({ images: ["https://a/1.png", "https://a/2.png"] }), "https://a/1.png");
+  assert.equal(
+    extractUpscaleSourceImage({ images: ["https://a/1.png", "https://a/2.png"] }),
+    "https://a/1.png"
+  );
   assert.equal(
     extractUpscaleSourceImage({ image_url: { url: "https://obj/u.png" } }),
     "https://obj/u.png"
@@ -372,7 +170,9 @@ test("extractUpscaleSourceImage finds the first image across every alias", () =>
   );
   assert.equal(
     extractUpscaleSourceImage({
-      messages: [{ role: "user", content: [{ type: "image_url", image_url: { url: "https://m/1.png" } }] }],
+      messages: [
+        { role: "user", content: [{ type: "image_url", image_url: { url: "https://m/1.png" } }] },
+      ],
     }),
     "https://m/1.png"
   );
@@ -409,7 +209,10 @@ test("scaleDimensions multiplies the source size and clamps the long edge", () =
 // ── Dispatcher ─────────────────────────────────────────────────────────────
 
 test("handleImageUpscale rejects unknown / mismatched models before any network call", async () => {
-  const badModel = await handleImageUpscale({ body: { model: "openai/gpt-image-2" }, credentials: {} });
+  const badModel = await handleImageUpscale({
+    body: { model: "openai/gpt-image-2" },
+    credentials: {},
+  });
   assert.equal(badModel.success, false);
   assert.equal(badModel.status, 400);
   assert.match(String(badModel.error), /Invalid upscale model/);
@@ -427,8 +230,8 @@ test("handleImageUpscale rejects unknown / mismatched models before any network 
   assert.equal(missing.status, 400);
 });
 
-test("handleImageUpscale requires a source image for every provider", async () => {
-  for (const model of ["adobe-firefly/topaz-standard", "stability-ai/fast", "topaz/topaz-enhance"]) {
+test("handleImageUpscale requires a source image for every live provider and 410s adobe-firefly", async () => {
+  for (const model of ["stability-ai/fast", "topaz/topaz-enhance"]) {
     const result = await handleImageUpscale({
       body: { model },
       credentials: { apiKey: "k" },
@@ -437,6 +240,15 @@ test("handleImageUpscale requires a source image for every provider", async () =
     assert.equal(result.status, 400);
     assert.match(String(result.error), /source image/i);
   }
+
+  // Keep the 410 sunset lock for leftover adobe-firefly upscale traffic.
+  const sunset = await handleImageUpscale({
+    body: { model: "adobe-firefly/topaz-standard" },
+    credentials: { apiKey: "k" },
+  });
+  assert.equal(sunset.success, false);
+  assert.equal(sunset.status, 410);
+  assert.match(String(sunset.error), /sunset/i);
 });
 
 // ── Stability AI ───────────────────────────────────────────────────────────
@@ -590,7 +402,10 @@ test("topaz falls back to its own scale when the source dimensions are unreadabl
     credentials: { apiKey: "topaz-key" },
     fetchImpl: (async (_url: unknown, init?: RequestInit) => {
       form = init?.body as FormData;
-      return new Response(bytes(PNG_1X1), { status: 200, headers: { "content-type": "image/png" } });
+      return new Response(bytes(PNG_1X1), {
+        status: 200,
+        headers: { "content-type": "image/png" },
+      });
     }) as unknown as typeof fetch,
   });
 
@@ -614,7 +429,10 @@ test("topaz honors an explicit WxH size over the factor and propagates upstream 
     credentials: { apiKey: "topaz-key" },
     fetchImpl: (async (_url: unknown, init?: RequestInit) => {
       form = init?.body as FormData;
-      return new Response(bytes(PNG_1X1), { status: 200, headers: { "content-type": "image/png" } });
+      return new Response(bytes(PNG_1X1), {
+        status: 200,
+        headers: { "content-type": "image/png" },
+      });
     }) as unknown as typeof fetch,
   });
   assert.equal(form!.get("output_width"), "1500");

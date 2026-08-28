@@ -7,7 +7,6 @@ import {
   APIKEY_PROVIDERS,
   LOCAL_PROVIDERS,
   UPSTREAM_PROXY_PROVIDERS,
-  WEB_COOKIE_PROVIDERS,
   SEARCH_PROVIDERS,
   AUDIO_ONLY_PROVIDERS,
   CLOUD_AGENT_PROVIDERS,
@@ -25,7 +24,6 @@ import { sanitizeErrorMessage } from "@omniroute/open-sse/utils/error";
 function getAuthGroup(providerId) {
   if (NOAUTH_PROVIDERS[providerId]) return "no-auth";
   if (OAUTH_PROVIDERS[providerId]) return "oauth";
-  if (WEB_COOKIE_PROVIDERS[providerId]) return "web-cookie";
   if (SEARCH_PROVIDERS[providerId]) return "search";
   if (AUDIO_ONLY_PROVIDERS[providerId]) return "audio";
   if (LOCAL_PROVIDERS[providerId]) return "local";

@@ -24,7 +24,7 @@ describe("specialty catalog surfaces (#8016)", () => {
     assert.equal(tts.toolCalling, false);
     assert.equal(tts.reasoning, false);
 
-    const veo = getResolvedModelCapabilities({ provider: "veo-free", model: "veo" });
+    const veo = getResolvedModelCapabilities({ provider: "vertex", model: "veo-3.0-generate-001" });
     assert.equal(veo.toolCalling, false);
     assert.equal(veo.reasoning, false);
   });

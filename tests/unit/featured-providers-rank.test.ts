@@ -25,7 +25,6 @@ const entry = (providerId: string, name: string) =>
 test("Kimi family ranks 1, Cheaper Inference ranks 2", () => {
   assert.equal(getFeaturedProviderRank("moonshot"), 1);
   assert.equal(getFeaturedProviderRank("kimi-coding"), 1);
-  assert.equal(getFeaturedProviderRank("kimi-web"), 1);
   assert.equal(getFeaturedProviderRank("cheaperinference"), 2);
   assert.equal(getFeaturedProviderRank("openrouter"), null);
 });
@@ -54,15 +53,15 @@ test("sort puts Kimi first and Cheaper Inference second despite the alphabet", (
 
 test("providers sharing a rank stay alphabetical among themselves", () => {
   const sorted = sortProviderEntriesFeaturedFirst([
-    entry("kimi-web", "Kimi Web"),
+    entry("kimi-coding", "Kimi Coding"),
     entry("moonshot", "Kimi"),
     entry("cheaperinference", "Cheaper Inference"),
   ]);
-  // Both Kimi entries are rank 1 -> alphabetical between them ("Kimi" < "Kimi Web"),
+  // Both Kimi entries are rank 1 -> alphabetical between them ("Kimi" < "Kimi Coding"),
   // and both still precede rank 2.
   assert.deepEqual(
     sorted.map((e) => e.providerId),
-    ["moonshot", "kimi-web", "cheaperinference"]
+    ["moonshot", "kimi-coding", "cheaperinference"]
   );
 });
 

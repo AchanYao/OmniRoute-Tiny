@@ -132,7 +132,7 @@ export function isTextualReasoningTagNativeRoute(providerId: string, modelId: st
     /(?:^|[/:_-])qwq(?:[/._:-]|$)/.test(routeId) ||
     /(?:^|[/_-])k3(?:[/._:-]|$)/.test(modelId) ||
     // 9router#2231: MiniMax M3 leaks raw <think>...</think> into `content` on its
-    // OpenAI-format provider tiers (trae, huggingchat, bazaarlink, ollama-cloud,
+    // OpenAI-format provider tiers (trae, bazaarlink, ollama-cloud,
     // opencode, cline, opencode-zen, codebuddy-cn). The direct minimax/minimax-cn
     // tiers stay on Anthropic's Messages format (targetFormat: "claude") and
     // already surface reasoning natively, so they are excluded here.

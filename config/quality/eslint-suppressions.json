@@ -1,22 +1,7 @@
 {
-  "open-sse/executors/blackbox-web.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
-    }
-  },
   "open-sse/executors/cliproxyapi.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 1
-    }
-  },
-  "open-sse/executors/deepseek-web.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 12
-    }
-  },
-  "open-sse/executors/gemini-web.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 2
     }
   },
   "open-sse/executors/github.ts": {
@@ -37,11 +22,6 @@
   "open-sse/executors/puter.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 4
-    }
-  },
-  "open-sse/executors/t3-chat-web.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 11
     }
   },
   "open-sse/executors/vertex.ts": {
@@ -92,11 +72,6 @@
   "open-sse/handlers/videoGeneration.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 1
-    }
-  },
-  "open-sse/lib/deepseek-pow.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 5
     }
   },
   "open-sse/mcp-server/__tests__/a2aLifecycle.test.ts": {
@@ -163,11 +138,6 @@
       "count": 1
     }
   },
-  "open-sse/services/claudeWebAutoRefresh.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 3
-    }
-  },
   "open-sse/services/codexQuotaFetcher.ts": {
     "no-restricted-syntax": {
       "count": 1
@@ -221,11 +191,6 @@
   "open-sse/services/genericQuotaFetcher.ts": {
     "no-restricted-syntax": {
       "count": 1
-    }
-  },
-  "open-sse/services/inAppLoginService.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 2
     }
   },
   "open-sse/services/keyGroupAuth.ts": {
@@ -544,16 +509,6 @@
     }
   },
   "src/app/api/provider-models/route.ts": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "src/app/api/providers/[id]/login/route.ts": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "src/app/api/providers/[id]/models/discovery/providerModelsConfig.ts": {
     "no-restricted-imports": {
       "count": 1
     }
@@ -1491,11 +1446,6 @@
       "count": 1
     }
   },
-  "tests/integration/mimocode-proxy.integration.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 13
-    }
-  },
   "tests/integration/obsidian-plugin-e2e.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 12
@@ -1532,16 +1482,6 @@
     }
   },
   "tests/integration/v1-contracts-behavior.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 10
-    }
-  },
-  "tests/live/deepseek-web-live.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 2
-    }
-  },
-  "tests/theoldllm-stress.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 10
     }
@@ -1648,7 +1588,7 @@
   },
   "tests/unit/auth-terminal-status.test.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 15
+      "count": 12
     }
   },
   "tests/unit/autocombo-unification.test.ts": {
@@ -1679,11 +1619,6 @@
   "tests/unit/batch_results.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 2
-    }
-  },
-  "tests/unit/blackbox-web.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 10
     }
   },
   "tests/unit/build/check-licenses.test.ts": {
@@ -1779,16 +1714,6 @@
   "tests/unit/chatcore-translation-paths.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 34
-    }
-  },
-  "tests/unit/chatgpt-web-tools-5240.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 6
-    }
-  },
-  "tests/unit/chipotle-executor.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 3
     }
   },
   "tests/unit/claude-code-compatible-helpers.test.ts": {
@@ -2316,11 +2241,6 @@
       "count": 8
     }
   },
-  "tests/unit/deepseek-web-autorefresh-401-response.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 4
-    }
-  },
   "tests/unit/display-and-error-utils.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 4
@@ -2344,11 +2264,6 @@
   "tests/unit/domain-lockout-policy.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 1
-    }
-  },
-  "tests/unit/duckduckgo-web-executor.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 8
     }
   },
   "tests/unit/electron-main.test.ts": {
@@ -2421,11 +2336,6 @@
       "count": 4
     }
   },
-  "tests/unit/executor-qwen-web.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 40
-    }
-  },
   "tests/unit/fetch-timeout.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 7
@@ -2469,11 +2379,6 @@
       "count": 2
     }
   },
-  "tests/unit/gemini-web.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 8
-    }
-  },
   "tests/unit/github-claude-reasoning-effort-granular.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 9
@@ -2499,11 +2404,6 @@
       "count": 3
     }
   },
-  "tests/unit/grok-web.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 25
-    }
-  },
   "tests/unit/i18n-nest-dotted-keys.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 4
@@ -2515,11 +2415,6 @@
     }
   },
   "tests/unit/kiro-tool-args-streaming.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
-    }
-  },
-  "tests/unit/lmarena-split-cookie-4271.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 1
     }
@@ -2562,11 +2457,6 @@
   "tests/unit/memory-summarization.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 2
-    }
-  },
-  "tests/unit/mimocode-executor.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 58
     }
   },
   "tests/unit/minimax-tts-1043.test.ts": {
@@ -2709,11 +2599,6 @@
       "count": 2
     }
   },
-  "tests/unit/perplexity-web-streaming-tools-5927.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 2
-    }
-  },
   "tests/unit/persist-429-cooldown-account-fallback.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 7
@@ -2771,7 +2656,7 @@
   },
   "tests/unit/provider-metadata-5461-5470-5534.test.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 3
+      "count": 2
     }
   },
   "tests/unit/provider-models-route.test.ts": {
@@ -2812,11 +2697,6 @@
   "tests/unit/provider-validation-hardening.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 4
-    }
-  },
-  "tests/unit/provider-validation-qwen-web-5855.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
     }
   },
   "tests/unit/providers-route-managed-catalog.test.ts": {
@@ -2897,11 +2777,6 @@
   "tests/unit/quota-pool-single-provider.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 9
-    }
-  },
-  "tests/unit/qwen-web-cookie-validation-3958.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
     }
   },
   "tests/unit/rate-limit-queue-timeout-lockout.test.ts": {
@@ -3085,11 +2960,6 @@
     }
   },
   "tests/unit/t23-t24-fallback-resilience.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
-    }
-  },
-  "tests/unit/t3chat-web-cookie-hint-5465.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 1
     }
@@ -3297,11 +3167,6 @@
   "tests/unit/web-search-fallback-format.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 1
-    }
-  },
-  "tests/unit/web-session-pool-health.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 2
     }
   },
   "tests/unit/webhook-abort-timer-cleanup.test.ts": {

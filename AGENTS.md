@@ -319,7 +319,8 @@ Documentation must describe verified behavior, not plausible behavior.
 ### Adding a New Provider
 
 OmniRoute Tiny does **not** accept new web-cookie / website-session providers. See
-`docs/architecture/web-cookie-sunset.md`. Add API-key, OAuth, or compatible-node sources only.
+`docs/architecture/web-cookie-sunset.md`. Those sources are product-sunset (410 on create/chat/media).
+Add API-key, OAuth, or compatible-node sources only.
 
 1. Register in `src/shared/constants/providers.ts` (Zod-validated at load)
 2. Add executor in `open-sse/executors/` if custom logic needed (extend `BaseExecutor`)

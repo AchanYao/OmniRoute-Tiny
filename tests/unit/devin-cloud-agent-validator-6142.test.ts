@@ -5,13 +5,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { validateProviderApiKey } from "../../src/lib/providers/validation.ts";
-import { validateDevinCloudAgentProvider } from "../../src/lib/providers/validation/webProvidersB.ts";
+import { validateDevinCloudAgentProvider } from "../../src/lib/providers/validation/cloudAgents.ts";
 import { getStaticModelsForProvider } from "../../src/lib/providers/staticModels.ts";
 
 test("#6142: devin cloud-agent validator is wired into the SPECIALTY_VALIDATORS dispatcher", async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = (async () =>
-    new Response("{}", { status: 401 })) as unknown as typeof fetch;
+  globalThis.fetch = (async () => new Response("{}", { status: 401 })) as unknown as typeof fetch;
   try {
     const result = await validateProviderApiKey({
       provider: "devin",
@@ -27,8 +26,7 @@ test("#6142: devin cloud-agent validator is wired into the SPECIALTY_VALIDATORS 
 
 test("#6142: validateDevinCloudAgentProvider maps 401 to Invalid API key", async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = (async () =>
-    new Response("{}", { status: 401 })) as unknown as typeof fetch;
+  globalThis.fetch = (async () => new Response("{}", { status: 401 })) as unknown as typeof fetch;
   try {
     const result = await validateDevinCloudAgentProvider({ apiKey: "bad-key" });
     assert.equal(result.valid, false);
@@ -40,8 +38,7 @@ test("#6142: validateDevinCloudAgentProvider maps 401 to Invalid API key", async
 
 test("#6142: validateDevinCloudAgentProvider maps 403 to Invalid API key", async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = (async () =>
-    new Response("{}", { status: 403 })) as unknown as typeof fetch;
+  globalThis.fetch = (async () => new Response("{}", { status: 403 })) as unknown as typeof fetch;
   try {
     const result = await validateDevinCloudAgentProvider({ apiKey: "bad-key" });
     assert.equal(result.valid, false);

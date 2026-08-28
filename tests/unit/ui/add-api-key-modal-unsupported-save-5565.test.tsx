@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 //
-// #5565 / #5567 — Providers without a live validator (e.g. lmarena session
-// cookie, piapi API key) return `{ unsupported: true }` from
+// #5565 / #5567 — Providers without a live validator (e.g. piapi API key)
+// return `{ unsupported: true }` from
 // /api/providers/validate. The modal previously treated that like a hard
 // "Invalid" and blocked Save entirely, so the credential could never be added.
 // "Validation not supported" must be a non-blocking warning: Save still persists
@@ -84,15 +84,15 @@ afterEach(() => {
 });
 
 describe("AddApiKeyModal — 'validation not supported' is a non-blocking warning (#5565/#5567)", () => {
-  it("does not show unsupported validator responses as red save errors after Check cookie", async () => {
-    const el = render({ provider: "lmarena", providerName: "LMArena" });
+  it("does not show unsupported validator responses as red save errors after Check", async () => {
+    const el = render({ provider: "piapi", providerName: "PiAPI" });
 
     const apiKeyInput = el.querySelector<HTMLInputElement>('input[type="password"]')!;
     expect(apiKeyInput).toBeTruthy();
-    setInputValue(apiKeyInput, "arena-auth-prod-v1.0=abc; arena-auth-prod-v1.1=def");
+    setInputValue(apiKeyInput, "sk-piapi-test-key");
 
     const checkBtn = Array.from(el.querySelectorAll("button")).find(
-      (b) => b.textContent?.trim() === "Check cookie"
+      (b) => b.textContent?.trim() === "check"
     )!;
     expect(checkBtn).toBeTruthy();
     act(() => {

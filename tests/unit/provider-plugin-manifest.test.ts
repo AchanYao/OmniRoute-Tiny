@@ -40,15 +40,15 @@ const registryFixture: Record<string, RegistryEntry> = {
     },
     models: [{ id: "claude-sonnet-4.6", name: "Claude Sonnet 4.6" }],
   },
-  "claude-web": {
-    id: "claude-web",
-    alias: "cw",
+  gitlab: {
+    id: "gitlab",
+    alias: "gl",
     format: "openai",
-    executor: "claude-web",
-    baseUrl: "https://claude.ai/api/organizations",
+    executor: "gitlab",
+    baseUrl: "https://gitlab.com/api/v4/chat/completions",
     authType: "apikey",
-    authHeader: "cookie",
-    models: [{ id: "claude-sonnet-4.6", name: "Claude 4.6 Sonnet (web)" }],
+    authHeader: "bearer",
+    models: [{ id: "claude-sonnet-4.6", name: "Claude Sonnet 4.6 (GitLab Duo)" }],
   },
   claude: {
     id: "claude",
@@ -76,7 +76,7 @@ test("provider plugin manifest is JSON-safe and stable enough for sidecars", () 
   assert.equal(roundTripped.providers.length, 4);
   assert.deepEqual(
     roundTripped.providers.map((provider: { id: string }) => provider.id),
-    [...roundTripped.providers.map((provider: { id: string }) => provider.id)].sort(),
+    [...roundTripped.providers.map((provider: { id: string }) => provider.id)].sort()
   );
 });
 
@@ -92,14 +92,14 @@ test("manifest exposes API-key default-executor providers as sidecar candidates"
   assert.ok(openai.models.some((model) => model.id === "gpt-4.1"));
 });
 
-test("manifest keeps custom web executors on the TypeScript fallback path", () => {
-  const claudeWeb = getProviderPluginManifestEntryFromRegistry(registryFixture, "cw");
+test("manifest keeps custom executors on the TypeScript fallback path", () => {
+  const gitlab = getProviderPluginManifestEntryFromRegistry(registryFixture, "gl");
 
-  assert.ok(claudeWeb);
-  assert.equal(claudeWeb.id, "claude-web");
-  assert.equal(claudeWeb.sidecar.eligible, false);
-  assert.ok(claudeWeb.capabilities.includes("custom-executor"));
-  assert.ok(claudeWeb.sidecar.reasons.some((reason) => reason.includes("claude-web")));
+  assert.ok(gitlab);
+  assert.equal(gitlab.id, "gitlab");
+  assert.equal(gitlab.sidecar.eligible, false);
+  assert.ok(gitlab.capabilities.includes("custom-executor"));
+  assert.ok(gitlab.sidecar.reasons.some((reason) => reason.includes("gitlab")));
 });
 
 test("manifest does not export OAuth client secrets or dynamic functions", () => {

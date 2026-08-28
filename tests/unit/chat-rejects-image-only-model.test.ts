@@ -101,10 +101,10 @@ test("POST /v1/chat/completions routes a stored chat combo whose name is an imag
   }
 });
 
-test("POST /v1/chat/completions allows a model registered for both chat and image generation", async () => {
+test("POST /v1/chat/completions allows a chat-catalog model that shares an id with another provider's image catalog", async () => {
   const request = buildRequest({
     body: {
-      model: "codex/gpt-5.6-sol",
+      model: "openai/gpt-5.6-sol",
       messages: [{ role: "user", content: "hi" }],
     },
   });

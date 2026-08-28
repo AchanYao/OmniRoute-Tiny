@@ -78,8 +78,8 @@ test("fallbackClaudeProfile creates a profile for a live-catalog model unmatched
 
 test("fallbackClaudeProfile skips media and non-text models", () => {
   assert.equal(
-    fallbackClaudeProfile("veo-free/seedance", {
-      id: "veo-free/seedance",
+    fallbackClaudeProfile("runwayml/gen4.5", {
+      id: "runwayml/gen4.5",
       output_modalities: ["video"],
     }),
     null

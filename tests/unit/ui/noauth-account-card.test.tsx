@@ -10,7 +10,7 @@ const { default: NoAuthAccountCard } =
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const PROVIDER_ID = "mimocode";
+const PROVIDER_ID = "opencode";
 
 function makeFingerprints(n: number): string[] {
   // Deterministic, distinguishable, > 10 chars each so the truncation is exercised.

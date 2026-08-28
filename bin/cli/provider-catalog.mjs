@@ -82,6 +82,7 @@ function extractProviderBlocks(source, filePath) {
       }
 
       const category = normalizeCatalogCategory(exportName);
+      if (category === "web-cookie") continue;
       for (const property of declaration.initializer.properties) {
         if (!ts.isPropertyAssignment(property)) continue;
         if (!ts.isObjectLiteralExpression(property.initializer)) continue;
@@ -129,6 +130,51 @@ function resolveProviderCatalogPath(rootDir, options = {}) {
   return join(rootDir, "src", "shared", "constants", "providers.ts");
 }
 
+const SUNSET_WEBSITE_SESSION_IDS = new Set([
+  "chatgpt-web",
+  "grok-web",
+  "gemini-web",
+  "perplexity-web",
+  "blackbox-web",
+  "muse-spark-web",
+  "claude-web",
+  "deepseek-web",
+  "copilot-web",
+  "copilot-m365-web",
+  "microsoft-designer-web",
+  "t3-web",
+  "inner-ai",
+  "adapta-web",
+  "lmarena",
+  "yuanbao-web",
+  "huggingchat",
+  "poe-web",
+  "venice-web",
+  "v0-vercel-web",
+  "kimi-web",
+  "doubao-web",
+  "hailuo-web",
+  "qwen-web",
+  "gemini-business",
+  "zenmux-free",
+  "zai-web",
+  "promptql",
+  "notion-web",
+  "adobe-firefly",
+  "hyperagent",
+  "duckduckgo-web",
+  "felo-web",
+  "theoldllm",
+  "chipotle",
+  "veoaifree-web",
+  "mimocode",
+  "suno",
+  "udio",
+]);
+
+export function loadSunsetWebCookieProviderIds() {
+  return SUNSET_WEBSITE_SESSION_IDS;
+}
 export function loadAvailableProviders(options = {}) {
   const rootDir = typeof options === "string" ? options : options.rootDir || DEFAULT_ROOT_DIR;
   const providersPath = resolveProviderCatalogPath(rootDir, options);

@@ -1,9 +1,9 @@
 /**
  * #8969: Canonical `poe` API-key provider must use DefaultExecutor → api.poe.com,
- * not the web-cookie PoeWebExecutor GraphQL path (which returns HTTP 405).
+ * not a website-session GraphQL path (sunset in Tiny).
  *
  * Locks:
- *   - getExecutor("poe") is DefaultExecutor; getExecutor("poe-web") stays PoeWebExecutor
+ *   - getExecutor("poe") is DefaultExecutor (no specialized PoeWebExecutor)
  *   - Chat Completions / Responses / Messages URL selection + auth headers
  *   - GPT models never hit Poe's Claude-only Messages endpoint
  *   - Operator baseUrl shapes (bare host, /v1/, trailing slash) normalize correctly
@@ -20,7 +20,6 @@ process.env.DATA_DIR = TEST_DATA_DIR;
 
 const { getExecutor, hasSpecializedExecutor } = await import("../../open-sse/executors/index.ts");
 const { DefaultExecutor } = await import("../../open-sse/executors/default.ts");
-const { PoeWebExecutor } = await import("../../open-sse/executors/poe-web.ts");
 const { getRegistryEntry } = await import("../../open-sse/config/providerRegistry.ts");
 const { resolveExecutionCredentials } =
   await import("../../open-sse/handlers/chatCore/executionCredentials.ts");
@@ -47,17 +46,11 @@ function headerRecord(headers: Record<string, string>): Record<string, string> {
   return out;
 }
 
-test("#8969: getExecutor(poe) selects DefaultExecutor, not PoeWebExecutor", () => {
+test("#8969: getExecutor(poe) selects DefaultExecutor", () => {
   assert.equal(hasSpecializedExecutor("poe"), false);
   const executor = getExecutor("poe");
   assert.ok(executor instanceof DefaultExecutor);
-  assert.equal(executor instanceof PoeWebExecutor, false);
   assert.equal(executor.provider, "poe");
-});
-
-test("#8969: getExecutor(poe-web) still selects PoeWebExecutor", () => {
-  assert.equal(hasSpecializedExecutor("poe-web"), true);
-  assert.ok(getExecutor("poe-web") instanceof PoeWebExecutor);
 });
 
 test("#8969: registry declares API-key executor + all three Poe protocol URLs", () => {

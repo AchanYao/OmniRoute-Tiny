@@ -7,12 +7,6 @@ import { computeCostFromPricing } from "../../src/lib/usage/costCalculator.ts";
 const PRICING = { input: 1, output: 2 };
 const TOKENS = { input: 1_000_000, output: 1_000_000 };
 
-test("isFlatRateProvider: cookie-web providers are flat-rate", () => {
-  for (const id of ["chatgpt-web", "grok-web", "gemini-web", "claude-web", "kimi-web"]) {
-    assert.equal(isFlatRateProvider(id), true, `${id} should be flat-rate`);
-  }
-});
-
 test("isFlatRateProvider: dedicated subscription / coding-plan providers are flat-rate", () => {
   for (const id of [
     "minimax",
@@ -29,7 +23,7 @@ test("isFlatRateProvider: dedicated subscription / coding-plan providers are fla
 });
 
 test("isFlatRateProvider: case-insensitive + trimmed", () => {
-  assert.equal(isFlatRateProvider("  CHATGPT-WEB "), true);
+  assert.equal(isFlatRateProvider("  KIMI-CODING "), true);
   assert.equal(isFlatRateProvider("MINIMAX"), true);
 });
 
@@ -61,7 +55,7 @@ test("isFlatRateProvider: empty / nullish is not flat-rate", () => {
 
 test("computeCostFromPricing: flat-rate provider with flatRateAsZero → $0", () => {
   assert.equal(
-    computeCostFromPricing(PRICING, TOKENS, { provider: "chatgpt-web", flatRateAsZero: true }),
+    computeCostFromPricing(PRICING, TOKENS, { provider: "kimi-coding", flatRateAsZero: true }),
     0
   );
   assert.equal(
@@ -72,7 +66,7 @@ test("computeCostFromPricing: flat-rate provider with flatRateAsZero → $0", ()
 
 test("computeCostFromPricing: opt-in only — flat-rate provider WITHOUT the flag still estimates", () => {
   // Proves the guard never silently changes budget/routing/per-request paths.
-  assert.equal(computeCostFromPricing(PRICING, TOKENS, { provider: "chatgpt-web" }), 3);
+  assert.equal(computeCostFromPricing(PRICING, TOKENS, { provider: "kimi-coding" }), 3);
 });
 
 test("computeCostFromPricing: metered provider with the flag still estimates", () => {

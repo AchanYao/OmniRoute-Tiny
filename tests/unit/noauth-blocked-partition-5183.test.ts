@@ -21,30 +21,30 @@ import { partitionNoAuthEntriesByBlocked } from "../../src/shared/utils/noAuthPr
 type Entry = { providerId: string; provider: { name: string; alias?: string } };
 
 const entries: Entry[] = [
-  { providerId: "veoaifree-web", provider: { name: "VeoAIFree" } },
-  { providerId: "gemini-web", provider: { name: "Gemini Web (Free)", alias: "geminiweb" } },
-  { providerId: "kilocode", provider: { name: "Kilo Code" } },
+  { providerId: "opencode", provider: { name: "OpenCode Free", alias: "oc" } },
+  { providerId: "aihorde", provider: { name: "AI Horde", alias: "horde" } },
+  { providerId: "auggie", provider: { name: "Augment (Auggie CLI)" } },
 ];
 
 test("#5183 returns every entry — nothing is dropped", () => {
-  const { visible, blocked } = partitionNoAuthEntriesByBlocked(entries, ["veoaifree-web"]);
+  const { visible, blocked } = partitionNoAuthEntriesByBlocked(entries, ["opencode"]);
   assert.equal(visible.length + blocked.length, entries.length);
 });
 
 test("#5183 a blocked-by-id no-auth provider lands in `blocked`, not discarded", () => {
-  const { visible, blocked } = partitionNoAuthEntriesByBlocked(entries, ["veoaifree-web"]);
+  const { visible, blocked } = partitionNoAuthEntriesByBlocked(entries, ["opencode"]);
   assert.deepEqual(
     blocked.map((e) => e.providerId),
-    ["veoaifree-web"]
+    ["opencode"]
   );
-  assert.ok(!visible.some((e) => e.providerId === "veoaifree-web"));
+  assert.ok(!visible.some((e) => e.providerId === "opencode"));
 });
 
 test("#5183 a provider blocked by its ALIAS is also captured as blocked", () => {
-  const { blocked } = partitionNoAuthEntriesByBlocked(entries, ["geminiweb"]);
+  const { blocked } = partitionNoAuthEntriesByBlocked(entries, ["horde"]);
   assert.deepEqual(
     blocked.map((e) => e.providerId),
-    ["gemini-web"]
+    ["aihorde"]
   );
 });
 
@@ -57,13 +57,13 @@ test("#5183 empty/garbage blocklist => all visible, none blocked", () => {
 });
 
 test("#5183 partition order is preserved within each bucket", () => {
-  const { visible, blocked } = partitionNoAuthEntriesByBlocked(entries, ["gemini-web"]);
+  const { visible, blocked } = partitionNoAuthEntriesByBlocked(entries, ["aihorde"]);
   assert.deepEqual(
     visible.map((e) => e.providerId),
-    ["veoaifree-web", "kilocode"]
+    ["opencode", "auggie"]
   );
   assert.deepEqual(
     blocked.map((e) => e.providerId),
-    ["gemini-web"]
+    ["aihorde"]
   );
 });

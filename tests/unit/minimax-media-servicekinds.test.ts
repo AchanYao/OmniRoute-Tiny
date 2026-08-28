@@ -31,8 +31,8 @@ test("representative media providers derive the expected kinds", () => {
   const cases: Record<string, string[]> = {
     elevenlabs: ["tts"],
     deepgram: ["stt", "tts"],
-    suno: ["music"],
-    udio: ["music"],
+    vertex: ["music"],
+    kie: ["music"],
     runwayml: ["video"],
     openai: ["embedding", "image", "stt", "tts"],
     cohere: ["embedding", "stt"],
@@ -40,7 +40,10 @@ test("representative media providers derive the expected kinds", () => {
   for (const [id, expected] of Object.entries(cases)) {
     const derived = getRegistryMediaKinds(id);
     for (const kind of expected) {
-      assert.ok(derived.includes(kind as never), `${id} should derive ${kind}; got ${derived.join(",")}`);
+      assert.ok(
+        derived.includes(kind as never),
+        `${id} should derive ${kind}; got ${derived.join(",")}`
+      );
     }
   }
 });
@@ -52,8 +55,8 @@ test("resolveProviderServiceKinds unions declared kinds with derived media kinds
     assert.ok(merged.includes(expected), `expected ${expected} in ${merged.join(",")}`);
   }
   // De-dupes when declared overlaps derived.
-  const veo = resolveProviderServiceKinds("veoaifree-web", ["video"]);
-  assert.equal(veo.filter((k) => k === "video").length, 1);
+  const runway = resolveProviderServiceKinds("runwayml", ["video"]);
+  assert.equal(runway.filter((k) => k === "video").length, 1);
 });
 
 test("media listing filter surfaces minimax where the old declared-only filter missed it", () => {
@@ -72,13 +75,19 @@ test("media listing filter surfaces minimax where the old declared-only filter m
       .map((p) => p.id);
 
   for (const kind of ["tts", "video", "music"]) {
-    assert.ok(!oldListFor(kind).includes("minimax"), `precondition (bug): old filter missed minimax under ${kind}`);
+    assert.ok(
+      !oldListFor(kind).includes("minimax"),
+      `precondition (bug): old filter missed minimax under ${kind}`
+    );
     assert.ok(newListFor(kind).includes("minimax"), `fix: minimax now listed under ${kind}`);
     assert.ok(!newListFor(kind).includes("minimax-cn"), `minimax-cn must not appear under ${kind}`);
   }
 
   // The fix is systemic, not minimax-only: many providers were invisible before.
-  assert.ok(oldListFor("tts").length < newListFor("tts").length, "fix surfaces additional tts providers");
+  assert.ok(
+    oldListFor("tts").length < newListFor("tts").length,
+    "fix surfaces additional tts providers"
+  );
 });
 
 test("ocr is a registry-backed media kind and mistral derives it", () => {

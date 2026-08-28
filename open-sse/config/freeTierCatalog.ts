@@ -28,7 +28,6 @@ export const FREE_TIER_BUDGETS: Record<string, number> = {
   bazaarlink: 3_600_000,
   openrouter: 1_200_000,
   cohere: 800_000,
-  huggingchat: 500_000,
   morph: 400_000,
   huggingface: 200_000,
   kiro: 25_000,
@@ -40,14 +39,9 @@ export const FREE_TIER_BUDGETS: Record<string, number> = {
  */
 export const FREE_TIER_TOS: Record<string, TosVerdict> = {
   opencode: "avoid",
-  "duckduckgo-web": "avoid",
-  "felo-web": "avoid",
   agy: "avoid",
   kiro: "avoid",
   "amazon-q": "avoid",
-  "muse-spark-web": "avoid",
-  "t3-web": "avoid",
-  "qwen-web": "avoid",
   modal: "avoid",
   nlpcloud: "avoid",
   blackbox: "avoid",

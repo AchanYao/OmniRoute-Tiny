@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **providers:** Web-cookie / website-session sources are sunset in OmniRoute Tiny. They no longer appear in Dashboard add-provider or `/v1/models`, new creates and bulk web-session import return 410, and leftover cookie chat/image/video traffic fail-closes with 410. SQLite rows are not wiped. Official `poe` / `v0-vercel` API-key aliases are unchanged. See `docs/architecture/web-cookie-sunset.md`.
+  Catalog, website-backed executors (including no-auth scrapers `duckduckgo-web` / `felo-web` / `theoldllm` / `chipotle` / `veoaifree-web` / `mimocode` and cookie media `suno` / `udio` / Firefly), browser-pool / VNC cookie login, and cookie validators are deleted. Leftover client `provider/model` strings still 410. Official `poe` / `v0-vercel` / `hackclub`, GitLab Duo, Auggie CLI, AI Horde, OpenCode Free, and Devin CLI remain.
+
 ### Fixed
 
 - **oauth:** Newly created OAuth connections now fire-and-forget `/sync-models?mode=import` the same way API-key creates do, so live catalog ids (e.g. Antigravity `gemini-3.7-flash-tiered`) appear without a manual sync. Re-auth / token refresh still skips import.

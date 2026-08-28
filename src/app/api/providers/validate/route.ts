@@ -12,6 +12,11 @@ import { getProxyForLevel, resolveProxyForProvider } from "@/lib/localDb";
 import { validateProviderApiKeySchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { runWithProxyContextOrDirect } from "@omniroute/open-sse/utils/proxyFetch.ts";
+import {
+  isSunsetWebCookieProviderId,
+  WEB_COOKIE_SUNSET_ERROR,
+  WEB_COOKIE_SUNSET_STATUS,
+} from "@/shared/providers/webCookieSunset";
 
 function sanitizeAuditUrl(url: string | null | undefined) {
   if (!url) return null;
@@ -58,6 +63,13 @@ export async function POST(request) {
       region,
       cx,
     } = validation.data;
+
+    if (isSunsetWebCookieProviderId(provider)) {
+      return NextResponse.json(
+        { valid: false, error: WEB_COOKIE_SUNSET_ERROR, unsupported: true },
+        { status: WEB_COOKIE_SUNSET_STATUS }
+      );
+    }
 
     let providerSpecificData: any = { validationModelId };
     if (customUserAgent) {
@@ -115,7 +127,7 @@ export async function POST(request) {
     if (result.unsupported) {
       // #5565/#5567: surface `unsupported` so the dashboard can treat "validation
       // not supported" as a non-blocking warning (allow Save) instead of a hard
-      // "Invalid" block — providers like lmarena / piapi have no live validator.
+      // "Invalid" block — providers like piapi have no live validator.
       return NextResponse.json(
         { error: "Provider validation not supported", unsupported: true },
         { status: 400 }

@@ -47,12 +47,9 @@ import { getClaudeUsage, getClaudePlanLabel } from "./usage/claude.ts";
 import { getKiroUsage, buildKiroUsageResult, discoverKiroProfileArn } from "./usage/kiro.ts";
 // Re-exported para os testes kiro-* (importam de services/usage).
 export { buildKiroUsageResult, discoverKiroProfileArn } from "./usage/kiro.ts";
-import { getAdobeFireflyUsage } from "./usage/adobeFirefly.ts";
 import { getOpenrouterUsage } from "./usage/openrouter.ts";
 import { getOllamaCloudUsage, getOpenCodeGoUsage } from "./opencodeOllamaUsage.ts";
 import { getCodeBuddyCnUsage } from "./usage/codebuddy-cn.ts";
-import { getPromptQlUsage } from "./usage/promptql.ts";
-import { getHyperAgentUsage } from "./usage/hyperagent.ts";
 import { getGitHubUsage, formatGitHubQuotaSnapshot, inferGitHubPlanName } from "./usage/github.ts";
 import { getCrofUsage } from "./usage/crof.ts";
 import { getNanoGptUsage } from "./usage/nanogpt.ts";
@@ -119,12 +116,6 @@ export const USAGE_FETCHER_PROVIDERS = [
   "vertex-partner",
   "codebuddy-cn",
   "openrouter",
-  // PromptQL playground credits (data.pro.ql.app getCreditSummary)
-  "promptql",
-  "pql",
-  // HyperAgent billing usage (creditBlocks USD)
-  "hyperagent",
-  "ha",
   // Firecrawl team credits (GET /v2/team/credit-usage)
   "firecrawl",
 ] as const;
@@ -210,17 +201,6 @@ export async function getUsageForProvider(
       return await getGrokCliUsage(accessToken);
     case "codebuddy-cn":
       return await getCodeBuddyCnUsage(accessToken, apiKey, providerSpecificData);
-    case "promptql":
-    case "pql":
-      // DDN lux JWTs carry projectId only in JWT aud; connection.projectId may be set by sync.
-      return await getPromptQlUsage(apiKey || accessToken, providerSpecificData, projectId);
-    case "adobe-firefly":
-    case "firefly":
-      // Cookie or IMS JWT in apiKey/accessToken → GET firefly.adobe.io/v1/credits/balance
-      return await getAdobeFireflyUsage(apiKey, accessToken, providerSpecificData);
-    case "hyperagent":
-    case "ha":
-      return await getHyperAgentUsage(apiKey || accessToken, providerSpecificData);
     case "firecrawl":
       return await getFirecrawlUsage(id || "", apiKey, connection);
     default:

@@ -68,8 +68,8 @@ import {
   getProviderAlias,
   resolveProviderId,
   NOAUTH_PROVIDERS,
-  WEB_COOKIE_PROVIDERS,
 } from "@/shared/constants/providers";
+import { isSunsetWebCookieProviderId } from "@/shared/providers/webCookieSunset";
 import { isModelExcludedByConnection } from "@/domain/connectionModelRules";
 import {
   applySessionAffinityPin,
@@ -353,7 +353,7 @@ function isRecoverableCookieAuth401(
   return (
     providerErrorType !== PROVIDER_ERROR_TYPES.ACCOUNT_DEACTIVATED &&
     provider != null &&
-    resolveProviderId(provider) in WEB_COOKIE_PROVIDERS
+    isSunsetWebCookieProviderId(resolveProviderId(provider))
   );
 }
 
@@ -765,14 +765,7 @@ function providerCanUseSyntheticNoAuthFallback(providerId: string): boolean {
   const noAuthProviderDef = (
     NOAUTH_PROVIDERS as Record<string, AnonymousFallbackProviderDefinition | undefined>
   )[providerId];
-  const webCookieProviderDef = (
-    WEB_COOKIE_PROVIDERS as Record<string, AnonymousFallbackProviderDefinition | undefined>
-  )[providerId];
-  return (
-    providerDef?.anonymousFallback === true ||
-    noAuthProviderDef?.noAuth === true ||
-    webCookieProviderDef?.noAuth === true
-  );
+  return providerDef?.anonymousFallback === true || noAuthProviderDef?.noAuth === true;
 }
 
 async function maybeSyntheticNoAuthFallback(
@@ -994,7 +987,6 @@ export async function getProviderCredentials(
     const resolvedId = resolveProviderId(provider);
     const providerMaps: Record<string, { noAuth?: boolean } | undefined>[] = [
       NOAUTH_PROVIDERS as Record<string, { noAuth?: boolean } | undefined>,
-      WEB_COOKIE_PROVIDERS as Record<string, { noAuth?: boolean } | undefined>,
     ];
     if (providerMaps.some((map) => map[resolvedId]?.noAuth)) {
       if (await isNoAuthProviderBlockedBySettings(resolvedId)) return null;
@@ -2040,7 +2032,10 @@ export async function markAccountUnavailable(
         ? "model"
         : getQuotaScopeLabelForProvider(provider, model);
       const antigravityFamilyInferredBaseCooldownMs =
-        !usesExactAntigravityLock && provider === "antigravity" && quotaScope === "family" && status === 429
+        !usesExactAntigravityLock &&
+        provider === "antigravity" &&
+        quotaScope === "family" &&
+        status === 429
           ? ANTIGRAVITY_FAMILY_INFERRED_BASE_COOLDOWN_MS
           : null;
       const lockout = recordModelLockoutFailure(

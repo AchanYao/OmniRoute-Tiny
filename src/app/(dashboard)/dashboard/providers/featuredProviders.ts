@@ -38,14 +38,12 @@ export const CHEAPERINFERENCE_BRAND_COLOR = "#31f889";
  *  - "kimi-coding-apikey" Kimi Code API Key — apikey category, hiddenFromDashboard
  *                         (its connections fold into the kimi-coding card, see
  *                         PROVIDER_CONNECTION_ALIASES in providerPageUtils.ts)
- *  - "kimi-web"           Kimi Web — web-cookie category (visible card)
  *  - "moonshot"           Moonshot AI — apikey category (visible card)
  */
 const KIMI_PROVIDER_IDS: readonly string[] = [
   "kimi",
   "kimi-coding",
   "kimi-coding-apikey",
-  "kimi-web",
   "moonshot",
 ];
 

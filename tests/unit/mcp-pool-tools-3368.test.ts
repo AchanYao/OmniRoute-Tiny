@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 // the observability tools cannot silently fall out of the live MCP server again.
 
 const { poolTools } = await import("../../open-sse/mcp-server/tools/poolTools.ts");
-const { handlePoolStatus, handlePoolSessions, handleBrowserPoolStatus } =
+const { handlePoolStatus, handlePoolSessions } =
   await import("../../open-sse/mcp-server/tools/poolTools.ts");
 const mcpScopesModule = await import("../../src/shared/constants/mcpScopes.ts");
 const { MCP_TOOL_SCOPES, MCP_SCOPE_LIST } = mcpScopesModule;
@@ -19,8 +19,6 @@ const POOL_TOOL_NAMES = [
   "omniroute_pool_status",
   "omniroute_pool_sessions",
   "omniroute_pool_health",
-  // #3368 PR7 — stealth browser pool observability
-  "omniroute_browser_pool_status",
 ];
 
 const serverSource = readFileSync(
@@ -94,7 +92,6 @@ test("read tools require read:health", () => {
   assert.deepEqual(tools.omniroute_pool_status.scopes, ["read:health"]);
   assert.deepEqual(tools.omniroute_pool_sessions.scopes, ["read:health"]);
   assert.deepEqual(tools.omniroute_pool_health.scopes, ["read:health"]);
-  assert.deepEqual(tools.omniroute_browser_pool_status.scopes, ["read:health"]);
 });
 
 test("MCP scope constants public surface excludes unused helper bundles", () => {
@@ -130,46 +127,4 @@ test("handlePoolSessions errors clearly for an unknown provider", async () => {
     error?: string;
   };
   assert.match(String(result.error), /No pool found/);
-});
-
-// ── #3368 PR7 — browser pool observability ────────────────────────────────
-
-test("handleBrowserPoolStatus returns status + cumulative metrics shape", async () => {
-  const { __resetBrowserPoolMetricsForTest } =
-    await import("../../open-sse/services/browserPool.ts");
-  __resetBrowserPoolMetricsForTest();
-
-  const result = (await handleBrowserPoolStatus()) as {
-    status: { enabled: boolean; contexts: number; browserRunning: boolean };
-    metrics: Record<string, number | string | null>;
-  };
-
-  assert.equal(typeof result.status.enabled, "boolean");
-  assert.equal(typeof result.status.contexts, "number");
-  assert.equal(typeof result.status.browserRunning, "boolean");
-  for (const key of [
-    "browserLaunches",
-    "browserLaunchFailures",
-    "contextsCreated",
-    "contextsReused",
-    "contextsEvicted",
-    "contextsReleased",
-    "contextCreateFailures",
-    "shutdowns",
-  ]) {
-    assert.equal(typeof result.metrics[key], "number", `${key} must be a numeric counter`);
-  }
-  assert.equal(result.metrics.lastShutdownReason, null, "no shutdown yet → null reason");
-});
-
-test("shutdownPool increments the shutdowns counter and records the reason", async () => {
-  const { shutdownPool, getBrowserPoolMetrics, __resetBrowserPoolMetricsForTest } =
-    await import("../../open-sse/services/browserPool.ts");
-  __resetBrowserPoolMetricsForTest();
-
-  await shutdownPool("unit-test-reason");
-
-  const { metrics } = getBrowserPoolMetrics();
-  assert.equal(metrics.shutdowns, 1, "shutdownPool must increment the shutdowns counter");
-  assert.equal(metrics.lastShutdownReason, "unit-test-reason");
 });

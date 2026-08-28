@@ -74,8 +74,8 @@ function hasImageGenerationInput(body: Record<string, unknown>) {
   return false;
 }
 
-// Forward only the host-shaped headers the chatgpt-web image handler needs
-// to derive the browser-facing public base URL. Avoid copying the full
+// Forward only the host-shaped headers the image handler needs
+// to derive the public base URL. Avoid copying the full
 // request header set: it's wider than the handler needs (auth tokens,
 // content-type, etc.) and `Headers.forEach` collapses repeated values, which
 // would silently drop entries if a wider helper were reused for headers

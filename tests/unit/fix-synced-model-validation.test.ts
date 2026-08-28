@@ -40,13 +40,12 @@ test("bare claude-opus-5 still resolves to a static-registry provider (does not 
   );
 
   // And it must be one of the actual static-registry candidates for
-  // claude-opus-5: anthropic, claude (Claude Code OAuth), claude/web,
+  // claude-opus-5: anthropic, claude (Claude Code OAuth),
   // cheaperinference, github, vertex/partner, ghe-copilot, agentrouter.
   assert.ok(
     [
       "anthropic",
       "claude",
-      "claude-web",
       "cheaperinference",
       "github",
       "vertex-partner",

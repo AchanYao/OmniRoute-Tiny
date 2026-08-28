@@ -13,11 +13,11 @@ import { getUnsupportedParams } from "../../open-sse/config/providerRegistry.ts"
 // Either one threw on the first call once a model-less entry existed, which made
 // `handleChatCore` report "All models failed" for unrelated requests.
 
-test("getUnsupportedParams does not throw when a registry entry has no models (mimocode regression)", () => {
+test("getUnsupportedParams does not throw when walking registry entries", () => {
   // This call triggers ensureUnsupportedParamsPopulated() which walks ALL entries.
   assert.doesNotThrow(() => getUnsupportedParams("openai", "gpt-4o"));
 });
 
-test("getUnsupportedParams returns [] for a model-less proxy provider", () => {
-  assert.deepEqual(getUnsupportedParams("mimocode", "anything"), []);
+test("getUnsupportedParams returns [] for an unknown model on a known provider", () => {
+  assert.deepEqual(getUnsupportedParams("openai", "anything-unknown"), []);
 });

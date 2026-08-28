@@ -28,14 +28,14 @@ describe("dedupeExactCatalogIds (#4424 / #8015)", () => {
         subtype: "transcription",
       },
       {
-        id: "veo-free/veo",
-        owned_by: "veo-free",
+        id: "runwayml/gen4.5",
+        owned_by: "runwayml",
         context_length: 128000,
         capabilities: { tool_calling: true, reasoning: true },
       },
       {
-        id: "veo-free/veo",
-        owned_by: "veo-free",
+        id: "runwayml/gen4.5",
+        owned_by: "runwayml",
         type: "video",
       },
       {
@@ -54,7 +54,7 @@ describe("dedupeExactCatalogIds (#4424 / #8015)", () => {
       out.map((m) => [m.id, m.type, m.subtype]),
       [
         ["openai/whisper-1", "audio", "transcription"],
-        ["veo-free/veo", "video", undefined],
+        ["runwayml/gen4.5", "video", undefined],
         ["openai/omni-moderation-latest", "moderation", undefined],
       ]
     );

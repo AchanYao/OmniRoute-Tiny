@@ -77,14 +77,6 @@ const PROVIDER_LIMITS_APIKEY_PROVIDERS = new Set([
   "vertex-partner",
   "kimi-coding-apikey",
   "kiro",
-  "promptql", // PromptQL playground JWT → getCreditSummary USD credits
-  "pql",
-  // Adobe Firefly: web-cookie / JWT stored as apikey → credits/balance
-  "adobe-firefly",
-  "firefly",
-  // HyperAgent session cookie → billing/usage creditBlocks
-  "hyperagent",
-  "ha",
   "firecrawl",
 ]);
 const DEFAULT_PROVIDER_LIMITS_SYNC_INTERVAL_MINUTES = 70;

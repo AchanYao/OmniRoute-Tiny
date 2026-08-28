@@ -51,9 +51,9 @@ export default function ProviderPageHeader({
   isReferralLink = false,
 }: ProviderPageHeaderProps) {
   // Kimi (Moonshot AI) official-partnership aff links (2026-07): the header
-  // website link doubles as the CTA for kimi-coding/kimi-web/moonshot's
-  // tracking links (see website field in oauth.ts / web-cookie.ts /
-  // apikey/regional.ts) — flag it with a discreet "Partner link" note so it
+  // website link doubles as the CTA for kimi-coding/moonshot tracking links
+  // (see website field in oauth.ts / apikey/regional.ts) — flag it with a
+  // discreet "Partner link" note so it
   // reads as a monetized link, not just "visit provider website" like every
   // other card. UI-only — never affects routing/fallback (featuredProviders.ts).
   const isKimiPartnerLink = isKimiPartnerProviderId(providerInfo.id);

@@ -38,9 +38,6 @@ import {
   parseExcludedModelsInput,
   formatRoutingTagsInput,
   formatExcludedModelsInput,
-  getWebSessionCredentialLabel,
-  getWebSessionCredentialHint,
-  getWebSessionCredentialCheckLabel,
   getLocalProviderMetadata,
   normalizeAndValidateHttpBaseUrl,
   CODEX_REASONING_STRENGTH_OPTIONS,
@@ -52,9 +49,7 @@ import {
   ERROR_TYPE_LABELS,
   formatTimeAgo,
 } from "../../providerPageHelpers";
-import { getWebSessionCredentialRequirement } from "../../webSessionCredentials";
 import { useOpenRouterPresetControl } from "../OpenRouterPresetInput";
-import WebSessionCredentialGuide from "../WebSessionCredentialGuide";
 import CcCompatibleRequestDefaultsFields from "./CcCompatibleRequestDefaultsFields";
 import { assignEditApiKeyProviderSpecificData } from "./connectionProviderSpecificData";
 import { isM365TierCapableProvider, normalizeM365TierValue, type M365TierValue } from "./m365Tier";
@@ -206,38 +201,26 @@ export default function EditConnectionModal({
   const isLocalSelfHostedProvider = !!localProviderMetadata;
   const isGooglePse = provider === "google-pse-search";
   const isM365TierCapable = isM365TierCapableProvider(provider);
-  const webSessionCredential = getWebSessionCredentialRequirement(provider);
-  const isNoAuthWebSessionCredential = webSessionCredential?.kind === "none";
-  const isWebSessionCredential = !!webSessionCredential && webSessionCredential.kind !== "none";
   const providerDisplayName =
     (provider ? resolveDashboardProviderInfo(provider)?.name : null) ||
     localProviderMetadata?.name ||
     provider ||
     "";
-  const apiKeyOptional =
-    providerAllowsOptionalApiKey(provider) || Boolean(isNoAuthWebSessionCredential);
+  const apiKeyOptional = providerAllowsOptionalApiKey(provider);
   const isCcCompatible = isClaudeCodeCompatibleProvider(provider);
   const isCompatible =
     isOpenAICompatibleProvider(provider) || isAnthropicCompatibleProvider(provider);
-  const apiCredentialLabel = webSessionCredential
-    ? getWebSessionCredentialLabel(t, webSessionCredential, apiKeyOptional)
+  const apiCredentialLabel = apiKeyOptional ? t("apiKeyOptionalLabel") : t("apiKeyLabel");
+  const apiCredentialPlaceholder = isVertex
+    ? t("vertexServiceAccountPlaceholder")
+    : t("enterNewApiKey");
+  const apiCredentialHint = isLocalSelfHostedProvider
+    ? t("localProviderApiKeyOptionalHint", {
+        provider: localProviderMetadata?.name || provider || "",
+      })
     : apiKeyOptional
-      ? t("apiKeyOptionalLabel")
-      : t("apiKeyLabel");
-  const apiCredentialPlaceholder = isWebSessionCredential
-    ? webSessionCredential.placeholder
-    : isVertex
-      ? t("vertexServiceAccountPlaceholder")
-      : t("enterNewApiKey");
-  const apiCredentialHint = isWebSessionCredential
-    ? getWebSessionCredentialHint(t, webSessionCredential, providerDisplayName, true)
-    : isLocalSelfHostedProvider
-      ? t("localProviderApiKeyOptionalHint", {
-          provider: localProviderMetadata?.name || provider || "",
-        })
-      : apiKeyOptional
-        ? t("apiKeyOptionalHint")
-        : t("leaveBlankKeepCurrentApiKey");
+      ? t("apiKeyOptionalHint")
+      : t("leaveBlankKeepCurrentApiKey");
   const codexAccountServiceTierOptions = useMemo(
     () =>
       CODEX_ACCOUNT_SERVICE_TIER_VALUES.map((value) => ({
@@ -421,11 +404,7 @@ export default function EditConnectionModal({
   };
 
   const handleValidate = async () => {
-    if (
-      !provider ||
-      isNoAuthWebSessionCredential ||
-      (!isCompatible && !apiKeyOptional && !formData.apiKey)
-    ) {
+    if (!provider || (!isCompatible && !apiKeyOptional && !formData.apiKey)) {
       return;
     }
     setValidating(true);
@@ -878,48 +857,35 @@ export default function EditConnectionModal({
         )}
         {!isOAuth && (
           <>
-            {webSessionCredential && (
-              <WebSessionCredentialGuide
-                requirement={webSessionCredential}
-                providerName={providerDisplayName}
-                providerWebsite={providerWebsite}
-                t={t}
+            {null}
+            <div className="flex gap-2">
+              <Input
+                label={apiCredentialLabel}
+                type="password"
+                value={formData.apiKey}
+                onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+                placeholder={apiCredentialPlaceholder}
+                hint={apiCredentialHint}
+                className="flex-1"
+                autoComplete="off"
+                spellCheck={false}
+                autoCapitalize="off"
               />
-            )}
-            {!isNoAuthWebSessionCredential && (
-              <div className="flex gap-2">
-                <Input
-                  label={apiCredentialLabel}
-                  type="password"
-                  value={formData.apiKey}
-                  onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-                  placeholder={apiCredentialPlaceholder}
-                  hint={apiCredentialHint}
-                  className="flex-1"
-                  autoComplete="off"
-                  spellCheck={false}
-                  autoCapitalize="off"
-                />
-                <div className="pt-6">
-                  <Button
-                    onClick={handleValidate}
-                    disabled={
-                      (!isCompatible && !apiKeyOptional && !formData.apiKey) ||
-                      (isGooglePse && !formData.cx.trim()) ||
-                      validating ||
-                      saving
-                    }
-                    variant="secondary"
-                  >
-                    {validating
-                      ? t("checking")
-                      : webSessionCredential
-                        ? getWebSessionCredentialCheckLabel(t, webSessionCredential)
-                        : t("check")}
-                  </Button>
-                </div>
+              <div className="pt-6">
+                <Button
+                  onClick={handleValidate}
+                  disabled={
+                    (!isCompatible && !apiKeyOptional && !formData.apiKey) ||
+                    (isGooglePse && !formData.cx.trim()) ||
+                    validating ||
+                    saving
+                  }
+                  variant="secondary"
+                >
+                  {validating ? t("checking") : t("check")}
+                </Button>
               </div>
-            )}
+            </div>
             {isGooglePse && (
               <Input
                 label={t("searchEngineIdLabel")}

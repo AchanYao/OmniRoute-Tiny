@@ -7,7 +7,7 @@ import {
   upsertApiKeyProviderConnection,
 } from "../provider-store.mjs";
 import { openOmniRouteDb } from "../sqlite.mjs";
-import { loadAvailableProviders } from "../provider-catalog.mjs";
+import { loadAvailableProviders, loadSunsetWebCookieProviderIds } from "../provider-catalog.mjs";
 import { apiFetch, isServerUp } from "../api.mjs";
 import { t } from "../i18n.mjs";
 
@@ -16,6 +16,14 @@ function getValidProviderIds() {
     return new Set(loadAvailableProviders().map((p) => p.id));
   } catch {
     return null;
+  }
+}
+
+function isSunsetWebCookieProviderId(providerId) {
+  try {
+    return loadSunsetWebCookieProviderIds().has(String(providerId || "").toLowerCase());
+  } catch {
+    return false;
   }
 }
 
@@ -165,6 +173,15 @@ export async function runKeysAddCommand(provider, apiKey, opts = {}) {
   }
 
   const providerLower = provider.toLowerCase();
+  if (isSunsetWebCookieProviderId(providerLower)) {
+    console.error(
+      t("common.error", {
+        message:
+          "Web-cookie / website-session providers are sunset in OmniRoute Tiny. Use an official API-key, OAuth, or compatible-node connection instead.",
+      })
+    );
+    return 1;
+  }
   const validIds = getValidProviderIds();
   if (validIds && !validIds.has(providerLower)) {
     console.error(t("keys.unknownProvider", { provider: providerLower }));

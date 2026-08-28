@@ -2,11 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Button, Badge, Input, Modal, Toggle, TALL_MODAL_PROPS } from "@/shared/components";
-import {
-  providerAllowsOptionalApiKey,
-  supportsBulkApiKey,
-  resolveWebProviderHost,
-} from "@/shared/constants/providers";
+import { providerAllowsOptionalApiKey, supportsBulkApiKey } from "@/shared/constants/providers";
 import { parseBulkApiKeys } from "@/shared/utils/bulkApiKeyParser";
 import { providerHasFreeModels } from "@/shared/utils/freeModels";
 import {
@@ -15,9 +11,6 @@ import {
   getProviderBaseUrlHint,
   getProviderBaseUrlPlaceholder,
   isGlmProvider,
-  getWebSessionCredentialLabel,
-  getWebSessionCredentialHint,
-  getWebSessionCredentialCheckLabel,
   getAddCredentialModalTitle,
   getLocalProviderMetadata,
   normalizeAndValidateHttpBaseUrl,
@@ -28,9 +21,7 @@ import {
   validationBadgeProps,
   type CommandCodeAuthFlowState,
 } from "../../providerPageHelpers";
-import { getWebSessionCredentialRequirement } from "../../webSessionCredentials";
 import { useOpenRouterPresetControl } from "../OpenRouterPresetInput";
-import WebSessionCredentialGuide from "../WebSessionCredentialGuide";
 import CcCompatibleRequestDefaultsFields from "./CcCompatibleRequestDefaultsFields";
 import { buildAddProviderSpecificData } from "./connectionProviderSpecificData";
 import { getCommandCodeAuthPhaseLabel } from "./commandCodeAuthPhase";
@@ -92,18 +83,8 @@ export default function AddApiKeyModal({
   const localProviderMetadata = getLocalProviderMetadata(provider);
   const isLocalSelfHostedProvider = !!localProviderMetadata;
   const isGooglePse = provider === "google-pse-search";
-  const webSessionCredential = getWebSessionCredentialRequirement(provider);
-  const isNoAuthWebSessionCredential = webSessionCredential?.kind === "none";
-  const isWebSessionCredential = !!webSessionCredential && webSessionCredential.kind !== "none";
-  // #6268 — for web-session providers, resolve the provider's public site so the
-  // modal can offer a prominent "Open ‹host› →" link. Gated on webSessionCredential
-  // so non-web providers never render a link.
-  const webProviderHostLink = webSessionCredential
-    ? resolveWebProviderHost(provider, defaultBaseUrl)
-    : null;
   const providerDisplayName = providerName || provider || "";
-  const apiKeyOptional =
-    providerAllowsOptionalApiKey(provider) || Boolean(isNoAuthWebSessionCredential);
+  const apiKeyOptional = providerAllowsOptionalApiKey(provider);
   const commandCodeAuthPhaseLabel = getCommandCodeAuthPhaseLabel(commandCodeAuthState);
   const [formData, setFormData] = useState({
     name: computeConnectionDefaultName(existingConnectionCount),
@@ -167,42 +148,30 @@ export default function AddApiKeyModal({
   const [bulkWarnings, setBulkWarnings] = useState<string[]>([]);
   const apiCredentialLabel = isModal
     ? providerText(t, "modalTokenIdLabel", "Token ID")
-    : webSessionCredential
-      ? getWebSessionCredentialLabel(t, webSessionCredential, apiKeyOptional)
-      : apiKeyOptional
-        ? `${t("apiKeyLabel")} (${t("optional").toLowerCase()})`
-        : t("apiKeyLabel");
+    : apiKeyOptional
+      ? `${t("apiKeyLabel")} (${t("optional").toLowerCase()})`
+      : t("apiKeyLabel");
   const apiCredentialPlaceholder = isModal
     ? "ak-xxxxxxxxxxxxxxxx"
     : isVertex
       ? t("vertexServiceAccountPlaceholder")
-      : isWebSessionCredential
-        ? webSessionCredential.placeholder
-        : apiKeyOptional
-          ? t("optional")
-          : undefined;
+      : apiKeyOptional
+        ? t("optional")
+        : undefined;
   const apiCredentialHint = isModal
     ? providerText(
         t,
         "modalTokenIdHint",
         "Modal auth uses a Token ID + Token Secret pair. Create one at https://modal.com/settings → API Tokens."
       )
-    : isWebSessionCredential
-      ? getWebSessionCredentialHint(t, webSessionCredential, providerDisplayName, false)
-      : isLocalSelfHostedProvider
-        ? t("localProviderApiKeyOptionalHint", {
-            provider: localProviderMetadata?.name || providerName || provider || "",
-          })
-        : apiKeyOptional
-          ? t("apiKeyOptionalHint")
-          : undefined;
-  const credentialValidationFailedMessage = isWebSessionCredential
-    ? providerText(
-        t,
-        "webSessionCredentialValidationFailed",
-        "Session credential validation failed. Sign in again, copy a fresh credential, and try again."
-      )
-    : t("apiKeyValidationFailed");
+    : isLocalSelfHostedProvider
+      ? t("localProviderApiKeyOptionalHint", {
+          provider: localProviderMetadata?.name || providerName || provider || "",
+        })
+      : apiKeyOptional
+        ? t("apiKeyOptionalHint")
+        : undefined;
+  const credentialValidationFailedMessage = t("apiKeyValidationFailed");
   const validationBadge = validationResult ? validationBadgeProps(validationResult) : null;
   // Normalize raw credential field(s) into the single value stored as `apiKey`
   // (#5088 command-code extract; #5446 Modal id:secret join; else verbatim).
@@ -277,7 +246,7 @@ export default function AddApiKeyModal({
         validatedBaseUrl = checked.value;
       }
 
-      let isValid = Boolean(isNoAuthWebSessionCredential && !credentialInput);
+      let isValid = false;
       let validationError: string | null = null;
       let isUnsupported = false; // #5565/#5567: no live validator → save anyway
       if (!isValid) {
@@ -440,27 +409,12 @@ export default function AddApiKeyModal({
   return (
     <Modal
       isOpen={isOpen}
-      title={getAddCredentialModalTitle(t, providerDisplayName, webSessionCredential)}
+      title={getAddCredentialModalTitle(t, providerDisplayName, null)}
       onClose={onClose}
       size="lg"
       {...TALL_MODAL_PROPS}
     >
       <div className="flex flex-col gap-4">
-        {webProviderHostLink && (
-          <a
-            href={webProviderHostLink.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
-          >
-            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-              open_in_new
-            </span>
-            {providerText(t, "openWebProviderSite", "Open {host}", {
-              host: webProviderHostLink.host,
-            })}
-          </a>
-        )}
         {bulkSupported && (
           <div className="flex gap-1 border-b border-border">
             <button
@@ -689,48 +643,35 @@ export default function AddApiKeyModal({
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder={t("productionKey")}
             />
-            {webSessionCredential && (
-              <WebSessionCredentialGuide
-                requirement={webSessionCredential}
-                providerName={providerDisplayName}
-                providerWebsite={providerWebsite}
-                t={t}
+            {null}
+            <div className="flex gap-2">
+              <Input
+                label={apiCredentialLabel}
+                type="password"
+                value={formData.apiKey}
+                onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+                className="flex-1"
+                placeholder={apiCredentialPlaceholder}
+                hint={apiCredentialHint}
+                autoComplete="off"
+                spellCheck={false}
+                autoCapitalize="off"
               />
-            )}
-            {!isNoAuthWebSessionCredential && (
-              <div className="flex gap-2">
-                <Input
-                  label={apiCredentialLabel}
-                  type="password"
-                  value={formData.apiKey}
-                  onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-                  className="flex-1"
-                  placeholder={apiCredentialPlaceholder}
-                  hint={apiCredentialHint}
-                  autoComplete="off"
-                  spellCheck={false}
-                  autoCapitalize="off"
-                />
-                <div className="pt-6">
-                  <Button
-                    onClick={handleValidate}
-                    disabled={
-                      (!isCompatible && !apiKeyOptional && !formData.apiKey) ||
-                      (isGooglePse && !formData.cx.trim()) ||
-                      validating ||
-                      saving
-                    }
-                    variant="secondary"
-                  >
-                    {validating
-                      ? t("checking")
-                      : webSessionCredential
-                        ? getWebSessionCredentialCheckLabel(t, webSessionCredential)
-                        : t("check")}
-                  </Button>
-                </div>
+              <div className="pt-6">
+                <Button
+                  onClick={handleValidate}
+                  disabled={
+                    (!isCompatible && !apiKeyOptional && !formData.apiKey) ||
+                    (isGooglePse && !formData.cx.trim()) ||
+                    validating ||
+                    saving
+                  }
+                  variant="secondary"
+                >
+                  {validating ? t("checking") : t("check")}
+                </Button>
               </div>
-            )}
+            </div>
             {isModal && (
               <Input
                 label={providerText(t, "modalTokenSecretLabel", "Token Secret")}

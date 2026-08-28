@@ -57,7 +57,6 @@
     "files": [
       "main.js",
       "preload.js",
-      "loginManager.js",
       "processTree.js",
       "sqlite-inspection.js",
       "remoteServerPromptPreload.js",

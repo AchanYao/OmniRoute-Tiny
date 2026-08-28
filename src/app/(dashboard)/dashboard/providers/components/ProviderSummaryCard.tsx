@@ -132,7 +132,6 @@ export default function ProviderSummaryCard({
       label: t("compatibleLabel"),
       stat: summaryStats.compatible,
     },
-    { key: "webcookie", color: "bg-purple-500", label: "Web Cookie", stat: summaryStats.webcookie },
     { key: "search", color: "bg-teal-500", label: "Search", stat: summaryStats.search },
     {
       key: "webfetch",

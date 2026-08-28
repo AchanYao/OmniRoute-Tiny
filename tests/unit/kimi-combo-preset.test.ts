@@ -3,19 +3,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const kimiComboPreset = await import(
-  "../../src/app/(dashboard)/dashboard/combos/kimiComboPreset.ts"
-);
-const createComboSchema = (
-  await import("../../src/shared/validation/schemas/combo.ts")
-).createComboSchema;
+const kimiComboPreset =
+  await import("../../src/app/(dashboard)/dashboard/combos/kimiComboPreset.ts");
+const createComboSchema = (await import("../../src/shared/validation/schemas/combo.ts"))
+  .createComboSchema;
 
 test("KIMI_CODING_PRESET_NAME is the exact combo name used everywhere (card gate, POST payload)", () => {
   assert.equal(kimiComboPreset.KIMI_CODING_PRESET_NAME, "Kimi Coding");
   assert.equal(kimiComboPreset.KIMI_CODING_PRESET.name, kimiComboPreset.KIMI_CODING_PRESET_NAME);
 });
 
-test("KIMI_CODING_PRESET uses priority strategy — kimi-k3 primary, kimi-coding/kimi-web fallback in order", () => {
+test("KIMI_CODING_PRESET uses priority strategy — kimi-k3 primary, kimi-coding fallback", () => {
   const preset = kimiComboPreset.KIMI_CODING_PRESET;
   assert.equal(preset.strategy, "priority");
   assert.deepEqual(
@@ -23,7 +21,6 @@ test("KIMI_CODING_PRESET uses priority strategy — kimi-k3 primary, kimi-coding
     [
       ["moonshot", "kimi-k3"],
       ["kimi-coding", "k3"],
-      ["kimi-web", "k3"],
     ],
     "moonshot/kimi-k3 must be first (priority strategy = array order = fallback order)"
   );
@@ -42,7 +39,11 @@ test("hasKimiCodingPreset detects an existing preset combo by name, case-sensiti
   assert.equal(kimiComboPreset.hasKimiCodingPreset([{ name: "Some other combo" }]), false);
   assert.equal(kimiComboPreset.hasKimiCodingPreset([{ name: "Kimi Coding" }]), true);
   assert.equal(
-    kimiComboPreset.hasKimiCodingPreset([{ name: "foo" }, { name: "Kimi Coding" }, { name: "bar" }]),
+    kimiComboPreset.hasKimiCodingPreset([
+      { name: "foo" },
+      { name: "Kimi Coding" },
+      { name: "bar" },
+    ]),
     true
   );
   assert.equal(kimiComboPreset.hasKimiCodingPreset([{ name: "kimi coding" }]), false);

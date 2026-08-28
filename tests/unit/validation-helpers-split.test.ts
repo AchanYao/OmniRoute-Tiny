@@ -3,7 +3,8 @@
 // providers/validation/. The host re-imports them and re-exports the two historically-public helpers
 // (isRetryableProxyTarget, isSecurityBlockError). These were a behavior-preserving move — no logic
 // change — so the locks here are: public surface stays intact, the new modules expose the helpers,
-// and a few pure functions still compute identically.
+// and a few pure functions still compute identically. validateWebCookieProvider was removed with the
+// website-session sunset.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
@@ -16,13 +17,17 @@ test("host preserves its public surface (dispatcher + claude-code validator + re
   for (const name of [
     "validateProviderApiKey",
     "validateClaudeCodeCompatibleProvider",
-    "validateWebCookieProvider",
     "validateCommandCodeProvider",
     "isRetryableProxyTarget",
     "isSecurityBlockError",
   ]) {
     assert.equal(typeof (HOST as Record<string, unknown>)[name], "function", `missing ${name}`);
   }
+  assert.equal(
+    typeof (HOST as Record<string, unknown>).validateWebCookieProvider,
+    "undefined",
+    "validateWebCookieProvider must stay deleted after website-session sunset"
+  );
 });
 
 test("re-exported guards are the same function objects as transport's", () => {

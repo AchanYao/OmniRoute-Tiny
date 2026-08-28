@@ -2,9 +2,9 @@
 // wire-format validators moved into two co-located modules by family — validation/openaiFormat.ts
 // (bedrock, openai-like, command-code, gemini-like, openai-compatible) and validation/anthropicFormat.ts
 // (anthropic-like, claude-oauth-inline, anthropic-compatible, claude-code-compatible). Behavior-
-// preserving move; the host keeps only the dispatcher + web-cookie validator. Locks: module surface
-// and that the host re-exports the two historically-public validators (route handler + tests import
-// them via this module). Runtime behavior stays covered by the provider-validation-* suites.
+// preserving move; the host keeps the dispatcher. Website-session / web-cookie validators were
+// removed in the Tiny sunset. Locks: module surface and that the host re-exports the two
+// historically-public validators (route handler + tests import them via this module).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
@@ -31,14 +31,24 @@ test("anthropicFormat exposes its four validators (incl. the internal claude-oau
     "validateAnthropicCompatibleProvider",
     "validateClaudeCodeCompatibleProvider",
   ]) {
-    assert.equal(typeof (anthropic as Record<string, unknown>)[name], "function", `missing ${name}`);
+    assert.equal(
+      typeof (anthropic as Record<string, unknown>)[name],
+      "function",
+      `missing ${name}`
+    );
   }
 });
 
 test("host re-exports the two historically-public validators + keeps the dispatcher", () => {
   assert.equal(typeof (HOST as Record<string, unknown>).validateProviderApiKey, "function");
   assert.equal(typeof (HOST as Record<string, unknown>).validateCommandCodeProvider, "function");
-  assert.equal(typeof (HOST as Record<string, unknown>).validateClaudeCodeCompatibleProvider, "function");
-  // and the web-cookie validator stays in the host
-  assert.equal(typeof (HOST as Record<string, unknown>).validateWebCookieProvider, "function");
+  assert.equal(
+    typeof (HOST as Record<string, unknown>).validateClaudeCodeCompatibleProvider,
+    "function"
+  );
+  assert.equal(
+    typeof (HOST as Record<string, unknown>).validateWebCookieProvider,
+    "undefined",
+    "validateWebCookieProvider must stay deleted after website-session sunset"
+  );
 });

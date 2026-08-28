@@ -7,7 +7,6 @@ import { getProviderAlias, supportsNoAuthProviderProxy } from "@/shared/constant
 import { useNotificationStore } from "@/store/notificationStore";
 
 const ACCOUNT_PROVIDER_NAMES: Record<string, string> = {
-  mimocode: "MiMoCode",
   opencode: "OpenCode",
   dahl: "Dahl",
 };

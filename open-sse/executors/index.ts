@@ -16,13 +16,6 @@ import { VertexExecutor } from "./vertex.ts";
 import { CliproxyapiExecutor } from "./cliproxyapi.ts";
 import { DarioExecutor } from "./dario.ts";
 import { NineRouterExecutor } from "./ninerouter.ts";
-import { PerplexityWebExecutor } from "./perplexity-web.ts";
-import { GrokWebExecutor } from "./grok-web.ts";
-import { GeminiWebExecutor } from "./gemini-web.ts";
-import { GeminiBusinessExecutor } from "./gemini-business.ts";
-import { ChatGptWebExecutor } from "./chatgpt-web.ts";
-import { BlackboxWebExecutor } from "./blackbox-web.ts";
-import { MuseSparkWebExecutor } from "./muse-spark-web.ts";
 import { AzureOpenAIExecutor } from "./azure-openai.ts";
 import { CommandCodeExecutor } from "./commandCode.ts";
 import { GitlabExecutor } from "./gitlab.ts";
@@ -32,44 +25,13 @@ import { ZedHostedExecutor } from "./zed-hosted.ts";
 import { DevinCliExecutor } from "./devin-cli.ts";
 import { DevinCliAgenticExecutor } from "./devin-cli-agentic.ts";
 import { AuggieExecutor } from "./auggie.ts";
-import { DeepSeekWebExecutor } from "./deepseek-web.ts";
-import { DeepSeekWebWithAutoRefreshExecutor } from "./deepseek-web-with-auto-refresh.ts";
-import { AdaptaWebExecutor } from "./adapta-web.ts";
-import { CopilotWebExecutor } from "./copilot-web.ts";
-import { CopilotM365WebExecutor } from "./copilot-m365-web.ts";
-import { MicrosoftDesignerWebExecutor } from "./microsoft-designer-web.ts";
-import { AdobeFireflyExecutor } from "./adobe-firefly.ts";
-import { VeoAIFreeWebExecutor } from "./veoaifree-web.ts";
-import { DuckDuckGoWebExecutor } from "./duckduckgo-web.ts";
-import { FeloWebExecutor } from "./felo-web.ts";
-import { T3ChatWebExecutor } from "./t3-chat-web.ts";
-import { ClaudeWebExecutor } from "./claude-web.ts";
-import { InnerAiExecutor } from "./inner-ai.ts";
-import { HuggingChatExecutor } from "./huggingchat.ts";
-import { YuanbaoWebExecutor } from "./yuanbao-web.ts";
-import { PoeWebExecutor } from "./poe-web.ts";
-import { VeniceWebExecutor } from "./venice-web.ts";
-import { NotionWebExecutor } from "./notion-web.ts";
-import { V0VercelWebExecutor } from "./v0-vercel-web.ts";
 import { CheaperInferenceExecutor } from "./cheaperinference.ts";
-import { KimiWebExecutor } from "./kimi-web.ts";
-import { DoubaoWebExecutor } from "./doubao-web.ts";
-import { QwenWebExecutor } from "./qwen-web.ts";
 import { RaycastExecutor } from "./raycast.ts";
-import { HailuoWebExecutor } from "./hailuo-web.ts";
-import { ZaiWebExecutor } from "./zai-web.ts";
 import { KimiExecutor } from "./kimi.ts";
 import { MoonshotExecutor } from "./moonshot.ts";
-import { TheOldLlmExecutor } from "./theoldllm.ts";
-import { ChipotleExecutor } from "./chipotle.ts";
-import { LMArenaExecutor } from "./lmarena.ts";
-import { MimocodeExecutor } from "./mimocode.ts";
 import { GrokCliExecutor } from "./grok-cli.ts";
 import { CodeBuddyCnExecutor } from "./codebuddy-cn.ts";
-import { ZenmuxFreeExecutor } from "./zenmux-free.ts";
-import { HyperAgentExecutor } from "./hyperagent.ts";
 import { XaiExecutor } from "./xai.ts";
-import { PromptQlExecutor } from "./promptql.ts";
 
 const executors = {
   antigravity: new AntigravityExecutor(),
@@ -86,120 +48,49 @@ const executors = {
   glm: new GlmExecutor("glm"),
   "glm-cn": new GlmExecutor("glm-cn"),
   glmt: new GlmExecutor("glmt"),
-  cu: new CursorExecutor(), // Alias for cursor
-  cuo: new CursorExecutor(), // Alias for cursor-oauth
+  cu: new CursorExecutor(),
+  cuo: new CursorExecutor(),
   "azure-openai": new AzureOpenAIExecutor(),
   "command-code": new CommandCodeExecutor(),
-  cmd: new CommandCodeExecutor(), // Alias
+  cmd: new CommandCodeExecutor(),
   gitlab: new GitlabExecutor(),
   "gitlab-duo": new GitlabExecutor("gitlab-duo"),
   nlpcloud: new NlpCloudExecutor(),
   pollinations: new PollinationsExecutor(),
-  pol: new PollinationsExecutor(), // Alias
+  pol: new PollinationsExecutor(),
   "cloudflare-ai": new CloudflareAIExecutor(),
-  cf: new CloudflareAIExecutor(), // Alias
+  cf: new CloudflareAIExecutor(),
   "opencode-zen": new OpencodeExecutor("opencode-zen"),
   "opencode-go": new OpencodeExecutor("opencode-go"),
-  opencode: new OpencodeExecutor("opencode-zen"), // Alias for opencode-zen
+  opencode: new OpencodeExecutor("opencode-zen"),
   puter: new PuterExecutor(),
-  pu: new PuterExecutor(), // Alias
+  pu: new PuterExecutor(),
   vertex: new VertexExecutor(),
   "vertex-partner": new VertexExecutor(),
   cliproxyapi: new CliproxyapiExecutor(),
-  cpa: new CliproxyapiExecutor(), // Alias
+  cpa: new CliproxyapiExecutor(),
   dario: new DarioExecutor(),
-  dr: new DarioExecutor(), // Alias
+  dr: new DarioExecutor(),
   "9router": new NineRouterExecutor(),
-  nr: new NineRouterExecutor(), // Alias
-  "perplexity-web": new PerplexityWebExecutor(),
-  "pplx-web": new PerplexityWebExecutor(), // Alias
-  "grok-web": new GrokWebExecutor(),
-  "claude-web": new ClaudeWebExecutor(),
-  "cw-web": new ClaudeWebExecutor(), // Alias
-  "gemini-web": new GeminiWebExecutor(),
-  gweb: new GeminiWebExecutor(), // Alias
-  "gemini-business": new GeminiBusinessExecutor(),
-  gembiz: new GeminiBusinessExecutor(), // Alias
-  "chatgpt-web": new ChatGptWebExecutor(),
-  "cgpt-web": new ChatGptWebExecutor(), // Alias
-  "blackbox-web": new BlackboxWebExecutor(),
-  "bb-web": new BlackboxWebExecutor(), // Alias
-  "muse-spark-web": new MuseSparkWebExecutor(),
-  "ms-web": new MuseSparkWebExecutor(), // Alias
+  nr: new NineRouterExecutor(),
   windsurf: new WindsurfExecutor(),
-  ws: new WindsurfExecutor(), // Alias
+  ws: new WindsurfExecutor(),
   "zed-hosted": new ZedHostedExecutor(),
   "devin-cli": new DevinCliExecutor(),
   "devin-cli-agentic": new DevinCliAgenticExecutor(),
-  devin: new DevinCliExecutor(), // Alias
-  "deepseek-web": new DeepSeekWebWithAutoRefreshExecutor(),
-  "ds-web": new DeepSeekWebWithAutoRefreshExecutor(), // Alias
-  "adapta-web": new AdaptaWebExecutor(),
-  "adp-web": new AdaptaWebExecutor(), // Alias
-  "copilot-web": new CopilotWebExecutor(),
-  "copilot-m365-web": new CopilotM365WebExecutor(),
-  copilot: new CopilotWebExecutor(), // Alias
-  "microsoft-designer-web": new MicrosoftDesignerWebExecutor(),
-  msdesigner: new MicrosoftDesignerWebExecutor(), // Alias
-  "adobe-firefly": new AdobeFireflyExecutor(),
-  firefly: new AdobeFireflyExecutor(), // Alias
-  "veoaifree-web": new VeoAIFreeWebExecutor(),
-  "veo-free": new VeoAIFreeWebExecutor(), // Alias
-  "duckduckgo-web": new DuckDuckGoWebExecutor(),
-  ddgw: new DuckDuckGoWebExecutor(), // Alias
-  "felo-web": new FeloWebExecutor(),
-  felo: new FeloWebExecutor(), // Alias
-  "t3-web": new T3ChatWebExecutor(),
-  t3chat: new T3ChatWebExecutor(), // Alias
-  "inner-ai": new InnerAiExecutor(),
-  "in-ai": new InnerAiExecutor(), // Alias
-  huggingchat: new HuggingChatExecutor(),
-  hc: new HuggingChatExecutor(), // Alias
-  "yuanbao-web": new YuanbaoWebExecutor(),
-  ybw: new YuanbaoWebExecutor(), // Alias
-  "poe-web": new PoeWebExecutor(),
-  // #8969: do NOT alias canonical `poe` (API-key / api.poe.com) to PoeWebExecutor.
-  // Registry declares executor:"default"; the hard-coded map previously won and
-  // routed API-key traffic to GraphQL /api/gql_POST → HTTP 405.
-  "venice-web": new VeniceWebExecutor(),
-  ven: new VeniceWebExecutor(), // Alias
-  "notion-web": new NotionWebExecutor(),
-  nw: new NotionWebExecutor(), // Alias
-  promptql: new PromptQlExecutor(),
-  pql: new PromptQlExecutor(), // Alias
-  "v0-vercel-web": new V0VercelWebExecutor(),
-  v0: new V0VercelWebExecutor(), // Alias
-  "kimi-web": new KimiWebExecutor(),
-  "kimi-coding-apikey": new KimiExecutor("kimi-coding-apikey"), // Legacy alias
-  "kimi-coding": new KimiExecutor(), // Alias
+  devin: new DevinCliExecutor(),
+  "kimi-coding-apikey": new KimiExecutor("kimi-coding-apikey"),
+  "kimi-coding": new KimiExecutor(),
   moonshot: new MoonshotExecutor(),
-  kimi: new MoonshotExecutor("kimi"), // Hidden legacy Moonshot provider id
+  kimi: new MoonshotExecutor("kimi"),
   cheaperinference: new CheaperInferenceExecutor(),
-  cinf: new CheaperInferenceExecutor("cheaperinference"), // Alias
-  "doubao-web": new DoubaoWebExecutor(),
-  db: new DoubaoWebExecutor(), // Alias
-  "qwen-web": new QwenWebExecutor(),
+  cinf: new CheaperInferenceExecutor("cheaperinference"),
   raycast: new RaycastExecutor(),
-  rc: new RaycastExecutor(), // Alias
-  "hailuo-web": new HailuoWebExecutor(),
-  "zai-web": new ZaiWebExecutor(),
-  zw: new ZaiWebExecutor(), // Alias
-  theoldllm: new TheOldLlmExecutor(),
-  tllm: new TheOldLlmExecutor(), // Alias
-  chipotle: new ChipotleExecutor(),
-  pepper: new ChipotleExecutor(), // Alias
-  lmarena: new LMArenaExecutor(),
-  lma: new LMArenaExecutor(), // Alias
-  mimocode: new MimocodeExecutor(),
-  mcode: new MimocodeExecutor(), // Alias
+  rc: new RaycastExecutor(),
   "grok-cli": new GrokCliExecutor(),
-  gc: new GrokCliExecutor(), // Alias
+  gc: new GrokCliExecutor(),
   "codebuddy-cn": new CodeBuddyCnExecutor(),
-  cbcn: new CodeBuddyCnExecutor(), // Alias for codebuddy-cn
-  "zenmux-free": new ZenmuxFreeExecutor(),
-  hyperagent: new HyperAgentExecutor(),
-  ha: new HyperAgentExecutor(), // Alias
-  zmf: new ZenmuxFreeExecutor(), // Alias for zenmux-free
+  cbcn: new CodeBuddyCnExecutor(),
   auggie: new AuggieExecutor(),
   xai: new XaiExecutor(),
   "xai-oauth": new XaiExecutor("xai-oauth"),
@@ -208,15 +99,6 @@ const executors = {
 
 const defaultCache = new Map();
 
-// #6699 — providers that exist ONLY as Cloud Agent task-API entries
-// (CLOUD_AGENT_PROVIDERS / staticModels "Available Models" catalog) and have no
-// chat-completions REGISTRY entry anywhere in open-sse/. Without this guard,
-// getExecutor() silently falls through to DefaultExecutor's
-// `PROVIDERS[provider] || PROVIDERS.openai` fallback, sending the user's real
-// provider key to OpenAI's endpoint (mislabeled as coming from the provider the
-// user actually selected). Starting with just "jules" (the reported case);
-// "devin" and "codex-cloud" share the same structural gap and are left for a
-// follow-up once their own chat-routing behavior is confirmed.
 const CHAT_UNSUPPORTED_CLOUD_AGENT_PROVIDERS = new Set(["jules"]);
 
 export function getExecutor(provider) {
@@ -254,13 +136,6 @@ export { CliproxyapiExecutor } from "./cliproxyapi.ts";
 export { DarioExecutor } from "./dario.ts";
 export { NineRouterExecutor } from "./ninerouter.ts";
 export { VertexExecutor } from "./vertex.ts";
-export { PerplexityWebExecutor } from "./perplexity-web.ts";
-export { GrokWebExecutor } from "./grok-web.ts";
-export { GeminiWebExecutor } from "./gemini-web.ts";
-export { KieExecutor } from "./kie.ts";
-export { ChatGptWebExecutor } from "./chatgpt-web.ts";
-export { BlackboxWebExecutor } from "./blackbox-web.ts";
-export { MuseSparkWebExecutor } from "./muse-spark-web.ts";
 export { AzureOpenAIExecutor } from "./azure-openai.ts";
 export { CommandCodeExecutor } from "./commandCode.ts";
 export { GitlabExecutor } from "./gitlab.ts";
@@ -270,31 +145,8 @@ export { ZedHostedExecutor } from "./zed-hosted.ts";
 export { DevinCliExecutor } from "./devin-cli.ts";
 export { DevinCliAgenticExecutor } from "./devin-cli-agentic.ts";
 export { AuggieExecutor } from "./auggie.ts";
-export { CopilotWebExecutor } from "./copilot-web.ts";
-export { CopilotM365WebExecutor } from "./copilot-m365-web.ts";
-export { MicrosoftDesignerWebExecutor } from "./microsoft-designer-web.ts";
-export { AdobeFireflyExecutor } from "./adobe-firefly.ts";
-export { VeoAIFreeWebExecutor } from "./veoaifree-web.ts";
-export { DuckDuckGoWebExecutor } from "./duckduckgo-web.ts";
-export { FeloWebExecutor } from "./felo-web.ts";
-export { ClaudeWebExecutor } from "./claude-web.ts";
-export { DeepSeekWebExecutor } from "./deepseek-web.ts";
-export { DeepSeekWebWithAutoRefreshExecutor } from "./deepseek-web-with-auto-refresh.ts";
-export { AdaptaWebExecutor } from "./adapta-web.ts";
-export { YuanbaoWebExecutor } from "./yuanbao-web.ts";
-export { T3ChatWebExecutor } from "./t3-chat-web.ts";
-export { InnerAiExecutor } from "./inner-ai.ts";
-export { QwenWebExecutor } from "./qwen-web.ts";
-export { HailuoWebExecutor } from "./hailuo-web.ts";
-export { TheOldLlmExecutor } from "./theoldllm.ts";
-export { ChipotleExecutor } from "./chipotle.ts";
-export { LMArenaExecutor } from "./lmarena.ts";
-export { MimocodeExecutor } from "./mimocode.ts";
 export { GrokCliExecutor } from "./grok-cli.ts";
 export { CodeBuddyCnExecutor } from "./codebuddy-cn.ts";
-export { ZenmuxFreeExecutor } from "./zenmux-free.ts";
-export { HyperAgentExecutor } from "./hyperagent.ts";
 export { XaiExecutor } from "./xai.ts";
 export { MoonshotExecutor } from "./moonshot.ts";
 export { CheaperInferenceExecutor } from "./cheaperinference.ts";
-export { PromptQlExecutor } from "./promptql.ts";

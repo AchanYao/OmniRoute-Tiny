@@ -213,7 +213,6 @@ export default function ProvidersPage() {
     cloud: "cloudagent",
     noauth: "no-auth",
     proxy: "upstream-proxy",
-    web: "webcookie",
   };
   const showSection = (category: string) => {
     const normalizedCategory = sectionCategoryAliases[category] ?? category;
@@ -221,11 +220,6 @@ export default function ProvidersPage() {
   };
   const t = useTranslations("providers");
   const tc = useTranslations("common");
-  const webCookieProvidersDesc = providerText(
-    t,
-    "webCookieProvidersDesc",
-    "These providers use browser web sessions, cookies, or web tokens instead of API keys. Open a provider to add the required session credential."
-  );
   const ccCompatibleLabel = t("ccCompatibleLabel");
   const addCcCompatibleLabel = t("addCcCompatible");
   const searchParams = useSearchParams();
@@ -603,17 +597,6 @@ export default function ProvidersPage() {
     liveModelsByProviderId
   );
 
-  const webCookieProviderEntriesAll = buildStaticProviderEntries("web-cookie", getProviderStats);
-  const webCookieProviderEntries = filterConfiguredProviderEntries(
-    webCookieProviderEntriesAll,
-    effectiveShowConfiguredOnly,
-    searchQuery,
-    showFreeOnly,
-    modelSearchQuery,
-    activeServiceKind,
-    liveModelsByProviderId
-  );
-
   const localProviderEntriesAll = buildStaticProviderEntries("local", getProviderStats);
   const localProviderEntries = filterConfiguredProviderEntries(
     localProviderEntriesAll,
@@ -706,7 +689,6 @@ export default function ProvidersPage() {
     ...oauthProviderEntriesAll,
     ...noAuthEntriesAll,
     ...apiKeyProviderEntriesAll,
-    ...webCookieProviderEntriesAll,
     ...localProviderEntriesAll,
     ...searchProviderEntriesAll,
     ...audioProviderEntriesAll,
@@ -780,7 +762,6 @@ export default function ProvidersPage() {
     embeddingRerankProviderEntries,
     imageProviderEntries,
     videoProviderEntries,
-    webCookieProviderEntries,
     searchProviderEntries,
     webFetchEntries,
     audioProviderEntries,
@@ -795,7 +776,6 @@ export default function ProvidersPage() {
     oauth: countConfigured(oauthOnlyEntriesAll),
     apikey: countConfigured(apiKeyProviderEntriesAll),
     compatible: countConfigured(compatibleProviderEntriesAll),
-    webcookie: countConfigured(webCookieProviderEntriesAll),
     search: countConfigured(searchProviderEntriesAll),
     audio: countConfigured(audioProviderEntriesAll),
     local: countConfigured(localProviderEntriesAll),
@@ -1154,56 +1134,6 @@ export default function ProvidersPage() {
                     )}
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* Web / Cookie Providers */}
-            {showSection("web") && webCookieProviderEntries.length > 0 && (
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-xl font-semibold flex items-center gap-2 flex-1 min-w-0">
-                    {t("webCookieProviders")}{" "}
-                    <span
-                      className="size-2.5 rounded-full bg-purple-500"
-                      title={t("webCookieProviders")}
-                    />
-                    <ProviderCountBadge {...countConfigured(webCookieProviderEntriesAll)} />
-                  </h2>
-                  <button
-                    onClick={() => handleBatchTest("web-cookie")}
-                    disabled={!!testingMode}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                      testingMode === "web-cookie"
-                        ? "bg-primary/20 border-primary/40 text-primary animate-pulse"
-                        : "bg-bg-subtle border-border text-text-muted hover:text-text-primary hover:border-primary/40"
-                    }`}
-                    title={t("testAll")}
-                  >
-                    <span
-                      className={`material-symbols-outlined text-[14px]${testingMode === "web-cookie" ? " animate-spin" : ""}`}
-                    >
-                      play_arrow
-                    </span>
-                    {testingMode === "web-cookie" ? t("testing") : t("testAll")}
-                  </button>
-                </div>
-                <p className="text-sm text-text-muted -mt-2">{t("webCookieProvidersDesc")}</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3">
-                  {webCookieProviderEntries.map(
-                    ({ providerId, provider, stats, toggleAuthType }) => (
-                      <HighlightableProviderCard
-                        key={providerId}
-                        providerId={providerId}
-                        provider={provider}
-                        stats={stats}
-                        authType="web-cookie"
-                        onToggle={(active) =>
-                          handleToggleProvider(providerId, toggleAuthType, active)
-                        }
-                      />
-                    )
-                  )}
-                </div>
               </div>
             )}
 

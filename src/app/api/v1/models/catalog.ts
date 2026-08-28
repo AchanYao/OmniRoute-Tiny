@@ -1,5 +1,6 @@
 import { PROVIDER_MODELS, PROVIDER_ID_TO_ALIAS } from "@/shared/constants/models";
 import { NOAUTH_PROVIDERS } from "@/shared/constants/providers";
+import { isSunsetWebCookieProviderId } from "@/shared/providers/webCookieSunset";
 import {
   getCachedRawProviderConnections,
   getCombos,
@@ -324,6 +325,7 @@ async function buildUnifiedModelsResponseCore(
       connectionsByProvider.set(key, existing);
     };
     for (const conn of connections) {
+      if (isSunsetWebCookieProviderId(conn.provider)) continue;
       const alias = providerIdToAlias[conn.provider] || conn.provider;
       activeAliases.add(alias);
       activeAliases.add(conn.provider);
@@ -686,6 +688,9 @@ async function buildUnifiedModelsResponseCore(
     } catch (e) {
       // DB unavailable — log and fall through; static models remain as defaults.
       console.log("[catalog] Could not fetch synced available models:", e);
+    }
+    for (const pid of Object.keys(syncedModelsByProvider)) {
+      if (isSunsetWebCookieProviderId(pid)) delete syncedModelsByProvider[pid];
     }
     const providersWithSyncedModels = new Set(
       Object.keys(syncedModelsByProvider).filter((pid) => {
@@ -1091,7 +1096,8 @@ async function buildUnifiedModelsResponseCore(
 
     // Add image models (filtered by active providers)
     for (const imgModel of getAllImageModels()) {
-      if (!isProviderActive(imgModel.provider)) continue;
+      if (isSunsetWebCookieProviderId(imgModel.provider) || !isProviderActive(imgModel.provider))
+        continue;
       const rawModelId = getSpecialtyModelRelativeId(imgModel.id, imgModel.provider);
       if (!providerSupportsModel(imgModel.provider, rawModelId)) continue;
       if (getModelIsHidden(imgModel.provider, rawModelId)) continue;
@@ -1160,7 +1166,11 @@ async function buildUnifiedModelsResponseCore(
 
     // Add video models (filtered by active providers)
     for (const videoModel of getAllVideoModels()) {
-      if (!isProviderActive(videoModel.provider)) continue;
+      if (
+        isSunsetWebCookieProviderId(videoModel.provider) ||
+        !isProviderActive(videoModel.provider)
+      )
+        continue;
       const rawModelId = getSpecialtyModelRelativeId(videoModel.id, videoModel.provider);
       if (!providerSupportsModel(videoModel.provider, rawModelId)) continue;
       if (getModelIsHidden(videoModel.provider, rawModelId)) continue;
@@ -1175,7 +1185,11 @@ async function buildUnifiedModelsResponseCore(
 
     // Add music models (filtered by active providers)
     for (const musicModel of getAllMusicModels()) {
-      if (!isProviderActive(musicModel.provider)) continue;
+      if (
+        isSunsetWebCookieProviderId(musicModel.provider) ||
+        !isProviderActive(musicModel.provider)
+      )
+        continue;
       const rawModelId = getSpecialtyModelRelativeId(musicModel.id, musicModel.provider);
       if (!providerSupportsModel(musicModel.provider, rawModelId)) continue;
       if (getModelIsHidden(musicModel.provider, rawModelId)) continue;

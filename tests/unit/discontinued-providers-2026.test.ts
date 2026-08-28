@@ -27,27 +27,20 @@ describe("2026 discontinued free tiers — providers.ts hasFree reconciliation",
     }
   });
 
-  it("phind is fully removed (service shut down 2026-01) from both catalogs", async () => {
-    const { APIKEY_PROVIDERS, WEB_COOKIE_PROVIDERS } =
+  it("phind is fully removed (service shut down 2026-01) from live catalogs", async () => {
+    const { APIKEY_PROVIDERS, AI_PROVIDERS } =
       await import("../../src/shared/constants/providers.ts");
     assert.ok(!("phind" in APIKEY_PROVIDERS), "phind must not be in APIKEY_PROVIDERS");
-    assert.ok(!("phind" in WEB_COOKIE_PROVIDERS), "phind must not be in WEB_COOKIE_PROVIDERS");
+    assert.ok(!("phind" in AI_PROVIDERS), "phind must not be in AI_PROVIDERS");
   });
 
   it("intentionally-kept providers still advertise free (genuinely free / ToS-flagged, not flipped)", async () => {
-    const { NOAUTH_PROVIDERS, APIKEY_PROVIDERS } =
-      await import("../../src/shared/constants/providers.ts");
-    // theoldllm is a keyless, no-signup web chat (genuinely free, just no catalogable API tier) — kept.
+    const { APIKEY_PROVIDERS } = await import("../../src/shared/constants/providers.ts");
     // iflytek/sparkdesk stay hasFree:true but carry a ToS-caution freeNote (Spark Lite is free, the ToS
     // restricts proxy/relay use). gitlawb/gitlawb-gmi/aimlapi/yi were re-verified dead 2026-06-18 and are
     // asserted false above — keeping them out of this list guards against a silent re-flip-to-true.
-    const noauth = NOAUTH_PROVIDERS as Record<string, { hasFree?: boolean }>;
+    // theoldllm was a website-session provider and is sunset in Tiny (no longer in NOAUTH).
     const apikey = APIKEY_PROVIDERS as Record<string, { hasFree?: boolean; freeNote?: string }>;
-    assert.strictEqual(
-      noauth["theoldllm"]?.hasFree,
-      true,
-      "theoldllm intentionally kept hasFree:true"
-    );
     assert.strictEqual(apikey["iflytek"]?.hasFree, true, "iflytek kept free with ToS-caution note");
     assert.match(
       apikey["iflytek"]?.freeNote ?? "",

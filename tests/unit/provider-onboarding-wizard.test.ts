@@ -165,7 +165,7 @@ test("#5692 onboarding validation treats unsupported providers as non-blocking (
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
     if (String(url) === "/api/providers/validate") {
-      // #5565/#5567: providers with no live validator (lmarena, piapi, …) return
+      // #5565/#5567: providers with no live validator (piapi, …) return
       // HTTP 400 + { unsupported: true }. The wizard must NOT treat this as a hard
       // failure — otherwise the connection is never created (#5692).
       return Response.json(
@@ -177,7 +177,7 @@ test("#5692 onboarding validation treats unsupported providers as non-blocking (
   };
 
   try {
-    const data = await api.validateOnboardingApiKey({ provider: "lmarena", apiKey: "test-key" });
+    const data = await api.validateOnboardingApiKey({ provider: "piapi", apiKey: "test-key" });
     assert.equal(data.unsupported, true);
   } finally {
     globalThis.fetch = originalFetch;

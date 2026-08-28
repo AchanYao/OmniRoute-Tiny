@@ -4,7 +4,7 @@
  * See: `open-sse/services/autoCombo/suffixComposition.ts`
  *
  * Focus: the `:free` tier filter. Regression test for the bug where
- * opencode (noAuth, free) and mimocode (noAuth, free) were NOT being
+ * opencode (noAuth, free) was NOT being
  * included in the free pool because the legacy `freeProviders` list
  * only contained paid-API-key providers with free tiers (kiro, ...).
  *
@@ -47,7 +47,7 @@ describe("suffixComposition :free tier (#4517)", () => {
   });
 
   it("buildAutoCandidateFilter keeps noAuth free providers", () => {
-    // Regression: opencode and mimocode are noAuth and free, but the
+    // Regression: opencode is noAuth and free, but the
     // pre-fix `freeProviders` list omitted them, so the filter rejected
     // their candidates even though they ARE free upstream.
     const filter = buildAutoCandidateFilter("coding", "free");
@@ -55,8 +55,6 @@ describe("suffixComposition :free tier (#4517)", () => {
 
     assert.equal(filter!({ provider: "opencode", model: "big-pickle" }), true);
     assert.equal(filter!({ provider: "opencode", model: "minimax-m3-free" }), true);
-    assert.equal(filter!({ provider: "mimocode", model: "mimo-auto" }), true);
-    assert.equal(filter!({ provider: "duckduckgo-web", model: "gpt-4o-mini" }), true);
   });
 
   it("buildAutoCandidateFilter keeps legacy free providers", () => {

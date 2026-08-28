@@ -48,11 +48,9 @@ afterEach(() => {
   }
 });
 
-describe("AddApiKeyModal — cookie modal sizing (#6265)", () => {
+describe("AddApiKeyModal — modal sizing (#6265)", () => {
   it("caps height on the OUTERMOST dialog wrapper, not on an inner body div", () => {
-    // chatgpt-web is a `kind: "cookie"` web-session provider — same shared modal
-    // path lmarena/claude-web/gemini-web/kimi-web/z-ai all go through.
-    const el = render({ provider: "chatgpt-web", providerName: "ChatGPT (Web)" });
+    const el = render({ provider: "openai", providerName: "OpenAI" });
 
     const dialog = el.querySelector<HTMLElement>('[role="dialog"]');
     expect(dialog).toBeTruthy();
@@ -70,9 +68,7 @@ describe("AddApiKeyModal — cookie modal sizing (#6265)", () => {
     expect(bodyDiv.className).not.toMatch(/max-h-/);
     expect(bodyDiv.className).not.toMatch(/overflow-y-auto/);
 
-    // Sanity: the cookie helper text and Save button are both present in the DOM
-    // (this modal renders the full guide + form Save/Cancel inline in the body).
-    expect(el.textContent).toContain("How to get the session credential");
+    expect(el.querySelector("form, input, button")).toBeTruthy();
     const saveBtn = Array.from(el.querySelectorAll("button")).find(
       (b) => b.textContent?.trim() === "save"
     );

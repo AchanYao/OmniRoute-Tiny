@@ -1,15 +1,15 @@
 // Kimi (Moonshot AI) official-partnership: display-name rebrand (moonshot ->
-// "Kimi") and the aff-tracking links wired into the 3 visible Kimi provider
+// "Kimi") and the aff-tracking links wired into the visible Kimi provider
 // cards' top-of-page header link (ProviderPageHeader.tsx renders
 // `providerInfo.website` as the clickable title). Asserts the exact URLs —
 // no trailing-slash drift, no leftover unattributed platform.moonshot.ai.
+// kimi-web website-session card was removed in the Tiny sunset.
 import test from "node:test";
 import assert from "node:assert/strict";
 
 const providers = await import("../../src/shared/constants/providers.ts");
-const featuredProviders = await import(
-  "../../src/app/(dashboard)/dashboard/providers/featuredProviders.ts"
-);
+const featuredProviders =
+  await import("../../src/app/(dashboard)/dashboard/providers/featuredProviders.ts");
 
 const KIMI_CODING_AFF_URL = "https://www.kimi.com/code?aff=omniroute";
 const KIMI_PLATFORM_AFF_URL = "https://platform.kimi.ai?aff=omniroute";
@@ -33,13 +33,6 @@ test("kimi-coding (Kimi Code CLI) top-of-page link: the Kimi Coding Plan aff lin
   assert.equal(kimiCoding.website, KIMI_CODING_AFF_URL);
 });
 
-test("kimi-web (Kimi Web) top-of-page link: the Kimi Coding Plan aff link (was the bare kimi.com domain)", () => {
-  const kimiWeb = providers.WEB_COOKIE_PROVIDERS["kimi-web"];
-  assert.ok(kimiWeb, "kimi-web must still exist in the web-cookie catalog");
-  assert.equal(kimiWeb.name, "Kimi Web", "display name is unchanged by the rename");
-  assert.equal(kimiWeb.website, KIMI_CODING_AFF_URL);
-});
-
 test("kimi-coding-apikey (hidden, folds into kimi-coding card) also carries the aff link", () => {
   assert.equal(providers.APIKEY_PROVIDERS["kimi-coding-apikey"].website, KIMI_CODING_AFF_URL);
 });
@@ -49,13 +42,17 @@ test("legacy 'kimi' alias (hidden) is aligned to the platform aff link too", () 
 });
 
 test("no visible Kimi provider website field still points at the unattributed platform.moonshot.ai domain", () => {
-  for (const id of ["kimi", "kimi-coding", "kimi-coding-apikey", "kimi-web", "moonshot"]) {
+  for (const id of ["kimi", "kimi-coding", "kimi-coding-apikey", "moonshot"]) {
     assert.ok(featuredProviders.isKimiPartnerProviderId(id), `${id} must be a Kimi partner id`);
   }
+  assert.equal(
+    featuredProviders.isKimiPartnerProviderId("kimi-web"),
+    false,
+    "kimi-web was a website-session provider and is no longer a partner card id"
+  );
   const allApikey = Object.values(providers.APIKEY_PROVIDERS);
   const allOauth = Object.values(providers.OAUTH_PROVIDERS);
-  const allWebCookie = Object.values(providers.WEB_COOKIE_PROVIDERS);
-  for (const provider of [...allApikey, ...allOauth, ...allWebCookie]) {
+  for (const provider of [...allApikey, ...allOauth]) {
     if (featuredProviders.isKimiPartnerProviderId(provider.id) && provider.website) {
       assert.doesNotMatch(
         provider.website,
@@ -69,8 +66,6 @@ test("no visible Kimi provider website field still points at the unattributed pl
 test("runtime endpoints are untouched by the rename/aff-link changes (moonshot API base URL still api.moonshot.ai)", async () => {
   // Guard against the aff-link change ever leaking into a runtime executor
   // config — website is a UI navigation field only, never a fetch target.
-  const registry = await import(
-    "../../open-sse/config/providers/registry/moonshot/index.ts"
-  );
+  const registry = await import("../../open-sse/config/providers/registry/moonshot/index.ts");
   assert.equal(registry.moonshotProvider.baseUrl, "https://api.moonshot.ai/v1/chat/completions");
 });

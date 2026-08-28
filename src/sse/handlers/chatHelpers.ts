@@ -35,6 +35,10 @@ import {
 import { classify429FromError, type FailureKind } from "../../shared/utils/classify429";
 import { resolveUseUpstream429BreakerHints } from "../../shared/utils/providerHints";
 import { resolveRetiredCodexEffortModelId } from "@omniroute/open-sse/executors/codex/reasoningSuffix.ts";
+import {
+  WEB_COOKIE_SUNSET_ERROR,
+  WEB_COOKIE_SUNSET_STATUS,
+} from "@/shared/providers/webCookieSunset";
 
 import { logProxyEvent } from "../../lib/proxyLogger";
 import { logTranslationEvent } from "../../lib/translatorEvents";
@@ -604,6 +608,19 @@ export async function executeChatWithBreaker({
           response: unavailableResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, detail, 2),
           status: HTTP_STATUS.SERVICE_UNAVAILABLE,
           error: detail,
+        },
+        tlsFingerprintUsed: false,
+      };
+    }
+
+    if (cbErr?.status === WEB_COOKIE_SUNSET_STATUS) {
+      const message = cbErr?.message || WEB_COOKIE_SUNSET_ERROR;
+      return {
+        result: {
+          success: false,
+          response: errorResponse(WEB_COOKIE_SUNSET_STATUS, message),
+          status: WEB_COOKIE_SUNSET_STATUS,
+          error: message,
         },
         tlsFingerprintUsed: false,
       };

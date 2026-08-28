@@ -15,7 +15,8 @@ modular-platform rail below is inherited upstream history, not Tiny's delivery p
 Tiny direction: keep the aggregation gateway (OAuth / API key / compatible nodes),
 then **sunset web-cookie / website-session providers**. Do not add cookie sources.
 See [`docs/architecture/web-cookie-sunset.md`](architecture/web-cookie-sunset.md).
-Runtime removal is a later PR; this is the accepted product decision.
+Product surface is fail-closed now (no listing, no new connections, chat/media 410).
+Website-backed executor source is deleted. Leftover SQLite cookie rows are not wiped; leftover client `provider/model` strings still 410.
 
 OmniRoute is heading from a monolithic router to a **modular AI platform**: a lightweight
 core engine, a typed SDK, and everything else as installable modules and plugins. The path

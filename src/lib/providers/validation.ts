@@ -8,7 +8,6 @@ import {
   isOpenAICompatibleProvider,
   isSelfHostedChatProvider,
   providerAllowsOptionalApiKey,
-  WEB_COOKIE_PROVIDERS,
 } from "@/shared/constants/providers";
 import { MODAL_DEFAULT_VALIDATION_MODEL_ID } from "@/shared/constants/modal";
 import { validateImageProviderApiKey } from "@/lib/providers/imageValidation";
@@ -27,28 +26,7 @@ import {
   resolveBaseUrl,
 } from "./validation/urlHelpers";
 import { toValidationErrorResult } from "./validation/transport";
-import {
-  validateDeepSeekWebProvider,
-  validateQwenWebProvider,
-  validateGrokWebProvider,
-  validateChatGptWebProvider,
-  validatePerplexityWebProvider,
-  validateBlackboxWebProvider,
-  validateKimiWebProvider,
-} from "./validation/webProvidersA";
-import {
-  validateMuseSparkWebProvider,
-  validateAdaptaWebProvider,
-  validateClaudeWebProvider,
-  validateGeminiWebProvider,
-  validateCopilotM365WebProvider,
-  validateCopilotWebProvider,
-  validateT3WebProvider,
-  validateJulesProvider,
-  validateDevinCloudAgentProvider,
-  validateInnerAiProvider,
-  validateNotionWebProvider,
-} from "./validation/webProvidersB";
+import { validateJulesProvider, validateDevinCloudAgentProvider } from "./validation/cloudAgents";
 import {
   validateHerokuProvider,
   validateDatabricksProvider,
@@ -98,11 +76,7 @@ import {
   validateAnthropicCompatibleProvider,
   validateClaudeCodeCompatibleProvider,
 } from "./validation/anthropicFormat";
-import {
-  validateWebCookieProvider,
-  bytezValidationResultFromStatus,
-  validateBytezProvider,
-} from "./validation/webCookie";
+import { bytezValidationResultFromStatus, validateBytezProvider } from "./validation/bytez";
 import {
   validateV0VercelProvider,
   validateAuggieProvider,
@@ -124,13 +98,7 @@ export { validateCommandCodeProvider, validateClaudeCodeCompatibleProvider };
 // here to preserve the historical public surface (tests + route handlers import them via this module).
 export { isRetryableProxyTarget, isSecurityBlockError } from "./validation/transport";
 
-// validateWebCookieProvider + bytezValidationResultFromStatus have external importers (tests +
-// the web-cookie fallback suites) — re-export to preserve the historical public surface.
-export { validateWebCookieProvider, bytezValidationResultFromStatus };
-
-// validateWebCookieProvider, bytezValidationResultFromStatus, validateBytezProvider, and
-// validateKiroApiKeyRuntimeProbe now live in ./validation/webCookie and ./validation/kiro.
-// They are re-exported above to preserve the historical public surface.
+export { bytezValidationResultFromStatus };
 
 export async function validateProviderApiKey({ provider, apiKey, providerSpecificData = {} }: any) {
   const requiresApiKey = !providerAllowsOptionalApiKey(provider);
@@ -244,22 +212,6 @@ export async function validateProviderApiKey({ provider, apiKey, providerSpecifi
     runwayml: validateRunwayProvider,
     snowflake: validateSnowflakeProvider,
     gigachat: validateGigachatProvider,
-    "deepseek-web": validateDeepSeekWebProvider,
-    "grok-web": validateGrokWebProvider,
-    "qwen-web": validateQwenWebProvider,
-    "kimi-web": validateKimiWebProvider,
-    "chatgpt-web": validateChatGptWebProvider,
-    "perplexity-web": validatePerplexityWebProvider,
-    "blackbox-web": validateBlackboxWebProvider,
-    "muse-spark-web": validateMuseSparkWebProvider,
-    "inner-ai": validateInnerAiProvider,
-    "adapta-web": validateAdaptaWebProvider,
-    "claude-web": validateClaudeWebProvider,
-    "gemini-web": validateGeminiWebProvider,
-    "notion-web": validateNotionWebProvider,
-    "copilot-m365-web": validateCopilotM365WebProvider,
-    "copilot-web": validateCopilotWebProvider,
-    "t3-web": validateT3WebProvider,
     "azure-openai": validateAzureOpenAIProvider,
     "azure-ai": validateAzureAiProvider,
     "voyage-ai": ({ apiKey, providerSpecificData }: any) => {
@@ -315,19 +267,6 @@ export async function validateProviderApiKey({ provider, apiKey, providerSpecifi
   if (SPECIALTY_VALIDATORS[provider]) {
     try {
       return await SPECIALTY_VALIDATORS[provider]({ apiKey, providerSpecificData });
-    } catch (error: any) {
-      return toValidationErrorResult(error);
-    }
-  }
-
-  // Web-cookie providers WITHOUT a dedicated specialty validator above fall back to the generic
-  // session-ping check (AUTH_007 SESSION_EXPIRED on 401/403). Providers that DO have a rich
-  // per-provider validator (grok-web, chatgpt-web, claude-web, …) are handled by
-  // SPECIALTY_VALIDATORS first and must not be shadowed by this generic probe (issue: the
-  // #4023 dispatch was placed too early and intercepted every web-cookie provider).
-  if (WEB_COOKIE_PROVIDERS[provider]) {
-    try {
-      return await validateWebCookieProvider({ provider, apiKey, providerSpecificData });
     } catch (error: any) {
       return toValidationErrorResult(error);
     }

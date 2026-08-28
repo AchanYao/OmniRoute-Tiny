@@ -84,9 +84,7 @@ export const NOT_TOKEN_QUANTIFIABLE_BUT_CREDENTIALED: readonly string[] = [
   "friendliai", // probed -> 401 "no authorization info provided"
   "iflytek", // probed -> 401 Unauthorized
   "liquid", // probed -> 404: endpoint moved; config needs a separate audit
-  "muse-spark-web", // probed -> 403; authHeader is a session cookie, not a key
   "puter", // probed -> 401 "Missing authentication token"
-  "qwen-web", // probed -> 200 but serves the WAF HTML page, not the API
   "sparkdesk", // probed -> 401 Unauthorized
 ];
 

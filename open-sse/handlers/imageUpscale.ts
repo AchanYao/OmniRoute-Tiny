@@ -5,7 +5,7 @@
  *
  * Request (OpenAI-adjacent, deliberately minimal):
  * {
- *   "model": "adobe-firefly/topaz-bloom",
+ *   "model": "stability-ai/fast",
  *   "image": "data:image/png;base64,...",   // or image_url / http(s) URL
  *   "factor": 2,                            // 2 | 4 (snapped to what the model supports)
  *   "creativity": 40,                       // 0-100 % (generative upscalers only)
@@ -18,7 +18,6 @@
  */
 
 import { getUpscaleProvider, parseUpscaleModel } from "../config/upscaleRegistry.ts";
-import { handleAdobeFireflyImageUpscale } from "./imageUpscale/adobeFirefly.ts";
 import { handleStabilityImageUpscale } from "./imageUpscale/stability.ts";
 import { handleTopazImageUpscale } from "./imageUpscale/topaz.ts";
 import type {
@@ -26,6 +25,11 @@ import type {
   UpscaleHandlerResult,
   UpscaleLogger,
 } from "./imageUpscale/shared.ts";
+import {
+  isSunsetWebCookieChatTarget,
+  sunsetProviderFromModelString,
+  webCookieSunsetHandlerResult,
+} from "@/shared/providers/webCookieSunset.ts";
 
 export type { UpscaleHandlerResult } from "./imageUpscale/shared.ts";
 
@@ -41,6 +45,9 @@ export async function handleImageUpscale({
   fetchImpl?: typeof fetch;
 }): Promise<UpscaleHandlerResult> {
   const requestedModel = typeof body.model === "string" ? body.model : "";
+  if (sunsetProviderFromModelString(requestedModel)) {
+    return webCookieSunsetHandlerResult();
+  }
   const { provider, model } = parseUpscaleModel(requestedModel);
 
   if (!provider || !model) {
@@ -49,8 +56,12 @@ export async function handleImageUpscale({
       status: 400,
       error:
         `Invalid upscale model: ${requestedModel || "(missing)"}. ` +
-        `Use format: provider/model (e.g. adobe-firefly/topaz-bloom).`,
+        `Use format: provider/model (e.g. stability-ai/fast).`,
     };
+  }
+
+  if (isSunsetWebCookieChatTarget(provider)) {
+    return webCookieSunsetHandlerResult();
   }
 
   const providerConfig = getUpscaleProvider(provider);
@@ -71,15 +82,6 @@ export async function handleImageUpscale({
   const resolvedCredentials = credentials ?? {};
 
   switch (providerConfig.format) {
-    case "adobe-firefly-upscale":
-      return handleAdobeFireflyImageUpscale({
-        model,
-        provider,
-        body,
-        credentials: resolvedCredentials,
-        log,
-        ...(fetchImpl ? { fetchImpl } : {}),
-      });
     case "stability-upscale":
       return handleStabilityImageUpscale({
         model,

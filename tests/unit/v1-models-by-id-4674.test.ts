@@ -1,10 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import {
-  findModelById,
-  handleGetModelById,
-} from "@/app/api/v1/models/modelById";
+import { findModelById, handleGetModelById } from "@/app/api/v1/models/modelById";
 
 // #4674 — GET /v1/models/{model} previously had no route handler, so the request
 // fell through to the Next.js catch-all and returned the HTML dashboard instead of
@@ -13,7 +10,7 @@ import {
 
 const CATALOG = [
   { id: "claude/claude-sonnet-4-6", object: "model", owned_by: "claude" },
-  { id: "cgpt-web/gpt-5.5", object: "model", owned_by: "chatgpt-web" },
+  { id: "codex/gpt-5.6-sol", object: "model", owned_by: "codex" },
   { id: "gpt-5", object: "model", owned_by: "openai" },
 ];
 
@@ -29,9 +26,9 @@ test("findModelById returns the exact-id match", () => {
 });
 
 test("findModelById handles provider-prefixed ids containing a slash", () => {
-  const found = findModelById(CATALOG, "cgpt-web/gpt-5.5");
+  const found = findModelById(CATALOG, "codex/gpt-5.6-sol");
   assert.ok(found);
-  assert.equal(found.id, "cgpt-web/gpt-5.5");
+  assert.equal(found.id, "codex/gpt-5.6-sol");
 });
 
 test("findModelById returns null for an unknown model", () => {

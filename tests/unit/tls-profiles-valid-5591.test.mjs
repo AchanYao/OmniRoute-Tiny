@@ -26,8 +26,6 @@ function supportedProfiles() {
 const SOURCES = [
   "src/app/api/internal/codex-responses-ws/route.ts",
   "scripts/dev/responses-ws-proxy.mjs",
-  "open-sse/services/grokTlsClient.ts",
-  "open-sse/services/claudeTlsClient.ts",
 ];
 
 // Strip comments before scanning — explanatory comments may name the bad

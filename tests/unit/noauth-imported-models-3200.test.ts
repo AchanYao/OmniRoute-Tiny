@@ -42,12 +42,9 @@ test.after(async () => {
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
-test("#3200 imported model on a noAuth provider (theoldllm) appears in /api/v1/models", async () => {
-  // theoldllm is a noAuth provider (alias "tllm") — it never creates a DB connection row.
-  // Import a model that is NOT a built-in theoldllm model, so its presence is solely due
-  // to the custom/imported path (the path the bug breaks).
+test("#3200 imported model on a noAuth provider (opencode) appears in /api/v1/models", async () => {
   await modelsDb.addCustomModel(
-    "theoldllm",
+    "opencode",
     "my-imported-model-3200",
     "My Imported Model",
     "imported"
@@ -61,7 +58,7 @@ test("#3200 imported model on a noAuth provider (theoldllm) appears in /api/v1/m
 
   assert.equal(response.status, 200);
   assert.ok(
-    ids.has("tllm/my-imported-model-3200"),
+    ids.has("oc/my-imported-model-3200"),
     "imported model on noAuth provider must appear under its alias prefix"
   );
 });
@@ -89,9 +86,9 @@ test("#3200 custom/imported models on auth providers still appear (no regression
 });
 
 test("#3200 imported models on noAuth providers are hidden when the provider is disabled", async () => {
-  await settingsDb.updateSettings({ blockedProviders: ["theoldllm"] });
+  await settingsDb.updateSettings({ blockedProviders: ["opencode"] });
   await modelsDb.addCustomModel(
-    "theoldllm",
+    "opencode",
     "my-imported-model-disabled",
     "Hidden Imported Model",
     "imported"
@@ -105,7 +102,7 @@ test("#3200 imported models on noAuth providers are hidden when the provider is 
 
   assert.equal(response.status, 200);
   assert.equal(
-    ids.has("tllm/my-imported-model-disabled"),
+    ids.has("oc/my-imported-model-disabled"),
     false,
     "imported noAuth provider models must stay hidden while the provider is disabled"
   );

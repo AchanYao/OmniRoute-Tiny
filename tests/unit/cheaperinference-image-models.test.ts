@@ -1,9 +1,7 @@
-// Cheaper Inference image models + the Adobe Firefly collision guard.
+// Cheaper Inference image models after Adobe Firefly image stub removal.
 //
-// nano-banana-pro / nano-banana-2 exist in BOTH providers. parseImageModel resolves a
-// bare id by first-match over IMAGE_PROVIDERS iteration order, so the bare ids must
-// keep going to adobe-firefly (pre-existing behaviour) and Cheaper Inference must be
-// reachable only via its prefix. Operator decision 2026-07-31.
+// nano-banana-pro / nano-banana-2 used to collide with adobe-firefly. That stub is gone,
+// so bare ids must NOT resolve to adobe-firefly. Prefixed cheaperinference/cinf still resolve.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { IMAGE_PROVIDERS, parseImageModel } from "@omniroute/open-sse/config/imageRegistry.ts";
@@ -31,11 +29,13 @@ test("prefixed ids resolve to cheaperinference", () => {
   });
 });
 
-test("REGRESSION GUARD: bare nano-banana ids still route to adobe-firefly", () => {
-  // If this flips to cheaperinference, someone added an IMAGE_MODEL_ALIASES entry
-  // (forbidden) or declared cheaperinference before adobe-firefly in IMAGE_PROVIDERS.
-  assert.equal(parseImageModel("nano-banana-2").provider, "adobe-firefly");
-  assert.equal(parseImageModel("nano-banana-pro").provider, "adobe-firefly");
+test("bare nano-banana ids no longer resolve to adobe-firefly", () => {
+  assert.equal("adobe-firefly" in IMAGE_PROVIDERS, false);
+  assert.notEqual(parseImageModel("nano-banana-2").provider, "adobe-firefly");
+  assert.notEqual(parseImageModel("nano-banana-pro").provider, "adobe-firefly");
+  // After Firefly removal the bare ids belong to cheaperinference first-match.
+  assert.equal(parseImageModel("nano-banana-2").provider, "cheaperinference");
+  assert.equal(parseImageModel("nano-banana-pro").provider, "cheaperinference");
 });
 
 test("cheaperinference image models are NOT in the chat registry", async () => {

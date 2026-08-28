@@ -174,7 +174,7 @@ test("#8926: live authority defaults to strict and honors explicit partial-disco
   assert.equal(providerUsesAuthoritativeLiveCatalog("github"), true);
   assert.equal(providerUsesAuthoritativeLiveCatalog("cursor"), true);
   assert.equal(providerUsesAuthoritativeLiveCatalog("unknown-provider-8926"), true);
-  assert.equal(providerUsesAuthoritativeLiveCatalog("theoldllm"), true);
+  assert.equal(providerUsesAuthoritativeLiveCatalog("opencode"), true);
   assert.equal(providerUsesAuthoritativeLiveCatalog("command-code"), false);
 });
 

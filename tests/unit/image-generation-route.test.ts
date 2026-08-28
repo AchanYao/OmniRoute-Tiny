@@ -257,7 +257,7 @@ test("v1 image edit POST enforces disabled API key policy", async () => {
 
   const formData = new FormData();
   formData.set("prompt", "make the background lighter");
-  formData.set("model", "cgpt-web/gpt-5.5");
+  formData.set("model", "openai/gpt-image-2");
   formData.set("image", new File([new Uint8Array([1, 2, 3])], "source.png", { type: "image/png" }));
 
   const response = await imageEditRoute.POST(
@@ -448,7 +448,7 @@ test("v1 image edit POST rejects excessive or malformed Codex reference sets", a
 
 test("v1 image edit POST keeps non-Codex providers single-reference", async () => {
   const formData = new FormData();
-  formData.set("model", "cgpt-web/gpt-5.5");
+  formData.set("model", "openai/gpt-image-2");
   formData.set("prompt", "combine these references");
   formData.set("image", new File([VALID_PNG_BYTES], "reference-1.png", { type: "image/png" }));
   formData.append("image[]", new File([VALID_PNG_BYTES], "reference-2.png", { type: "image/png" }));

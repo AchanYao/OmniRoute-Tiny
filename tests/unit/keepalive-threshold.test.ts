@@ -46,25 +46,10 @@ describe("resolveKeepaliveThreshold", () => {
     assert.equal(resolveKeepaliveThreshold("opencode-zen/gpt-4"), 15000);
   });
 
-  it("returns 15000ms for web-session provider (chatgpt-web)", () => {
-    assert.equal(resolveKeepaliveThreshold("chatgpt-web/gpt-5"), 15000);
-  });
-
-  it("returns 15000ms for web-session provider (grok-web)", () => {
-    assert.equal(resolveKeepaliveThreshold("grok-web/grok-4"), 15000);
-  });
-
-  it("returns 15000ms for web-session provider (claude-web)", () => {
-    assert.equal(resolveKeepaliveThreshold("claude-web/claude-sonnet-4"), 15000);
-  });
-
   it("SLOW_KEEPALIVE_PROVIDERS set contains expected providers", () => {
     assert.ok(SLOW_KEEPALIVE_PROVIDERS.has("pollinations"));
     assert.ok(SLOW_KEEPALIVE_PROVIDERS.has("pol"));
     assert.ok(SLOW_KEEPALIVE_PROVIDERS.has("opencode-zen"));
-    assert.ok(SLOW_KEEPALIVE_PROVIDERS.has("chatgpt-web"));
-    assert.ok(SLOW_KEEPALIVE_PROVIDERS.has("grok-web"));
-    assert.ok(SLOW_KEEPALIVE_PROVIDERS.has("claude-web"));
   });
 
   it("SLOW_KEEPALIVE_PROVIDERS does not contain normal providers", () => {

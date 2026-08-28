@@ -122,9 +122,9 @@ test("relay routing backend auto mode skips bifrost for manifest-ineligible prov
   });
 
   assert.deepEqual(
-    shouldTryBifrostForRequest("auto", config, { model: "cw/claude-sonnet-4.6" }, () => ({
+    shouldTryBifrostForRequest("auto", config, { model: "gitlab/claude-sonnet-4.6" }, () => ({
       eligible: false,
-      reasons: ["custom executor: claude-web"],
+      reasons: ["custom executor: gitlab"],
     })),
     { tryBifrost: false, fallbackReason: "bifrost-ineligible" }
   );
@@ -147,9 +147,9 @@ test("relay routing backend strict bifrost bypasses manifest eligibility", () =>
   });
 
   assert.deepEqual(
-    shouldTryBifrostForRequest("bifrost", config, { model: "cw/claude-sonnet-4.6" }, () => ({
+    shouldTryBifrostForRequest("bifrost", config, { model: "gitlab/claude-sonnet-4.6" }, () => ({
       eligible: false,
-      reasons: ["custom executor: claude-web"],
+      reasons: ["custom executor: gitlab"],
     })),
     { tryBifrost: true }
   );

@@ -15,11 +15,12 @@ vi.mock("next-intl", () => ({
 }));
 
 function mockFetchOnce(results: unknown[]) {
-  const fetchMock = vi.fn(async () =>
-    new Response(JSON.stringify({ results }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    })
+  const fetchMock = vi.fn(
+    async () =>
+      new Response(JSON.stringify({ results }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })
   );
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
@@ -37,7 +38,7 @@ describe("DiscoveryPageClient", () => {
     mockFetchOnce([
       {
         id: 1,
-        providerId: "huggingchat",
+        providerId: "huggingface",
         method: "free_tier",
         authType: "none",
         feasibility: 5,
@@ -50,7 +51,7 @@ describe("DiscoveryPageClient", () => {
     render(<DiscoveryPageClient />);
 
     await waitFor(() => {
-      expect(screen.getByText("huggingchat")).toBeInTheDocument();
+      expect(screen.getByText("huggingface")).toBeInTheDocument();
     });
     // status + risk badges render (mocked t returns the key)
     expect(screen.getByText("verified")).toBeInTheDocument();

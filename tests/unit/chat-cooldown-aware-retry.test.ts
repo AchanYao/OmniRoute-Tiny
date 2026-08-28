@@ -9,8 +9,6 @@ process.env.STREAM_READINESS_TIMEOUT_MS = "50";
 const harness = await createChatPipelineHarness("chat-cooldown-aware-retry");
 const auth = await import("../../src/sse/services/auth.ts");
 const { getProviderConnectionById } = await import("../../src/lib/db/providers.ts");
-const { __setTlsFetchOverrideForTesting } =
-  await import("../../open-sse/services/claudeTlsClient.ts");
 const {
   BaseExecutor,
   buildOpenAIResponse,
@@ -59,7 +57,6 @@ test.beforeEach(async () => {
 });
 
 test.afterEach(async () => {
-  __setTlsFetchOverrideForTesting(null);
   BaseExecutor.RETRY_CONFIG.maxAttempts = originalRetryConfig.maxAttempts;
   BaseExecutor.RETRY_CONFIG.delayMs = originalRetryConfig.delayMs;
   await resetStorage();
@@ -69,7 +66,7 @@ test.after(async () => {
   await harness.cleanup();
 });
 
-test("handleChat does not probe Claude Web repeatedly after an upstream 429", async () => {
+test("handleChat fail-closes leftover Claude Web traffic with 410", async () => {
   await seedConnection("claude-web", {
     apiKey: "sessionKey=fake-session",
   });
@@ -78,38 +75,31 @@ test("handleChat does not probe Claude Web repeatedly after an upstream 429", as
     maxRetryIntervalSec: 3,
   });
 
-  let completionCalls = 0;
-  __setTlsFetchOverrideForTesting(async (url) => {
-    if (url.endsWith("/organizations")) {
-      return {
-        status: 200,
-        headers: new Headers({ "Content-Type": "application/json" }),
-        text: JSON.stringify([{ uuid: "org-test" }]),
-        body: null,
-      };
-    }
+  let fetchCalls = 0;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => {
+    fetchCalls += 1;
+    throw new Error("sunset path must not hit network");
+  }) as typeof fetch;
 
-    completionCalls += 1;
-    return {
-      status: 429,
-      headers: new Headers({ "Content-Type": "application/json" }),
-      text: JSON.stringify({ error: { message: "Rate limited." } }),
-      body: null,
-    };
-  });
+  try {
+    const response = await handleChat(
+      buildRequest({
+        body: {
+          model: "claude-web/claude-opus-5",
+          stream: false,
+          messages: [{ role: "user", content: "do not retry a Claude Web 429" }],
+        },
+      })
+    );
 
-  const response = await handleChat(
-    buildRequest({
-      body: {
-        model: "claude-web/claude-opus-5",
-        stream: false,
-        messages: [{ role: "user", content: "do not retry a Claude Web 429" }],
-      },
-    })
-  );
-
-  assert.equal(response.status, 429);
-  assert.equal(completionCalls, 1);
+    assert.equal(response.status, 410);
+    assert.equal(fetchCalls, 0, "sunset path must not probe claude.ai");
+    const payload = await response.json();
+    assert.match(String(payload?.error?.message || payload?.error), /sunset/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("handleChat waits for a short cooldown and retries once within the configured budget", async () => {

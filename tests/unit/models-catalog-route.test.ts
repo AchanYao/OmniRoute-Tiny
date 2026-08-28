@@ -1621,7 +1621,7 @@ test("v1 models catalog includes noAuth provider models when no DB connections e
 });
 
 test("v1 models catalog hides disabled noAuth provider models", async () => {
-  await settingsDb.updateSettings({ blockedProviders: ["opencode", "duckduckgo-web"] });
+  await settingsDb.updateSettings({ blockedProviders: ["opencode"] });
 
   const response = await v1ModelsCatalog.getUnifiedModelsResponse(
     new Request("http://localhost/api/v1/models")
@@ -1634,10 +1634,5 @@ test("v1 models catalog hides disabled noAuth provider models", async () => {
     ids.some((id) => id.startsWith("oc/")),
     false,
     "OpenCode no-auth models must be hidden while no-auth providers are disabled"
-  );
-  assert.equal(
-    ids.some((id) => id.startsWith("ddgw/")),
-    false,
-    "DuckDuckGo no-auth models must be hidden while no-auth providers are disabled"
   );
 });

@@ -162,7 +162,7 @@ export async function validateOnboardingApiKey(
     body: JSON.stringify(payload),
   });
   const data = await parseJson(response);
-  // #5565/#5567: providers with no live validator (lmarena, piapi, …) return
+  // #5565/#5567: providers with no live validator (piapi, …) return
   // HTTP 400 + { unsupported: true }. Treat "validation not supported" as a
   // non-blocking "can't verify" and let the wizard proceed to save — mirror
   // AddApiKeyModal. Without this short-circuit `expectOk` threw on the 400 and

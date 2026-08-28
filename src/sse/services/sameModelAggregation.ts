@@ -7,7 +7,6 @@ import { isModelExcludedByConnection } from "@/domain/connectionModelRules";
 import { NOAUTH_PROVIDERS } from "@/shared/constants/providers";
 import { REGISTRY } from "@omniroute/open-sse/config/providerRegistry.ts";
 import { PROVIDER_ID_TO_ALIAS } from "@omniroute/open-sse/config/providerModels.ts";
-import { hasUsableWebSessionCredential } from "@/shared/providers/webSessionCredentials";
 import {
   filterResilienceBlockedCandidates,
   SYNTHETIC_NOAUTH_CONNECTION_ID,
@@ -63,7 +62,7 @@ function hasCredential(connection: Connection): boolean {
     (typeof connection.apiKey === "string" && connection.apiKey.trim().length > 0) ||
     (typeof connection.accessToken === "string" && connection.accessToken.trim().length > 0) ||
     (typeof connection.refreshToken === "string" && connection.refreshToken.trim().length > 0) ||
-    hasUsableWebSessionCredential(connection.provider, connection.providerSpecificData)
+    false
   );
 }
 

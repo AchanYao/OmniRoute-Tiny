@@ -65,8 +65,8 @@ test("direct Anthropic API providers clamp Opus 5 disabled thinking to high effo
   }
 });
 
-test("GitHub Copilot and Claude Web do not inherit the Anthropic API effort cap", () => {
-  for (const provider of ["github", "claude-web"]) {
+test("GitHub Copilot does not inherit the Anthropic API effort cap", () => {
+  for (const provider of ["github"]) {
     const body = {
       model: "claude-opus-5",
       thinking: { type: "disabled" },

@@ -17,6 +17,10 @@
  */
 
 import { getExecutor } from "../../executors/index.ts";
+import {
+  isSunsetWebCookieChatTarget,
+  webCookieSunsetError,
+} from "@/shared/providers/webCookieSunset.ts";
 import { isCliproxyapiDeepModeEnabled } from "../../executors/cliproxyapi.ts";
 import { isDarioDeepModeEnabled } from "../../executors/dario.ts";
 import { getCachedSettings } from "@/lib/db/readCache";
@@ -91,6 +95,9 @@ export async function resolveExecutorWithProxy(
   log?: LoggerLike,
   providerSpecificData?: Record<string, unknown> | null
 ) {
+  if (isSunsetWebCookieChatTarget(prov)) {
+    throw webCookieSunsetError();
+  }
   // Per-connection routing override (#6339): the resolved connection can opt itself
   // into the CLIProxyAPI passthrough executor via providerSpecificData.cliproxyapiMode
   // === "claude-native" (UI toggle). This takes precedence over the provider-level
@@ -166,7 +173,10 @@ export async function resolveExecutorWithProxy(
       result = await nativeExec.execute(input);
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      log?.info?.("UPSTREAM_PROXY", `${prov} native error (${errMsg}), retrying via ${backendLabel}`);
+      log?.info?.(
+        "UPSTREAM_PROXY",
+        `${prov} native error (${errMsg}), retrying via ${backendLabel}`
+      );
       try {
         return await proxyExec.execute(input);
       } catch (proxyErr) {

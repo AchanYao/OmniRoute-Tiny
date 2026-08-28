@@ -40,10 +40,9 @@ LLM 网关。项目会逐步减少与网关无关的 Agent 平台模块、构建
 - Prompt Compression 及其 LLMLingua、TensorFlow、Transformers、tiktoken 依赖
 - Evals、Chaos、Gamification、Local Corpus 等 Agent 平台功能
 - 与上述功能对应的 API、Dashboard 页面和后台启动任务
-- Web Cookie / 网页会话 Provider（抓站 Cookie 当模型源）。当前仍继承自上游，后续下线；见 `docs/architecture/web-cookie-sunset.md`
+- Web Cookie / 网页会话 Provider（抓站 Cookie 当模型源）。产品面已下线：不可新增、不出现在 `/v1/models`、聊天与媒体返回 410。SQLite 残留行不自动删除；见 `docs/architecture/web-cookie-sunset.md`
 
-这里的“排除”是指 Gateway 构建产物。部分源码目前仍保留在仓库中，后续会在核心网关契约测试
-覆盖后逐步删除。
+这里的“排除”是指 Gateway 构建产物。网页会话 / 非官方抓站源码已从仓库删除；残留 SQLite 行与客户端 `provider/model` 字符串仍返回 410。官方 API-key / OAuth / 本地 / compatible 节点保留。
 
 ## 构建
 

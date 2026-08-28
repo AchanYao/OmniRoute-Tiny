@@ -97,16 +97,6 @@ const STATIC_MODEL_PROVIDERS: Record<string, () => Array<{ id: string; name: str
     { id: "google_scholar", name: "Google Scholar" },
     { id: "duckduckgo", name: "DuckDuckGo" },
   ],
-  "venice-web": () => [
-    // Venice.ai web-cookie provider — no upstream /v1/models endpoint, so seed the
-    // current lineup as a static catalog (#6269). Venice rotates its catalog; keep
-    // in step with the published list at https://docs.venice.ai/models/overview.
-    { id: "venice-uncensored", name: "Venice Uncensored" },
-    { id: "llama-3.3-70b", name: "Llama 3.3 70B" },
-    { id: "qwen3-235b", name: "Qwen3 235B" },
-    { id: "qwen3-4b", name: "Qwen3 4B" },
-    { id: "deepseek-r1-671b", name: "DeepSeek R1 671B" },
-  ],
 };
 
 const SEARCH_TYPE_LABELS: Record<string, string> = {

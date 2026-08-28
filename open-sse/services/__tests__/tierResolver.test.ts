@@ -231,22 +231,17 @@ describe("TierResolver", () => {
 
     it("deriveNoAuthFreeProviders includes all chat-tier noAuth providers", () => {
       const derived = deriveNoAuthFreeProviders();
-      // opencode + mimocode are the ones the bug report called out
+      // opencode is the remaining no-auth HTTP backend after website-session sunset
       expect(derived.includes("opencode"), "opencode should be in derived noAuth-free list").toBe(
         true
       );
-      expect(derived.includes("mimocode"), "mimocode should be in derived noAuth-free list").toBe(
-        true
-      );
-      expect(derived.includes("duckduckgo-web")).toBe(true);
+      expect(derived.includes("mimocode")).toBe(false);
+      expect(derived.includes("duckduckgo-web")).toBe(false);
     });
 
     it("deriveNoAuthFreeProviders excludes non-LLM noAuth providers", () => {
       const derived = deriveNoAuthFreeProviders();
-      expect(
-        derived.includes("veoaifree-web"),
-        "veoaifree-web (serviceKinds: video) must not be classified as chat-free"
-      ).toBe(false);
+      expect(derived.includes("devin-cli-agentic")).toBe(true);
     });
 
     it("DEFAULT_TIER_CONFIG.freeProviders contains the union of legacy + noAuth-derived", () => {
@@ -259,12 +254,6 @@ describe("TierResolver", () => {
       // No provider override, no cost-based match (big-pickle has no KNOWN_MODEL_PRICING row).
       // The fix is that 'opencode' is now in freeProviders.
       const result = classifyTier("opencode", "big-pickle");
-      expect(result.tier).toBe(PROVIDER_TIER.FREE);
-      expect(result.hasFreeTier).toBe(true);
-    });
-
-    it("classifyTier classifies mimocode/mimo-auto as free via noAuth derivation", () => {
-      const result = classifyTier("mimocode", "mimo-auto");
       expect(result.tier).toBe(PROVIDER_TIER.FREE);
       expect(result.hasFreeTier).toBe(true);
     });

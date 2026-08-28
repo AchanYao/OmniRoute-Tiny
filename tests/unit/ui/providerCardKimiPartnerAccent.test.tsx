@@ -69,10 +69,7 @@ describe("ProviderCard — Kimi (Moonshot AI) founding-friend accent", () => {
     expect(accented).not.toBeNull();
   });
 
-  it("renders the Founding Friend badge for kimi-web and moonshot too", () => {
-    const kimiWebEl = renderCard("kimi-web", "Kimi Web");
-    expect(kimiWebEl.textContent).toContain("Founding Friend");
-
+  it("renders the Founding Friend badge for moonshot too", () => {
     const moonshotEl = renderCard("moonshot", "Kimi");
     expect(moonshotEl.textContent).toContain("Founding Friend");
   });

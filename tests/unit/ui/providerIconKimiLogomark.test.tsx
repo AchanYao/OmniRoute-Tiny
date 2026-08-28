@@ -55,7 +55,7 @@ afterEach(() => {
 });
 
 describe("ProviderIcon — Kimi official-partnership logomark", () => {
-  it.each(["kimi-coding", "kimi-web", "moonshot"])(
+  it.each(["kimi-coding", "moonshot"])(
     "uses the light-background logomark for %s in light theme",
     (providerId) => {
       const container = renderIcon(providerId);
@@ -65,7 +65,7 @@ describe("ProviderIcon — Kimi official-partnership logomark", () => {
     }
   );
 
-  it.each(["kimi-coding", "kimi-web", "moonshot"])(
+  it.each(["kimi-coding", "moonshot"])(
     "uses the dark-background logomark for %s in dark theme",
     (providerId) => {
       useThemeStore.getState().setTheme("dark");
